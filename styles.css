@@ -1133,3 +1133,346 @@ ul.actions.special {
 		margin-bottom: 0;
 	}
 }
+
+[hidden] {
+	display: none !important;
+}
+
+.pca-auth-tabs {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.75rem;
+	margin-bottom: 2rem;
+}
+
+.pca-auth-tabs .button {
+	width: 100%;
+	margin: 0;
+}
+
+.pca-login-card form {
+	margin: 0;
+}
+
+.pca-authenticated-panel {
+	text-align: center;
+}
+
+.pca-authenticated-panel h2 {
+	margin-bottom: 0.75rem;
+}
+
+.pca-form-help {
+	margin: -0.25rem 0 1.35rem;
+	color: var(--pca-muted);
+	font-size: 0.92rem;
+	line-height: 1.55;
+}
+
+.pca-login-status,
+.pca-backend-status {
+	min-height: 1.5rem;
+	margin-top: 1rem;
+	font-weight: 700;
+	text-align: center;
+}
+
+.pca-login-status.is-error,
+.pca-backend-status.is-error {
+	color: #a30d14;
+}
+
+.pca-login-status.is-success,
+.pca-backend-status.is-success {
+	color: #25673c;
+}
+
+.pca-login-status.is-info,
+.pca-backend-status.is-info {
+	color: var(--pca-muted);
+}
+
+.pca-events-grid,
+.pca-dashboard-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: clamp(1rem, 2.5vw, 1.75rem);
+	margin-top: 2rem;
+}
+
+.pca-event-card,
+.pca-registration-card {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+}
+
+.pca-event-card .pca-event-details,
+.pca-registration-card .pca-event-details {
+	grid-template-columns: 1fr;
+}
+
+.pca-event-card .actions {
+	margin-top: auto;
+	margin-bottom: 0;
+	padding-top: 0.5rem;
+}
+
+.pca-event-registration-meta {
+	padding-top: 1rem;
+	border-top: 1px solid var(--pca-line);
+	color: var(--pca-red-dark);
+	font-size: 0.88rem;
+	font-weight: 800;
+}
+
+.button.disabled,
+.button:disabled,
+button:disabled,
+input[type="submit"]:disabled {
+	cursor: not-allowed;
+	opacity: 0.5;
+	pointer-events: none;
+}
+
+.pca-empty-state {
+	max-width: 52rem;
+	padding: clamp(1.5rem, 3vw, 2.25rem);
+	margin: 2rem auto 0;
+	border: 1px dashed rgba(215, 25, 32, 0.28);
+	border-radius: var(--pca-radius-md);
+	background: rgba(255, 255, 255, 0.62);
+	color: var(--pca-muted);
+	text-align: center;
+}
+
+.pca-empty-state p:last-of-type {
+	margin-bottom: 1.25rem;
+}
+
+.pca-register-event-summary {
+	max-width: 58rem;
+	margin: 0 auto 2rem;
+}
+
+.pca-register-event-summary h2 {
+	margin-bottom: 1rem;
+}
+
+.pca-registration-form {
+	max-width: 58rem;
+	margin: 0 auto;
+}
+
+.pca-participant-list {
+	display: grid;
+	gap: 1rem;
+	margin-bottom: 1rem;
+}
+
+.pca-participant-row {
+	position: relative;
+	padding: 1.35rem;
+	margin: 0;
+	border: 1px solid var(--pca-line);
+	border-radius: var(--pca-radius-md);
+	background: rgba(255, 255, 255, 0.76);
+	box-shadow: var(--pca-shadow-soft);
+}
+
+.pca-participant-row legend {
+	padding: 0 0.5rem;
+	color: var(--pca-red-dark);
+	font-family: "Source Sans Pro", Helvetica, sans-serif;
+	font-size: 1rem;
+	font-weight: 900;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.pca-participant-fields {
+	display: grid !important;
+	grid-template-columns: minmax(0, 2fr) minmax(12rem, 1fr);
+	gap: 1rem;
+	width: 100% !important;
+	margin: 0 !important;
+}
+
+.pca-participant-fields .field {
+	width: auto !important;
+	padding: 0 !important;
+}
+
+.pca-remove-participant {
+	margin-top: 1rem;
+}
+
+.pca-registration-heading {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 1rem;
+	margin-bottom: 0.5rem;
+}
+
+.pca-registration-heading h3 {
+	margin-bottom: 0;
+}
+
+.pca-status-badge {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+	min-height: 1.8rem;
+	padding: 0.3rem 0.72rem;
+	border-radius: 999px;
+	font-size: 0.76rem;
+	font-weight: 900;
+	letter-spacing: 0.06em;
+	line-height: 1;
+	text-transform: uppercase;
+}
+
+.pca-status-badge.is-confirmed {
+	background: #e5f4e9;
+	color: #25673c;
+}
+
+.pca-status-badge.is-waitlisted {
+	background: #fff0d6;
+	color: #8a5410;
+}
+
+.pca-participant-summary {
+	margin-bottom: 0;
+}
+
+.pca-page-bottom-actions {
+	margin-top: 2.5rem;
+}
+
+.pca-admin-controls {
+	display: grid;
+	grid-template-columns: minmax(14rem, 1.5fr) minmax(11rem, 1fr) auto;
+	align-items: end;
+	gap: 1rem;
+	padding: 1.25rem;
+	margin: 2rem 0;
+	border: 1px solid var(--pca-line);
+	border-radius: var(--pca-radius-md);
+	background: rgba(255, 255, 255, 0.72);
+	box-shadow: var(--pca-shadow-soft);
+}
+
+.pca-admin-controls .field {
+	margin: 0;
+}
+
+.pca-admin-export {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 1rem;
+	min-height: 3rem;
+}
+
+.pca-admin-export span {
+	color: var(--pca-muted);
+	font-size: 0.9rem;
+	font-weight: 800;
+	white-space: nowrap;
+}
+
+.pca-admin-table-wrapper {
+	max-width: none !important;
+	margin-right: 0 !important;
+	margin-left: 0 !important;
+	border: 1px solid var(--pca-line);
+	border-radius: var(--pca-radius-md);
+	background: rgba(255, 255, 255, 0.76);
+	box-shadow: var(--pca-shadow-soft);
+}
+
+.pca-admin-table {
+	min-width: 76rem;
+	margin: 0;
+}
+
+.pca-admin-table th {
+	white-space: nowrap;
+}
+
+.pca-admin-table td {
+	vertical-align: top;
+}
+
+.pca-table-subtext {
+	display: block;
+	margin-top: 0.3rem;
+	color: var(--pca-muted);
+	font-size: 0.82rem;
+	font-weight: 500;
+	line-height: 1.4;
+}
+
+.pca-registration-id {
+	max-width: 10rem;
+	overflow-wrap: anywhere;
+	font-family: Consolas, "Courier New", monospace;
+	font-size: 0.78rem;
+}
+
+.pca-admin-empty {
+	padding: 2rem !important;
+	color: var(--pca-muted);
+	text-align: center;
+}
+
+@media screen and (max-width: 980px) {
+	.pca-events-grid,
+	.pca-dashboard-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.pca-admin-controls {
+		grid-template-columns: 1fr 1fr;
+	}
+
+	.pca-admin-export {
+		grid-column: 1 / -1;
+		justify-content: space-between;
+	}
+}
+
+@media screen and (max-width: 736px) {
+	#main > .post header.major h1 {
+		overflow-wrap: anywhere;
+		white-space: normal;
+	}
+
+	.pca-auth-tabs,
+	.pca-participant-fields,
+	.pca-admin-controls {
+		grid-template-columns: 1fr;
+	}
+
+	.pca-auth-tabs .button {
+		max-width: none !important;
+	}
+
+	.pca-registration-heading {
+		align-items: flex-start;
+		flex-direction: column;
+	}
+
+	.pca-admin-export {
+		grid-column: auto;
+		align-items: stretch;
+		flex-direction: column;
+	}
+
+	.pca-admin-export .button {
+		width: 100%;
+	}
+}

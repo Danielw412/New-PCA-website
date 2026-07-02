@@ -1,0 +1,47 @@
+<!DOCTYPE HTML>
+<html lang="en">
+	<head>
+		<title>Admin Dashboard | PCA Youth Center</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		<meta name="description" content="PCA Youth Center administrator registration dashboard." />
+		<link rel="stylesheet" href="assets/css/main.css" />
+		<link rel="stylesheet" href="styles.css?v=20260702" />
+		<noscript><link rel="stylesheet" href="assets/css/noscript.css" /></noscript>
+	</head>
+	<body class="is-preload">
+		<div class="pca-page-background" aria-hidden="true"><img src="images/homepage/garden-cleanup.jpg" alt="" /></div>
+		<div id="wrapper">
+			<header id="header"><a href="index.html" class="logo"><img src="images/homepage/pca-logo.png" alt="" /> PCA Youth Center</a></header>
+			<nav id="nav"><ul class="links"><li><a href="index.html">Home</a></li><li><a href="about.html">About</a></li><li><a href="membership.html">Membership</a></li><li><a href="student-council.html">Student Council</a></li><li><a href="events.html">Events</a></li><li><a href="volunteer.html">Volunteer</a></li><li><a href="support-us.html">Support Us</a></li><li><a href="bylaws.html">Bylaws</a></li><li><a href="aapi-statement.html">AAPI</a></li><li><a href="login.html">Log In</a></li></ul><ul class="icons"><li><a href="mailto:pcayouthcenter@gmail.com" class="icon solid fa-envelope"><span class="label">Email</span></a></li><li><a href="https://www.facebook.com/PCA-Youth-Center-105257804561315" class="icon brands fa-facebook-f"><span class="label">Facebook</span></a></li><li><a href="https://www.instagram.com/pcayouthcenter/" class="icon brands fa-instagram"><span class="label">Instagram</span></a></li></ul></nav>
+			<div id="main">
+				<section class="post" data-admin-dashboard>
+					<header class="major"><span class="date">Administrator Access</span><h1>Registration Dashboard</h1><p>Review event registrations and export the filtered participant list.</p></header>
+					<p class="pca-backend-status" data-admin-status data-backend-status aria-live="polite">Checking administrator access...</p>
+
+					<div class="pca-empty-state" data-admin-denied hidden>
+						<h2>Administrator access required</h2>
+						<p>This account is not listed as a PCA administrator.</p>
+						<a href="dashboard.html" class="button">Return to My Dashboard</a>
+					</div>
+
+					<div class="pca-admin-controls" data-admin-controls hidden>
+						<div class="field"><label for="admin-event-filter">Event</label><select id="admin-event-filter" data-admin-event-filter><option value="">All events</option></select></div>
+						<div class="field"><label for="admin-status-filter">Status</label><select id="admin-status-filter" data-admin-status-filter><option value="">All statuses</option><option value="confirmed">Confirmed</option><option value="waitlisted">Waitlisted</option></select></div>
+						<div class="pca-admin-export"><span data-admin-result-count>0 participants</span><button type="button" class="button primary" data-admin-export disabled>Export CSV</button></div>
+					</div>
+
+					<div class="table-wrapper pca-admin-table-wrapper" data-admin-table-region hidden>
+						<table class="pca-admin-table">
+							<thead><tr><th>Event</th><th>Status</th><th>Account Contact</th><th>Participant</th><th>Grade</th><th>Registered</th><th>Registration ID</th></tr></thead>
+							<tbody data-admin-table-body></tbody>
+						</table>
+					</div>
+				</section>
+			</div>
+			<footer id="footer"><section><form method="post" action="mailto:pcayouthcenter@gmail.com"><div class="fields"><div class="field"><label for="name">Name</label><input type="text" name="name" id="name" /></div><div class="field"><label for="email">Email</label><input type="email" name="email" id="email" /></div><div class="field"><label for="message">Message</label><textarea name="message" id="message" rows="3"></textarea></div></div><ul class="actions"><li><input type="submit" value="Send Message" /></li></ul></form></section><section class="split contact"><section class="alt"><h3>Organization</h3><p>PCA Youth Center<br />Pittsburgh Chinese American Youth Center</p></section><section><h3>Email</h3><p><a href="mailto:pcayouthcenter@gmail.com">pcayouthcenter@gmail.com</a></p></section><section><h3>Nonprofit</h3><p>501(c)(3) youth organization led by adult and student volunteers.</p></section><section><h3>Social</h3><ul class="icons alt"><li><a href="mailto:pcayouthcenter@gmail.com" class="icon solid alt fa-envelope"><span class="label">Email</span></a></li><li><a href="https://www.facebook.com/PCA-Youth-Center-105257804561315" class="icon brands alt fa-facebook-f"><span class="label">Facebook</span></a></li><li><a href="https://www.instagram.com/pcayouthcenter/" class="icon brands alt fa-instagram"><span class="label">Instagram</span></a></li></ul></section></section></footer>
+			<div id="copyright"><ul><li>&copy; 2018-2026 PCA Youth Center</li><li>Design adapted from <a href="https://html5up.net">HTML5 UP</a></li></ul></div>
+		</div>
+		<script src="assets/js/jquery.min.js"></script><script src="assets/js/jquery.scrollex.min.js"></script><script src="assets/js/jquery.scrolly.min.js"></script><script src="assets/js/browser.min.js"></script><script src="assets/js/breakpoints.min.js"></script><script src="assets/js/util.js"></script><script src="assets/js/main.js"></script><script src="script.js"></script>
+	</body>
+</html>

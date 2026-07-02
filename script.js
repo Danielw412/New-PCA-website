@@ -1,5 +1,3 @@
-const loginForm = document.querySelector("[data-login-form]");
-const loginStatus = document.querySelector("[data-login-status]");
 const autoRevealKey = "pcaAutoRevealMain";
 const revealSelectors = [
 	"#main > .post",
@@ -210,10 +208,16 @@ document.querySelectorAll('a[href]').forEach((link) => {
 	});
 });
 
-loginForm?.addEventListener("submit", (event) => {
-	event.preventDefault();
-
-	if (loginStatus) {
-		loginStatus.textContent = "Login is not connected yet.";
+const loadPcaBackend = () => {
+	if (document.querySelector('script[data-pca-backend-script]')) {
+		return;
 	}
-});
+
+	const backendScript = document.createElement("script");
+	backendScript.src = "assets/js/pca-backend.js?v=20260702";
+	backendScript.dataset.pcaBackendScript = "true";
+	backendScript.defer = true;
+	document.body.appendChild(backendScript);
+};
+
+loadPcaBackend();
