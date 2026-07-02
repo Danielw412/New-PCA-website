@@ -1,7 +1,6 @@
 const loginForm = document.querySelector("[data-login-form]");
 const loginStatus = document.querySelector("[data-login-status]");
 const autoRevealKey = "pcaAutoRevealMain";
-const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 const revealSelectors = [
 	"#main > .post",
 	"#main > .posts > article",
@@ -30,7 +29,7 @@ const revealMainContent = () => {
 
 	window.scrollTo({
 		top: targetTop,
-		behavior: prefersReducedMotion.matches ? "auto" : "smooth",
+		behavior: "smooth",
 	});
 };
 
@@ -56,12 +55,7 @@ const setupScrollReveals = () => {
 		element.style.setProperty("--pca-reveal-delay", `${Math.min(index % 4, 3) * 55}ms`);
 	});
 
-	if (prefersReducedMotion.matches || !("IntersectionObserver" in window)) {
-		if (prefersReducedMotion.matches) {
-			revealElements.forEach((element) => element.classList.add("is-visible"));
-			return;
-		}
-
+	if (!("IntersectionObserver" in window)) {
 		let ticking = false;
 
 		const revealVisibleElementsOnFrame = () => {
@@ -168,7 +162,7 @@ window.addEventListener("pageshow", () => {
 
 	if (sessionStorage.getItem(autoRevealKey) === "true") {
 		sessionStorage.removeItem(autoRevealKey);
-		window.setTimeout(revealMainContent, prefersReducedMotion.matches ? 0 : 260);
+		window.setTimeout(revealMainContent, 260);
 	}
 });
 

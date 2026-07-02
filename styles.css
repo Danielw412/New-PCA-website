@@ -178,9 +178,12 @@ body.is-preload #wrapper:before {
 }
 
 #intro h1 {
-	max-width: 9ch;
+	max-width: none;
 	margin-bottom: 1.35rem;
 	letter-spacing: 0;
+	font-size: clamp(2.8rem, 6.5vw, 5.75rem);
+	line-height: 0.96;
+	white-space: nowrap;
 	text-shadow: 0 0.45rem 1.4rem rgba(31, 2, 5, 0.44);
 }
 
@@ -387,11 +390,81 @@ input[type="submit"],
 
 #main > .post header.major h1,
 #main > .post header.major h2 {
-	max-width: 12ch;
+	max-width: 100%;
 	margin-right: auto;
 	margin-left: auto;
 	letter-spacing: 0;
+	line-height: 1.02;
+}
+
+#main > .post header.major h1 {
+	font-size: clamp(2.4rem, 5.25vw, 4.75rem);
+	white-space: nowrap;
+}
+
+#main > .post.featured header.major h2 {
+	max-width: 21ch;
+	font-size: clamp(2.5rem, 4.65vw, 4.2rem);
 	text-wrap: balance;
+}
+
+.pca-hero-actions,
+.pca-event-actions {
+	margin-top: 2rem;
+	margin-bottom: 0;
+}
+
+.pca-event-actions {
+	padding: 1.15rem;
+	border: 1px solid rgba(215, 25, 32, 0.12);
+	border-radius: var(--pca-radius-md);
+	background: rgba(255, 255, 255, 0.54);
+	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72), var(--pca-shadow-soft);
+}
+
+.pca-upcoming-card {
+	max-width: 52rem;
+	margin: 2.25rem auto 0;
+	padding: clamp(1.5rem, 3vw, 2.25rem);
+}
+
+.pca-upcoming-card + .actions.special {
+	margin-top: 2.25rem;
+}
+
+.pca-upcoming-card h3 {
+	font-size: clamp(1.45rem, 2.5vw, 2rem);
+}
+
+.pca-event-details {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.85rem;
+	margin: 1.5rem 0;
+}
+
+.pca-event-detail {
+	padding: 1rem 1.1rem;
+	border: 1px solid rgba(215, 25, 32, 0.1);
+	border-radius: 12px;
+	background: rgba(255, 248, 246, 0.72);
+}
+
+.pca-event-detail strong {
+	display: block;
+	margin-bottom: 0.2rem;
+	color: var(--pca-red) !important;
+	font-family: "Source Sans Pro", Helvetica, sans-serif;
+	font-size: 0.75rem;
+	font-weight: 900;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.pca-event-detail span {
+	color: var(--pca-ink);
+	font-family: "Source Sans Pro", Helvetica, sans-serif;
+	font-weight: 700;
 }
 
 #main > .post h2,
@@ -577,11 +650,47 @@ a.image:hover img {
 	clip-path: polygon(0 100%, 32% 35%, 50% 62%, 70% 18%, 100% 100%);
 }
 
+.pca-volunteer-photo {
+	position: relative;
+	aspect-ratio: 16 / 9;
+	border: 1px solid rgba(215, 25, 32, 0.14);
+	background: #efe8e3;
+	box-shadow: 0 1.5rem 3rem rgba(59, 5, 7, 0.15);
+}
+
+.pca-volunteer-photo img {
+	height: 100%;
+	width: 100%;
+	object-fit: cover;
+	object-position: center 54%;
+	filter: saturate(1.03) contrast(1.025);
+}
+
+.pca-about-photo {
+	position: relative;
+	aspect-ratio: 3 / 2;
+	border: 1px solid rgba(215, 25, 32, 0.14);
+	background: #eadfce;
+	box-shadow: 0 1.5rem 3rem rgba(59, 5, 7, 0.15);
+}
+
+.pca-about-photo img {
+	height: 100%;
+	width: 100%;
+	object-fit: cover;
+	object-position: center 52%;
+	filter: saturate(1.02) contrast(1.015);
+}
+
 .pca-card-grid {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
 	gap: clamp(1rem, 2.5vw, 1.75rem);
 	margin-top: 2rem;
+}
+
+.pca-event-categories {
+	grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .pca-card {
@@ -896,6 +1005,7 @@ ul.actions.special {
 	}
 
 	.pca-card-grid,
+	.pca-event-categories,
 	.pca-member-grid,
 	.pca-partner-grid {
 		grid-template-columns: 1fr;
@@ -944,8 +1054,24 @@ ul.actions.special {
 
 	#main > .post header.major h1,
 	#main > .post header.major h2 {
-		font-size: 1.72rem;
+		font-size: clamp(1.65rem, 8vw, 2.15rem);
 		line-height: 1.15;
+	}
+
+	#main > .post header.major h1 {
+		white-space: nowrap;
+	}
+
+	#main > .post.featured header.major h2 {
+		max-width: 19ch;
+	}
+
+	#intro h1 {
+		font-size: clamp(2rem, 10vw, 3rem);
+	}
+
+	.pca-event-details {
+		grid-template-columns: 1fr;
 	}
 
 	.pca-placeholder {
@@ -956,6 +1082,24 @@ ul.actions.special {
 	.pca-placeholder span {
 		max-width: 100%;
 		white-space: normal;
+	}
+
+	.pca-volunteer-photo {
+		aspect-ratio: 3 / 2;
+		border-radius: 14px;
+	}
+
+	.pca-volunteer-photo img {
+		object-position: center 54%;
+	}
+
+	.pca-about-photo {
+		aspect-ratio: 4 / 3;
+		border-radius: 14px;
+	}
+
+	.pca-about-photo img {
+		object-position: center center;
 	}
 
 	.pca-card {
@@ -987,26 +1131,5 @@ ul.actions.special {
 
 	#footer p {
 		margin-bottom: 0;
-	}
-}
-
-@media (prefers-reduced-motion: reduce) {
-	html,
-	body {
-		scroll-behavior: auto;
-	}
-
-	*,
-	*:before,
-	*:after {
-		animation-duration: 0.01ms !important;
-		animation-iteration-count: 1 !important;
-		scroll-behavior: auto !important;
-		transition-duration: 0.01ms !important;
-	}
-
-	.pca-scroll-reveal {
-		opacity: 1 !important;
-		transform: none !important;
 	}
 }
