@@ -1192,12 +1192,48 @@ ul.actions.special {
 	color: var(--pca-muted);
 }
 
-.pca-events-grid,
-.pca-dashboard-grid {
+.pca-events-grid {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
 	gap: clamp(1rem, 2.5vw, 1.75rem);
 	margin-top: 2rem;
+}
+
+#main > .post.pca-dashboard-page {
+	padding-top: clamp(2.5rem, 4.5vw, 4rem);
+	padding-bottom: clamp(2.5rem, 4.5vw, 4rem);
+}
+
+.pca-dashboard-page > header.major {
+	margin-bottom: clamp(1.75rem, 3vw, 2.75rem);
+}
+
+#main > .post.pca-dashboard-page > header.major h1 {
+	font-size: clamp(2.35rem, 4.35vw, 3.9rem);
+	white-space: normal;
+}
+
+.pca-dashboard-page > header.major p {
+	margin-bottom: 0;
+}
+
+.pca-dashboard-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 28rem), 1fr));
+	gap: clamp(1rem, 2.5vw, 1.75rem);
+	max-width: 64rem;
+	margin: 1.5rem auto 0;
+}
+
+.pca-dashboard-grid > :only-child {
+	width: 100%;
+	max-width: 40rem;
+	justify-self: center;
+}
+
+.pca-dashboard-grid > .pca-empty-state {
+	grid-column: 1 / -1;
+	margin-top: 0;
 }
 
 .pca-event-card,
@@ -1349,7 +1385,82 @@ input[type="submit"]:disabled {
 }
 
 .pca-page-bottom-actions {
-	margin-top: 2.5rem;
+	margin-top: 2rem;
+}
+
+.pca-admin-create-panel {
+	max-width: 64rem;
+	margin: 0 auto 1.25rem;
+	border: 1px solid var(--pca-line);
+	border-radius: var(--pca-radius-md);
+	background: rgba(255, 255, 255, 0.78);
+	box-shadow: var(--pca-shadow-soft);
+	overflow: hidden;
+}
+
+.pca-admin-create-panel summary {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	padding: 1.1rem 1.25rem;
+	color: var(--pca-ink);
+	font-family: "Source Sans Pro", Helvetica, sans-serif;
+	font-weight: 900;
+	letter-spacing: 0.06em;
+	list-style-position: inside;
+	text-transform: uppercase;
+	cursor: pointer;
+}
+
+.pca-admin-create-panel summary small {
+	color: var(--pca-muted);
+	font-size: 0.78rem;
+	font-weight: 700;
+	letter-spacing: 0;
+	text-transform: none;
+}
+
+.pca-admin-create-panel[open] summary {
+	border-bottom: 1px solid var(--pca-line);
+}
+
+.pca-admin-create-panel form {
+	padding: 1.25rem;
+	margin: 0;
+}
+
+.pca-admin-event-fields {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 1rem;
+}
+
+.pca-admin-event-fields .field {
+	margin: 0;
+}
+
+.pca-admin-event-fields .pca-field-wide {
+	grid-column: 1 / -1;
+}
+
+.pca-admin-event-options {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem 2rem;
+	margin: 1.25rem 0 1rem;
+}
+
+.pca-admin-event-options > div {
+	min-width: 12rem;
+}
+
+.pca-admin-create-status {
+	text-align: left;
+}
+
+.pca-admin-create-panel .actions {
+	margin-bottom: 0;
 }
 
 .pca-admin-controls {
@@ -1357,8 +1468,9 @@ input[type="submit"]:disabled {
 	grid-template-columns: minmax(14rem, 1.5fr) minmax(11rem, 1fr) auto;
 	align-items: end;
 	gap: 1rem;
-	padding: 1.25rem;
-	margin: 2rem 0;
+	max-width: 64rem;
+	padding: 1rem;
+	margin: 0 auto 1.25rem;
 	border: 1px solid var(--pca-line);
 	border-radius: var(--pca-radius-md);
 	background: rgba(255, 255, 255, 0.72);
@@ -1385,9 +1497,9 @@ input[type="submit"]:disabled {
 }
 
 .pca-admin-table-wrapper {
-	max-width: none !important;
-	margin-right: 0 !important;
-	margin-left: 0 !important;
+	max-width: 64rem !important;
+	margin-right: auto !important;
+	margin-left: auto !important;
 	border: 1px solid var(--pca-line);
 	border-radius: var(--pca-radius-md);
 	background: rgba(255, 255, 255, 0.76);
@@ -1395,15 +1507,18 @@ input[type="submit"]:disabled {
 }
 
 .pca-admin-table {
-	min-width: 76rem;
+	min-width: 55rem;
 	margin: 0;
+	font-size: 0.94rem;
 }
 
 .pca-admin-table th {
+	font-size: 0.76rem;
 	white-space: nowrap;
 }
 
 .pca-admin-table td {
+	padding: 0.9rem 0.75rem;
 	vertical-align: top;
 }
 
@@ -1414,13 +1529,6 @@ input[type="submit"]:disabled {
 	font-size: 0.82rem;
 	font-weight: 500;
 	line-height: 1.4;
-}
-
-.pca-registration-id {
-	max-width: 10rem;
-	overflow-wrap: anywhere;
-	font-family: Consolas, "Courier New", monospace;
-	font-size: 0.78rem;
 }
 
 .pca-admin-empty {
@@ -1453,8 +1561,22 @@ input[type="submit"]:disabled {
 
 	.pca-auth-tabs,
 	.pca-participant-fields,
+	.pca-admin-event-fields,
 	.pca-admin-controls {
 		grid-template-columns: 1fr;
+	}
+
+	.pca-admin-event-fields .pca-field-wide {
+		grid-column: auto;
+	}
+
+	.pca-admin-create-panel summary {
+		align-items: flex-start;
+		flex-direction: column;
+	}
+
+	.pca-admin-event-options {
+		flex-direction: column;
 	}
 
 	.pca-auth-tabs .button {

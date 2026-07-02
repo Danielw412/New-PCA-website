@@ -43,6 +43,60 @@
 		timeZone: APP_TIME_ZONE,
 	});
 
+	const eventDateFormatter = new Intl.DateTimeFormat("en-US", {
+		dateStyle: "medium",
+		timeZone: APP_TIME_ZONE,
+	});
+
+	const timeZonePartsFormatter = new Intl.DateTimeFormat("en-CA", {
+		timeZone: APP_TIME_ZONE,
+		year: "numeric",
+		month: "2-digit",
+		day: "2-digit",
+		hour: "2-digit",
+		minute: "2-digit",
+		second: "2-digit",
+		hourCycle: "h23",
+	});
+
+	const timeZoneParts = (instant) => Object.fromEntries(
+		timeZonePartsFormatter
+			.formatToParts(instant)
+			.filter((part) => part.type !== "literal")
+			.map((part) => [part.type, Number(part.value)])
+	);
+
+	const timeZoneOffsetMilliseconds = (instant) => {
+		const parts = timeZoneParts(instant);
+		return Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second) - instant.getTime();
+	};
+
+	const easternDateTimeToIso = (value) => {
+		const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(value);
+
+		if (!match) {
+			throw new Error("Choose a valid event date and time.");
+		}
+
+		const requested = match.slice(1).map(Number);
+		const localAsUtc = Date.UTC(requested[0], requested[1] - 1, requested[2], requested[3], requested[4], 0);
+		let utcTime = localAsUtc - timeZoneOffsetMilliseconds(new Date(localAsUtc));
+		utcTime = localAsUtc - timeZoneOffsetMilliseconds(new Date(utcTime));
+		const instant = new Date(utcTime);
+		const resolved = timeZoneParts(instant);
+		const roundTrips = resolved.year === requested[0]
+			&& resolved.month === requested[1]
+			&& resolved.day === requested[2]
+			&& resolved.hour === requested[3]
+			&& resolved.minute === requested[4];
+
+		if (!roundTrips) {
+			throw new Error("That Eastern Time does not exist because of daylight saving time. Choose another time.");
+		}
+
+		return instant.toISOString();
+	};
+
 	const loadSupabaseLibrary = () => {
 		if (window.supabase?.createClient) {
 			return Promise.resolve();
@@ -712,6 +766,7 @@
 
 		const status = document.querySelector("[data-dashboard-status]");
 		const list = document.querySelector("[data-dashboard-registrations]");
+		const footerActions = document.querySelector("[data-dashboard-footer-actions]");
 		setStatus(status, "Loading your registrations...", "info");
 
 		const [{ data: profile, error: profileError }, { data: registrations, error: registrationError }] = await Promise.all([
@@ -739,6 +794,7 @@
 		document.querySelector("[data-dashboard-name]").textContent = profile.full_name;
 		setStatus(status);
 		list.replaceChildren();
+		footerActions.hidden = !registrations?.length;
 
 		if (!registrations?.length) {
 			const empty = createElement("div", "pca-empty-state");
@@ -830,6 +886,9 @@
 		const controls = document.querySelector("[data-admin-controls]");
 		const tableRegion = document.querySelector("[data-admin-table-region]");
 		const accessDenied = document.querySelector("[data-admin-denied]");
+		const createPanel = document.querySelector("[data-admin-create-panel]");
+		const createForm = document.querySelector("[data-admin-event-form]");
+		const createStatus = document.querySelector("[data-admin-create-status]");
 		setStatus(status, "Checking administrator access...", "info");
 
 		if (!await checkAdmin(session)) {
@@ -868,11 +927,13 @@
 		const resultCount = document.querySelector("[data-admin-result-count]");
 		const exportButton = document.querySelector("[data-admin-export]");
 
-		(events || []).forEach((event) => {
-			const option = createElement("option", "", `${event.title} — ${new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeZone: APP_TIME_ZONE }).format(new Date(event.starts_at))}`);
+		const addEventFilterOption = (event) => {
+			const option = createElement("option", "", `${event.title} — ${eventDateFormatter.format(new Date(event.starts_at))}`);
 			option.value = event.id;
 			eventFilter.appendChild(option);
-		});
+		};
+
+		(events || []).forEach(addEventFilterOption);
 
 		let filteredRows = rows;
 
@@ -890,7 +951,7 @@
 			if (!filteredRows.length) {
 				const row = createElement("tr");
 				const cell = createElement("td", "pca-admin-empty", "No registrations match these filters.");
-				cell.colSpan = 7;
+				cell.colSpan = 6;
 				row.appendChild(cell);
 				tableBody.appendChild(row);
 				return;
@@ -917,8 +978,7 @@
 					contactCell,
 					createElement("td", "", rowData.participant_name),
 					createElement("td", "", rowData.participant_grade),
-					createElement("td", "", shortDateTimeFormatter.format(new Date(rowData.registered_at))),
-					createElement("td", "pca-registration-id", rowData.registration_id)
+					createElement("td", "", shortDateTimeFormatter.format(new Date(rowData.registered_at)))
 				);
 				tableBody.appendChild(row);
 			});
@@ -927,7 +987,62 @@
 		eventFilter.addEventListener("change", renderRows);
 		statusFilter.addEventListener("change", renderRows);
 		exportButton.addEventListener("click", () => exportAdminRows(filteredRows));
+		createForm.addEventListener("submit", async (submitEvent) => {
+			submitEvent.preventDefault();
+			setStatus(createStatus);
+
+			try {
+				const formData = new FormData(createForm);
+				const startsAt = easternDateTimeToIso(String(formData.get("starts_at") || ""));
+				const endsAt = easternDateTimeToIso(String(formData.get("ends_at") || ""));
+				const capacity = Number(formData.get("capacity"));
+				const groupLimit = Number(formData.get("max_participants_per_registration"));
+
+				if (new Date(endsAt) <= new Date(startsAt)) {
+					throw new Error("The event end time must be after its start time.");
+				}
+
+				if (groupLimit > capacity) {
+					throw new Error("The maximum per registration cannot exceed the event capacity.");
+				}
+
+				setFormBusy(createForm, true, "Creating...");
+				const { data: createdEvent, error } = await state.client
+					.from("events")
+					.insert({
+						title: String(formData.get("title") || "").trim(),
+						description: String(formData.get("description") || "").trim(),
+						location: String(formData.get("location") || "").trim(),
+						starts_at: startsAt,
+						ends_at: endsAt,
+						capacity,
+						max_participants_per_registration: groupLimit,
+						registration_open: formData.has("registration_open"),
+						published: formData.has("published"),
+					})
+					.select("id,title,starts_at,published")
+					.single();
+
+				if (error) {
+					throw error;
+				}
+
+				addEventFilterOption(createdEvent);
+				createForm.reset();
+				setStatus(
+					createStatus,
+					`${createdEvent.title} was created${createdEvent.published ? " and published" : " as a draft"}.`,
+					"success"
+				);
+			} catch (error) {
+				console.error("Event creation failed.", error);
+				setStatus(createStatus, error.message || "The event could not be created. Please try again.", "error");
+			} finally {
+				setFormBusy(createForm, false);
+			}
+		});
 		setStatus(status);
+		createPanel.hidden = false;
 		controls.hidden = false;
 		tableRegion.hidden = false;
 		renderRows();

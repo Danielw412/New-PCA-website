@@ -6,7 +6,7 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
 		<meta name="description" content="PCA Youth Center administrator registration dashboard." />
 		<link rel="stylesheet" href="assets/css/main.css" />
-		<link rel="stylesheet" href="styles.css?v=20260702" />
+		<link rel="stylesheet" href="styles.css?v=20260703" />
 		<noscript><link rel="stylesheet" href="assets/css/noscript.css" /></noscript>
 	</head>
 	<body class="is-preload">
@@ -15,8 +15,8 @@
 			<header id="header"><a href="index.html" class="logo"><img src="images/homepage/pca-logo.png" alt="" /> PCA Youth Center</a></header>
 			<nav id="nav"><ul class="links"><li><a href="index.html">Home</a></li><li><a href="about.html">About</a></li><li><a href="membership.html">Membership</a></li><li><a href="student-council.html">Student Council</a></li><li><a href="events.html">Events</a></li><li><a href="volunteer.html">Volunteer</a></li><li><a href="support-us.html">Support Us</a></li><li><a href="bylaws.html">Bylaws</a></li><li><a href="aapi-statement.html">AAPI</a></li><li><a href="login.html">Log In</a></li></ul><ul class="icons"><li><a href="mailto:pcayouthcenter@gmail.com" class="icon solid fa-envelope"><span class="label">Email</span></a></li><li><a href="https://www.facebook.com/PCA-Youth-Center-105257804561315" class="icon brands fa-facebook-f"><span class="label">Facebook</span></a></li><li><a href="https://www.instagram.com/pcayouthcenter/" class="icon brands fa-instagram"><span class="label">Instagram</span></a></li></ul></nav>
 			<div id="main">
-				<section class="post" data-admin-dashboard>
-					<header class="major"><span class="date">Administrator Access</span><h1>Registration Dashboard</h1><p>Review event registrations and export the filtered participant list.</p></header>
+				<section class="post pca-dashboard-page pca-admin-dashboard-page" data-admin-dashboard>
+					<header class="major"><span class="date">Administrator Access</span><h1>Admin Dashboard</h1><p>Create events, review registrations, and export participant lists.</p></header>
 					<p class="pca-backend-status" data-admin-status data-backend-status aria-live="polite">Checking administrator access...</p>
 
 					<div class="pca-empty-state" data-admin-denied hidden>
@@ -24,6 +24,28 @@
 						<p>This account is not listed as a PCA administrator.</p>
 						<a href="dashboard.html" class="button">Return to My Dashboard</a>
 					</div>
+
+					<details class="pca-admin-create-panel" data-admin-create-panel hidden>
+						<summary><span>Create an Event</span><small>Add a new registration opportunity</small></summary>
+						<form data-admin-event-form>
+							<div class="pca-admin-event-fields">
+								<div class="field pca-field-wide"><label for="admin-event-title">Event title</label><input type="text" id="admin-event-title" name="title" maxlength="160" required /></div>
+								<div class="field pca-field-wide"><label for="admin-event-description">Description</label><textarea id="admin-event-description" name="description" rows="3" maxlength="5000"></textarea></div>
+								<div class="field pca-field-wide"><label for="admin-event-location">Location</label><input type="text" id="admin-event-location" name="location" maxlength="240" required /></div>
+								<div class="field"><label for="admin-event-start">Starts (Eastern Time)</label><input type="datetime-local" id="admin-event-start" name="starts_at" required /></div>
+								<div class="field"><label for="admin-event-end">Ends (Eastern Time)</label><input type="datetime-local" id="admin-event-end" name="ends_at" required /></div>
+								<div class="field"><label for="admin-event-capacity">Participant capacity</label><input type="number" id="admin-event-capacity" name="capacity" min="1" step="1" value="50" required /></div>
+								<div class="field"><label for="admin-event-group-limit">Maximum per registration</label><input type="number" id="admin-event-group-limit" name="max_participants_per_registration" min="1" step="1" value="6" required /></div>
+							</div>
+							<div class="pca-admin-event-options">
+								<div><input type="checkbox" id="admin-event-registration-open" name="registration_open" checked /><label for="admin-event-registration-open">Registration open</label></div>
+								<div><input type="checkbox" id="admin-event-published" name="published" checked /><label for="admin-event-published">Publish immediately</label></div>
+							</div>
+							<p class="pca-form-help">Event times are interpreted in Eastern Time and displayed consistently to all visitors.</p>
+							<p class="pca-backend-status pca-admin-create-status" data-admin-create-status aria-live="polite"></p>
+							<ul class="actions"><li><button type="submit" class="button primary">Create Event</button></li></ul>
+						</form>
+					</details>
 
 					<div class="pca-admin-controls" data-admin-controls hidden>
 						<div class="field"><label for="admin-event-filter">Event</label><select id="admin-event-filter" data-admin-event-filter><option value="">All events</option></select></div>
@@ -33,7 +55,7 @@
 
 					<div class="table-wrapper pca-admin-table-wrapper" data-admin-table-region hidden>
 						<table class="pca-admin-table">
-							<thead><tr><th>Event</th><th>Status</th><th>Account Contact</th><th>Participant</th><th>Grade</th><th>Registered</th><th>Registration ID</th></tr></thead>
+							<thead><tr><th>Event</th><th>Status</th><th>Account Contact</th><th>Participant</th><th>Grade</th><th>Registered</th></tr></thead>
 							<tbody data-admin-table-body></tbody>
 						</table>
 					</div>
@@ -42,6 +64,6 @@
 			<footer id="footer"><section><form method="post" action="mailto:pcayouthcenter@gmail.com"><div class="fields"><div class="field"><label for="name">Name</label><input type="text" name="name" id="name" /></div><div class="field"><label for="email">Email</label><input type="email" name="email" id="email" /></div><div class="field"><label for="message">Message</label><textarea name="message" id="message" rows="3"></textarea></div></div><ul class="actions"><li><input type="submit" value="Send Message" /></li></ul></form></section><section class="split contact"><section class="alt"><h3>Organization</h3><p>PCA Youth Center<br />Pittsburgh Chinese American Youth Center</p></section><section><h3>Email</h3><p><a href="mailto:pcayouthcenter@gmail.com">pcayouthcenter@gmail.com</a></p></section><section><h3>Nonprofit</h3><p>501(c)(3) youth organization led by adult and student volunteers.</p></section><section><h3>Social</h3><ul class="icons alt"><li><a href="mailto:pcayouthcenter@gmail.com" class="icon solid alt fa-envelope"><span class="label">Email</span></a></li><li><a href="https://www.facebook.com/PCA-Youth-Center-105257804561315" class="icon brands alt fa-facebook-f"><span class="label">Facebook</span></a></li><li><a href="https://www.instagram.com/pcayouthcenter/" class="icon brands alt fa-instagram"><span class="label">Instagram</span></a></li></ul></section></section></footer>
 			<div id="copyright"><ul><li>&copy; 2018-2026 PCA Youth Center</li><li>Design adapted from <a href="https://html5up.net">HTML5 UP</a></li></ul></div>
 		</div>
-		<script src="assets/js/jquery.min.js"></script><script src="assets/js/jquery.scrollex.min.js"></script><script src="assets/js/jquery.scrolly.min.js"></script><script src="assets/js/browser.min.js"></script><script src="assets/js/breakpoints.min.js"></script><script src="assets/js/util.js"></script><script src="assets/js/main.js"></script><script src="script.js"></script>
+		<script src="assets/js/jquery.min.js"></script><script src="assets/js/jquery.scrollex.min.js"></script><script src="assets/js/jquery.scrolly.min.js"></script><script src="assets/js/browser.min.js"></script><script src="assets/js/breakpoints.min.js"></script><script src="assets/js/util.js"></script><script src="assets/js/main.js"></script><script src="script.js?v=20260703"></script>
 	</body>
 </html>

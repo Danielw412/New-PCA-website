@@ -214,7 +214,7 @@ const loadPcaBackend = () => {
 	}
 
 	const backendScript = document.createElement("script");
-	backendScript.src = "assets/js/pca-backend.js?v=20260702";
+	backendScript.src = "assets/js/pca-backend.js?v=20260703";
 	backendScript.dataset.pcaBackendScript = "true";
 	backendScript.defer = true;
 	document.body.appendChild(backendScript);
