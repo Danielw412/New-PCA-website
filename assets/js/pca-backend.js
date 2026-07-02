@@ -5,25 +5,17 @@
 	const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_tpV455tgoq5uE25f7rHpEQ_ql_zKcfh";
 	const SUPABASE_JS_URL = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.0/dist/umd/supabase.min.js";
 	const APP_TIME_ZONE = "America/New_York";
-	const GRADES = [
-		"Pre-K",
-		"K",
-		"1",
-		"2",
-		"3",
-		"4",
-		"5",
-		"6",
-		"7",
-		"8",
-		"9",
-		"10",
-		"11",
-		"12",
-		"College",
-		"Adult",
-		"Not Applicable",
-	];
+	const REFERRAL_SOURCE_LABELS = Object.freeze({
+		friend_recommendation: "Friend recommendation",
+		wechat_post: "WeChat post",
+		facebook_post: "Facebook post",
+		instagram: "Instagram",
+		flyer: "Flyer",
+		poster: "Poster",
+		website: "Website",
+		email: "Email",
+		other: "Other",
+	});
 
 	const state = {
 		client: null,
@@ -221,7 +213,7 @@
 		}
 
 		if (message.includes("user already registered")) {
-			return "An account already exists for this email address.";
+			return "A household account already exists for this email address.";
 		}
 
 		if (message.includes("password")) {
@@ -414,7 +406,7 @@
 				return;
 			}
 
-			setStatus(signInStatus, "Signed in. Taking you to your account...", "success");
+			setStatus(signInStatus, "Signed in. Taking you to your household account...", "success");
 			window.setTimeout(() => window.location.assign(nextDestination), 350);
 		});
 
@@ -431,7 +423,7 @@
 				return;
 			}
 
-			setFormBusy(signUpForm, true, "Creating Account...");
+			setFormBusy(signUpForm, true, "Creating Household Account...");
 			const { data, error } = await state.client.auth.signUp({
 				email: String(formData.get("email") || "").trim(),
 				password,
@@ -444,20 +436,20 @@
 			});
 
 			if (error) {
-				setStatus(signUpStatus, friendlyAuthError(error, "We could not create the account. Please try again."), "error");
+				setStatus(signUpStatus, friendlyAuthError(error, "We could not create the household account. Please try again."), "error");
 				setFormBusy(signUpForm, false);
 				return;
 			}
 
 			if (data.session) {
-				setStatus(signUpStatus, "Account created. Taking you to your account...", "success");
+				setStatus(signUpStatus, "Household account created. Taking you to your dashboard...", "success");
 				window.setTimeout(() => window.location.assign(nextDestination), 450);
 				return;
 			}
 
 			setStatus(
 				signUpStatus,
-				"Account created. Check your email to confirm it, then return here to sign in.",
+				"Household account created. Check your email to confirm it, then return here to sign in.",
 				"success"
 			);
 			setFormBusy(signUpForm, false);
@@ -483,7 +475,7 @@
 		const eventStarted = new Date(event.starts_at) <= new Date();
 		const canRegister = event.registration_open && !eventStarted;
 		registrationMeta.textContent = canRegister
-			? `Registration open · Up to ${event.max_participants_per_registration} participant${event.max_participants_per_registration === 1 ? "" : "s"} per account`
+			? `Registration open · Up to ${event.max_participants_per_registration} attendee${event.max_participants_per_registration === 1 ? "" : "s"} per household`
 			: "Registration closed";
 		card.appendChild(registrationMeta);
 
@@ -541,12 +533,12 @@
 	const createParticipantRow = (position, removable) => {
 		const row = createElement("fieldset", "pca-participant-row");
 		row.dataset.participantRow = "true";
-		const legend = createElement("legend", "", `Participant ${position}`);
+		const legend = createElement("legend", "", `Attendee ${position}`);
 		legend.dataset.participantLegend = "true";
 		row.appendChild(legend);
 
 		const fields = createElement("div", "fields pca-participant-fields");
-		const nameField = createElement("div", "field");
+		const nameField = createElement("div", "field pca-attendee-name-field");
 		const nameId = `participant-name-${Date.now()}-${position}`;
 		const nameLabel = createElement("label", "", "Full Name");
 		nameLabel.htmlFor = nameId;
@@ -559,30 +551,84 @@
 		nameInput.required = true;
 		nameField.append(nameLabel, nameInput);
 
-		const gradeField = createElement("div", "field");
-		const gradeId = `participant-grade-${Date.now()}-${position}`;
-		const gradeLabel = createElement("label", "", "Grade");
-		gradeLabel.htmlFor = gradeId;
-		const gradeSelect = createElement("select");
-		gradeSelect.id = gradeId;
-		gradeSelect.name = "participant_grade";
-		gradeSelect.required = true;
-		const placeholder = createElement("option", "", "Select grade");
+		const typeField = createElement("div", "field");
+		const typeId = `participant-type-${Date.now()}-${position}`;
+		const typeLabel = createElement("label", "", "Attendee Type");
+		typeLabel.htmlFor = typeId;
+		const typeSelect = createElement("select");
+		typeSelect.id = typeId;
+		typeSelect.name = "participant_type";
+		typeSelect.required = true;
+		const placeholder = createElement("option", "", "Select attendee type");
 		placeholder.value = "";
 		placeholder.disabled = true;
 		placeholder.selected = true;
-		gradeSelect.appendChild(placeholder);
-		GRADES.forEach((grade) => {
-			const option = createElement("option", "", grade);
-			option.value = grade;
-			gradeSelect.appendChild(option);
+		typeSelect.appendChild(placeholder);
+		[
+			["child", "Child / Youth"],
+			["adult", "Adult"],
+		].forEach(([value, label]) => {
+			const option = createElement("option", "", label);
+			option.value = value;
+			typeSelect.appendChild(option);
 		});
-		gradeField.append(gradeLabel, gradeSelect);
-		fields.append(nameField, gradeField);
+		typeField.append(typeLabel, typeSelect);
+
+		const ageField = createElement("div", "field");
+		const ageId = `participant-age-${Date.now()}-${position}`;
+		const ageLabel = createElement("label", "", "Age");
+		ageLabel.htmlFor = ageId;
+		const ageInput = createElement("input");
+		ageInput.id = ageId;
+		ageInput.name = "participant_age";
+		ageInput.type = "number";
+		ageInput.min = "0";
+		ageInput.max = "25";
+		ageInput.step = "1";
+		ageInput.inputMode = "numeric";
+		ageField.append(ageLabel, ageInput);
+
+		const schoolField = createElement("div", "field pca-attendee-school-field");
+		const schoolId = `participant-school-${Date.now()}-${position}`;
+		const schoolLabel = createElement("label", "", "School / School District");
+		schoolLabel.htmlFor = schoolId;
+		const schoolInput = createElement("input");
+		schoolInput.id = schoolId;
+		schoolInput.name = "participant_school_district";
+		schoolInput.type = "text";
+		schoolInput.maxLength = 160;
+		schoolInput.autocomplete = "organization";
+		schoolInput.setAttribute("aria-describedby", `${schoolId}-help`);
+		const schoolHelp = createElement(
+			"small",
+			"pca-field-help",
+			"Enter a public school district, private school, homeschool, or not yet enrolled."
+		);
+		schoolHelp.id = `${schoolId}-help`;
+		schoolField.append(schoolLabel, schoolInput, schoolHelp);
+
+		const syncChildFields = () => {
+			const isChild = typeSelect.value === "child";
+			ageField.hidden = !isChild;
+			schoolField.hidden = !isChild;
+			ageInput.disabled = !isChild;
+			schoolInput.disabled = !isChild;
+			ageInput.required = isChild;
+			schoolInput.required = isChild;
+
+			if (!isChild) {
+				ageInput.value = "";
+				schoolInput.value = "";
+			}
+		};
+
+		typeSelect.addEventListener("change", syncChildFields);
+		syncChildFields();
+		fields.append(nameField, typeField, ageField, schoolField);
 		row.appendChild(fields);
 
 		if (removable) {
-			const removeButton = createElement("button", "button small pca-remove-participant", "Remove Participant");
+			const removeButton = createElement("button", "button small pca-remove-participant", "Remove Attendee");
 			removeButton.type = "button";
 			removeButton.dataset.removeParticipant = "true";
 			row.appendChild(removeButton);
@@ -648,11 +694,14 @@
 		const form = document.querySelector("[data-registration-form]");
 		const participantList = document.querySelector("[data-participant-list]");
 		const addButton = document.querySelector("[data-add-participant]");
+		const referralSource = document.querySelector("[data-referral-source]");
+		const referralOtherField = document.querySelector("[data-referral-other-field]");
+		const referralOther = document.querySelector("[data-referral-other]");
 
 		if (existing) {
 			form.hidden = true;
 			const label = existing.status === "confirmed" ? "confirmed" : "on the waitlist";
-			setStatus(status, `This account is already ${label} for this event. View the registration in your dashboard.`, "info");
+			setStatus(status, `This household account is already ${label} for this event. View the registration in your dashboard.`, "info");
 			const dashboardLink = createElement("a", "button primary", "View Dashboard");
 			dashboardLink.href = "dashboard.html";
 			status.insertAdjacentElement("afterend", dashboardLink);
@@ -662,7 +711,7 @@
 		const renumberParticipants = () => {
 			const rows = participantList.querySelectorAll("[data-participant-row]");
 			rows.forEach((row, index) => {
-				row.querySelector("[data-participant-legend]").textContent = `Participant ${index + 1}`;
+				row.querySelector("[data-participant-legend]").textContent = `Attendee ${index + 1}`;
 			});
 			addButton.disabled = rows.length >= event.max_participants_per_registration;
 		};
@@ -686,13 +735,29 @@
 		addButton.addEventListener("click", addParticipant);
 		addParticipant();
 
+		const syncReferralOther = () => {
+			const isOther = referralSource.value === "other";
+			referralOtherField.hidden = !isOther;
+			referralOther.disabled = !isOther;
+			referralOther.required = isOther;
+
+			if (!isOther) {
+				referralOther.value = "";
+			}
+		};
+
+		referralSource.addEventListener("change", syncReferralOther);
+		syncReferralOther();
+
 		form.addEventListener("submit", async (submitEvent) => {
 			submitEvent.preventDefault();
 			setStatus(status);
 
 			const participants = Array.from(participantList.querySelectorAll("[data-participant-row]")).map((row) => ({
 				full_name: row.querySelector('[name="participant_name"]').value.trim(),
-				grade: row.querySelector('[name="participant_grade"]').value,
+				attendee_type: row.querySelector('[name="participant_type"]').value,
+				age: row.querySelector('[name="participant_age"]')?.value || null,
+				school_district: row.querySelector('[name="participant_school_district"]')?.value.trim() || null,
 			}));
 
 			setFormBusy(form, true, "Registering...");
@@ -700,6 +765,8 @@
 			const { data, error } = await state.client.rpc("register_for_event", {
 				p_event_id: event.id,
 				p_participants: participants,
+				p_referral_source: referralSource.value,
+				p_referral_source_other: referralSource.value === "other" ? referralOther.value.trim() : null,
 			});
 
 			if (error) {
@@ -714,8 +781,8 @@
 			setStatus(
 				status,
 				confirmed
-					? `Registration confirmed for ${result.participant_count} participant${result.participant_count === 1 ? "" : "s"}.`
-					: `The group has been added to the waitlist for ${result.participant_count} participant${result.participant_count === 1 ? "" : "s"}.`,
+					? `Registration confirmed for ${result.participant_count} attendee${result.participant_count === 1 ? "" : "s"}.`
+					: `The household has been added to the waitlist for ${result.participant_count} attendee${result.participant_count === 1 ? "" : "s"}.`,
 				"success"
 			);
 			form.hidden = true;
@@ -730,6 +797,30 @@
 		return badge;
 	};
 
+	const formatReferralSource = (source, otherDetail) => {
+		if (!source) {
+			return "Not recorded (legacy registration)";
+		}
+
+		if (source === "other") {
+			return otherDetail ? `Other — ${otherDetail}` : "Other";
+		}
+
+		return REFERRAL_SOURCE_LABELS[source] || source;
+	};
+
+	const formatAttendeeSummary = (participant) => {
+		if (participant.attendee_type === "child") {
+			return `${participant.full_name} · Child / Youth, age ${participant.age} · ${participant.school_district}`;
+		}
+
+		if (participant.attendee_type === "adult") {
+			return `${participant.full_name} · Adult`;
+		}
+
+		return `${participant.full_name} · Grade ${participant.grade} (legacy)`;
+	};
+
 	const createRegistrationCard = (registration) => {
 		const event = registration.event;
 		const card = createElement("article", "pca-card pca-registration-card");
@@ -740,15 +831,16 @@
 		const details = createElement("div", "pca-event-details");
 		details.append(
 			makeEventDetail("Date & Time", formatEventRange(event)),
-			makeEventDetail("Location", event.location)
+			makeEventDetail("Location", event.location),
+			makeEventDetail("How You Heard", formatReferralSource(registration.referral_source, registration.referral_source_other))
 		);
 		card.appendChild(details);
 
-		const participantHeading = createElement("h4", "", `Participants (${registration.participant_count})`);
+		const participantHeading = createElement("h4", "", `Attendees (${registration.participant_count})`);
 		const participantList = createElement("ul", "pca-participant-summary");
 		const participants = [...(registration.participants || [])].sort((a, b) => a.position - b.position);
 		participants.forEach((participant) => {
-			participantList.appendChild(createElement("li", "", `${participant.full_name} · ${participant.grade}`));
+			participantList.appendChild(createElement("li", "", formatAttendeeSummary(participant)));
 		});
 		card.append(participantHeading, participantList);
 		return card;
@@ -781,8 +873,10 @@
 					status,
 					participant_count,
 					created_at,
+					referral_source,
+					referral_source_other,
 					event:events!registrations_event_id_fkey(id,title,description,location,starts_at,ends_at),
-					participants:registration_participants(id,position,full_name,grade)
+					participants:registration_participants(id,position,full_name,attendee_type,age,school_district,grade)
 				`)
 				.eq("account_id", session.user.id)
 				.order("created_at", { ascending: false }),
@@ -826,8 +920,13 @@
 			account_name: registration.profile.full_name,
 			account_email: registration.profile.email,
 			participant_name: participant.full_name,
-			participant_grade: participant.grade,
+			participant_type: participant.attendee_type || "legacy",
+			participant_age: participant.age,
+			participant_school_district: participant.school_district,
+			participant_legacy_grade: participant.grade,
 			participant_position: participant.position,
+			referral_source: registration.referral_source,
+			referral_source_other: registration.referral_source_other,
 		}));
 	});
 
@@ -842,10 +941,15 @@
 			"Event",
 			"Event Start (America/New_York)",
 			"Status",
-			"Account Holder",
-			"Account Email",
-			"Participant",
-			"Grade",
+			"Household Contact",
+			"Household Email",
+			"Attendee",
+			"Attendee Type",
+			"Age",
+			"School / School District",
+			"Legacy Grade",
+			"Referral Source",
+			"Referral Other Detail",
 			"Registered At (America/New_York)",
 			"Registration ID",
 		];
@@ -856,7 +960,12 @@
 			row.account_name,
 			row.account_email,
 			row.participant_name,
-			row.participant_grade,
+			row.participant_type === "child" ? "Child / Youth" : row.participant_type === "adult" ? "Adult" : "Legacy record",
+			row.participant_age,
+			row.participant_school_district,
+			row.participant_legacy_grade,
+			REFERRAL_SOURCE_LABELS[row.referral_source] || (row.referral_source ? row.referral_source : "Not recorded"),
+			row.referral_source_other,
 			shortDateTimeFormatter.format(new Date(row.registered_at)),
 			row.registration_id,
 		]);
@@ -910,9 +1019,11 @@
 					status,
 					participant_count,
 					created_at,
+					referral_source,
+					referral_source_other,
 					event:events!registrations_event_id_fkey(id,title,starts_at),
 					profile:profiles!registrations_account_id_fkey(full_name,email),
-					participants:registration_participants(id,position,full_name,grade)
+					participants:registration_participants(id,position,full_name,attendee_type,age,school_district,grade)
 				`)
 				.order("created_at", { ascending: true }),
 		]);
@@ -948,13 +1059,13 @@
 			});
 
 			tableBody.replaceChildren();
-			resultCount.textContent = `${filteredRows.length} participant${filteredRows.length === 1 ? "" : "s"}`;
+			resultCount.textContent = `${filteredRows.length} attendee${filteredRows.length === 1 ? "" : "s"}`;
 			exportButton.disabled = filteredRows.length === 0;
 
 			if (!filteredRows.length) {
 				const row = createElement("tr");
 				const cell = createElement("td", "pca-admin-empty", "No registrations match these filters.");
-				cell.colSpan = 6;
+				cell.colSpan = 9;
 				row.appendChild(cell);
 				tableBody.appendChild(row);
 				return;
@@ -975,12 +1086,21 @@
 					createElement("a", "pca-table-subtext", rowData.account_email)
 				);
 				contactCell.querySelector("a").href = `mailto:${rowData.account_email}`;
+				const attendeeType = rowData.participant_type === "child"
+					? "Child / Youth"
+					: rowData.participant_type === "adult" ? "Adult" : "Legacy record";
+				const ageOrLegacyGrade = rowData.participant_type === "legacy"
+					? `Grade ${rowData.participant_legacy_grade}`
+					: rowData.participant_type === "child" ? String(rowData.participant_age) : "—";
 				row.append(
 					eventCell,
 					statusCell,
 					contactCell,
 					createElement("td", "", rowData.participant_name),
-					createElement("td", "", rowData.participant_grade),
+					createElement("td", "", attendeeType),
+					createElement("td", "", ageOrLegacyGrade),
+					createElement("td", "", rowData.participant_school_district || "—"),
+					createElement("td", "", formatReferralSource(rowData.referral_source, rowData.referral_source_other)),
 					createElement("td", "", shortDateTimeFormatter.format(new Date(rowData.registered_at)))
 				);
 				tableBody.appendChild(row);

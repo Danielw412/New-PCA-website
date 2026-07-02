@@ -1335,6 +1335,17 @@ input[type="submit"]:disabled {
 	margin: 0 auto;
 }
 
+.pca-attendee-notice {
+	margin-bottom: 1.5rem;
+	padding: 1rem 1.15rem;
+	border: 1px solid rgba(167, 35, 35, 0.28);
+	border-left: 0.35rem solid var(--pca-red);
+	border-radius: var(--pca-radius-sm);
+	background: rgba(255, 247, 240, 0.9);
+	color: var(--pca-ink);
+	line-height: 1.6;
+}
+
 .pca-participant-list {
 	display: grid;
 	gap: 1rem;
@@ -1363,13 +1374,34 @@ input[type="submit"]:disabled {
 
 .pca-participant-fields {
 	display: grid !important;
-	grid-template-columns: minmax(0, 2fr) minmax(12rem, 1fr);
+	grid-template-columns: minmax(0, 1.7fr) minmax(10rem, 1fr) minmax(6rem, 0.55fr) minmax(0, 1.7fr);
 	gap: 1rem;
 	width: 100% !important;
 	margin: 0 !important;
 }
 
 .pca-participant-fields .field {
+	width: auto !important;
+	padding: 0 !important;
+}
+
+.pca-field-help {
+	display: block;
+	margin-top: 0.45rem;
+	color: var(--pca-muted);
+	font-size: 0.82rem;
+	line-height: 1.45;
+}
+
+.pca-registration-details {
+	display: grid !important;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 1rem;
+	width: 100% !important;
+	margin: 1.75rem 0 0 !important;
+}
+
+.pca-registration-details .field {
 	width: auto !important;
 	padding: 0 !important;
 }
@@ -1544,7 +1576,7 @@ input[type="submit"]:disabled {
 }
 
 .pca-admin-table {
-	min-width: 55rem;
+	min-width: 85rem;
 	margin: 0;
 	font-size: 0.94rem;
 }
@@ -1584,6 +1616,14 @@ input[type="submit"]:disabled {
 		grid-template-columns: 1fr 1fr;
 	}
 
+	.pca-participant-fields {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.pca-attendee-school-field {
+		grid-column: 1 / -1;
+	}
+
 	.pca-admin-export {
 		grid-column: 1 / -1;
 		justify-content: space-between;
@@ -1598,9 +1638,14 @@ input[type="submit"]:disabled {
 
 	.pca-auth-tabs,
 	.pca-participant-fields,
+	.pca-registration-details,
 	.pca-admin-event-fields,
 	.pca-admin-controls {
 		grid-template-columns: 1fr;
+	}
+
+	.pca-attendee-school-field {
+		grid-column: auto;
 	}
 
 	.pca-admin-event-fields .pca-field-wide {

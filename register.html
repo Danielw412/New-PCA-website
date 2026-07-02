@@ -4,9 +4,9 @@
 		<title>Event Registration | PCA Youth Center</title>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
-		<meta name="description" content="Register household participants for a PCA Youth Center event." />
+		<meta name="description" content="Register every household attendee for a PCA Youth Center event." />
 		<link rel="stylesheet" href="assets/css/main.css" />
-		<link rel="stylesheet" href="styles.css?v=20260704" />
+		<link rel="stylesheet" href="styles.css?v=20260705" />
 		<noscript><link rel="stylesheet" href="assets/css/noscript.css" /></noscript>
 	</head>
 	<body class="is-preload">
@@ -16,7 +16,7 @@
 			<nav id="nav"><ul class="links"><li><a href="index.html">Home</a></li><li><a href="about.html">About</a></li><li><a href="membership.html">Membership</a></li><li><a href="student-council.html">Student Council</a></li><li class="active"><a href="events.html">Events</a></li><li><a href="volunteer.html">Volunteer</a></li><li><a href="support-us.html">Support Us</a></li><li><a href="bylaws.html">Bylaws</a></li><li><a href="aapi-statement.html">AAPI</a></li><li><a href="login.html">Log In</a></li></ul><ul class="icons"><li><a href="mailto:pcayouthcenter@gmail.com" class="icon solid fa-envelope"><span class="label">Email</span></a></li><li><a href="https://www.facebook.com/PCA-Youth-Center-105257804561315" class="icon brands fa-facebook-f"><span class="label">Facebook</span></a></li><li><a href="https://www.instagram.com/pcayouthcenter/" class="icon brands fa-instagram"><span class="label">Instagram</span></a></li></ul></nav>
 			<div id="main">
 				<section class="post" data-registration-page>
-					<header class="major"><span class="date">Event Registration</span><h1>Register Your Household</h1><p>Each participant counts as one event seat. Your whole group will be confirmed together or placed on the waitlist together.</p></header>
+					<header class="major"><span class="date">Household Event Registration</span><h1>Register Every Attendee</h1><p>List every child, youth, and adult who will attend. Parents and guardians must also be registered if they are going.</p></header>
 					<p class="pca-backend-status" data-registration-loading data-backend-status aria-live="polite">Loading event details...</p>
 
 					<div data-registration-content hidden>
@@ -26,15 +26,36 @@
 								<div class="pca-event-detail"><strong>Date &amp; Time</strong><span data-register-event-date></span></div>
 								<div class="pca-event-detail"><strong>Location</strong><span data-register-event-location></span></div>
 							</div>
-							<p>You may register up to <strong data-register-event-limit></strong> participants with this account.</p>
+							<p>You may register up to <strong data-register-event-limit></strong> attendees with this household account. The whole household group will be confirmed or waitlisted together.</p>
 						</article>
 
 						<form class="pca-registration-form" data-registration-form>
+							<div class="pca-attendee-notice" role="note"><strong>Who should be listed?</strong> Add every person who will be present, including each attending parent or guardian. Anyone not listed will not have a reserved event seat.</div>
 							<div class="pca-participant-list" data-participant-list></div>
 							<ul class="actions">
-								<li><button type="button" class="button" data-add-participant>Add Participant</button></li>
+								<li><button type="button" class="button" data-add-participant>Add Attendee</button></li>
 							</ul>
-							<p class="pca-form-help">Use “Adult” or “Not Applicable” when a school grade does not apply.</p>
+							<div class="pca-registration-details fields">
+								<div class="field">
+									<label for="registration-referral-source">Where did you find out about this event?</label>
+									<select id="registration-referral-source" name="referral_source" data-referral-source required>
+										<option value="" disabled selected>Select a source</option>
+										<option value="friend_recommendation">Friend recommendation</option>
+										<option value="wechat_post">WeChat post</option>
+										<option value="facebook_post">Facebook post</option>
+										<option value="instagram">Instagram</option>
+										<option value="flyer">Flyer</option>
+										<option value="poster">Poster</option>
+										<option value="website">Website</option>
+										<option value="email">Email</option>
+										<option value="other">Other</option>
+									</select>
+								</div>
+								<div class="field" data-referral-other-field hidden>
+									<label for="registration-referral-other">Please describe where you heard about the event</label>
+									<input id="registration-referral-other" name="referral_source_other" type="text" maxlength="240" data-referral-other disabled />
+								</div>
+							</div>
 							<ul class="actions special"><li><button type="submit" class="button primary">Complete Registration</button></li></ul>
 						</form>
 						<p class="pca-backend-status" data-registration-status aria-live="polite"></p>
@@ -45,6 +66,6 @@
 			<footer id="footer"><section><form method="post" action="mailto:pcayouthcenter@gmail.com"><div class="fields"><div class="field"><label for="name">Name</label><input type="text" name="name" id="name" /></div><div class="field"><label for="email">Email</label><input type="email" name="email" id="email" /></div><div class="field"><label for="message">Message</label><textarea name="message" id="message" rows="3"></textarea></div></div><ul class="actions"><li><input type="submit" value="Send Message" /></li></ul></form></section><section class="split contact"><section class="alt"><h3>Organization</h3><p>PCA Youth Center<br />Pittsburgh Chinese American Youth Center</p></section><section><h3>Email</h3><p><a href="mailto:pcayouthcenter@gmail.com">pcayouthcenter@gmail.com</a></p></section><section><h3>Nonprofit</h3><p>501(c)(3) youth organization led by adult and student volunteers.</p></section><section><h3>Social</h3><ul class="icons alt"><li><a href="mailto:pcayouthcenter@gmail.com" class="icon solid alt fa-envelope"><span class="label">Email</span></a></li><li><a href="https://www.facebook.com/PCA-Youth-Center-105257804561315" class="icon brands alt fa-facebook-f"><span class="label">Facebook</span></a></li><li><a href="https://www.instagram.com/pcayouthcenter/" class="icon brands alt fa-instagram"><span class="label">Instagram</span></a></li></ul></section></section></footer>
 			<div id="copyright"><ul><li>&copy; 2018-2026 PCA Youth Center</li><li>Design adapted from <a href="https://html5up.net">HTML5 UP</a></li></ul></div>
 		</div>
-		<script src="assets/js/jquery.min.js"></script><script src="assets/js/jquery.scrollex.min.js"></script><script src="assets/js/jquery.scrolly.min.js"></script><script src="assets/js/browser.min.js"></script><script src="assets/js/breakpoints.min.js"></script><script src="assets/js/util.js"></script><script src="assets/js/main.js"></script><script src="script.js?v=20260704"></script>
+		<script src="assets/js/jquery.min.js"></script><script src="assets/js/jquery.scrollex.min.js"></script><script src="assets/js/jquery.scrolly.min.js"></script><script src="assets/js/browser.min.js"></script><script src="assets/js/breakpoints.min.js"></script><script src="assets/js/util.js"></script><script src="assets/js/main.js"></script><script src="script.js?v=20260705"></script>
 	</body>
 </html>
