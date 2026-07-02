@@ -1457,6 +1457,68 @@ input[type="submit"]:disabled {
 	padding-top: 0.5rem;
 }
 
+.pca-danger-zone {
+	max-width: 48rem;
+	margin: clamp(3rem, 6vw, 5rem) auto 0;
+	padding: clamp(1.35rem, 3vw, 2rem);
+	border: 1px solid rgba(163, 13, 20, 0.28);
+	border-radius: var(--pca-radius-md);
+	background: rgba(255, 244, 241, 0.78);
+	box-shadow: var(--pca-shadow-soft);
+}
+
+#main > .post .pca-danger-zone h2 {
+	margin: 0 0 0.65rem;
+	color: var(--pca-red-dark);
+	font-size: clamp(1.45rem, 2.5vw, 1.9rem);
+}
+
+.pca-danger-zone > p {
+	margin-bottom: 1.25rem;
+}
+
+.pca-danger-zone details {
+	border-top: 1px solid rgba(163, 13, 20, 0.18);
+	padding-top: 1rem;
+}
+
+.pca-danger-zone summary {
+	cursor: pointer;
+	color: var(--pca-red-dark);
+	font-family: "Source Sans Pro", Helvetica, sans-serif;
+	font-weight: 800;
+}
+
+.pca-danger-zone summary:focus-visible {
+	border-radius: 4px;
+	outline: 3px solid rgba(215, 25, 32, 0.28);
+	outline-offset: 4px;
+}
+
+.pca-danger-zone form {
+	margin: 1.4rem 0 0;
+}
+
+.pca-danger-zone .actions {
+	margin-bottom: 0;
+}
+
+.button.pca-danger-button {
+	border-color: rgba(59, 5, 7, 0.34) !important;
+	background: linear-gradient(145deg, #a30d14, var(--pca-red-dark));
+	box-shadow:
+		inset 0 1px 0 rgba(255, 255, 255, 0.22),
+		0 0.85rem 1.9rem rgba(111, 11, 16, 0.2);
+	color: #ffffff !important;
+}
+
+.button.pca-danger-button:hover {
+	background: linear-gradient(145deg, #bd1119, #790c12);
+	box-shadow:
+		inset 0 1px 0 rgba(255, 255, 255, 0.28),
+		0 1rem 2.1rem rgba(111, 11, 16, 0.28);
+}
+
 .pca-admin-create-panel {
 	max-width: 64rem;
 	margin: 0 auto 1.25rem;
@@ -1677,6 +1739,14 @@ input[type="submit"]:disabled {
 	}
 
 	.pca-admin-export .button {
+		width: 100%;
+	}
+
+	.pca-danger-zone {
+		padding: 1.25rem;
+	}
+
+	.pca-danger-zone .button {
 		width: 100%;
 	}
 }

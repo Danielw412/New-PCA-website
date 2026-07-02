@@ -358,6 +358,12 @@
 		const authenticatedEmail = document.querySelector("[data-authenticated-email]");
 		const tabs = document.querySelectorAll("[data-auth-tab]");
 		const nextDestination = safeNextDestination();
+		const accountDeletedStatus = document.querySelector("[data-account-deleted-status]");
+
+		if (new URLSearchParams(window.location.search).get("accountDeleted") === "1") {
+			accountDeletedStatus.hidden = false;
+			setStatus(accountDeletedStatus, "Your household account and its registration data were permanently deleted.", "success");
+		}
 
 		const showMode = (mode) => {
 			const showSignIn = mode === "signin";
@@ -846,6 +852,117 @@
 		return card;
 	};
 
+	const initializeAccountDeletion = (session) => {
+		const form = document.querySelector("[data-account-deletion-form]");
+
+		if (!form) {
+			return;
+		}
+
+		const passwordInput = form.querySelector('input[name="password"]');
+		const confirmationInput = form.querySelector('input[name="confirmation"]');
+		const submit = form.querySelector("[data-account-deletion-submit]");
+		const status = form.querySelector("[data-account-deletion-status]");
+
+		const updateSubmitState = () => {
+			const isBusy = form.getAttribute("aria-busy") === "true";
+			submit.disabled = isBusy || confirmationInput.value !== "DELETE";
+		};
+
+		confirmationInput.addEventListener("input", updateSubmitState);
+		updateSubmitState();
+
+		form.addEventListener("submit", async (event) => {
+			event.preventDefault();
+
+			if (form.getAttribute("aria-busy") === "true") {
+				return;
+			}
+
+			setStatus(status);
+
+			if (confirmationInput.value !== "DELETE") {
+				setStatus(status, "Type DELETE exactly before permanently deleting the account.", "error");
+				confirmationInput.focus();
+				return;
+			}
+
+			if (!session.user.email) {
+				setStatus(status, "This account does not have an email address that can be verified. Please contact PCA for help.", "error");
+				return;
+			}
+
+			let deletionCompleted = false;
+			setFormBusy(form, true, "Deleting Account...");
+			updateSubmitState();
+			setStatus(status, "Verifying your password...", "info");
+
+			try {
+				const { data: signInData, error: passwordError } = await state.client.auth.signInWithPassword({
+					email: session.user.email,
+					password: passwordInput.value,
+				});
+
+				if (passwordError) {
+					const message = String(passwordError.message || "").toLowerCase();
+					setStatus(
+						status,
+						message.includes("invalid login credentials")
+							? "The password is incorrect. Your account was not deleted."
+							: friendlyAuthError(passwordError, "Your password could not be verified. Your account was not deleted."),
+						"error"
+					);
+					passwordInput.value = "";
+					passwordInput.focus();
+					return;
+				}
+
+				if (signInData.user?.id !== session.user.id) {
+					throw new Error("The verified account did not match the active session.");
+				}
+
+				setStatus(status, "Password verified. Permanently deleting your account...", "info");
+				const { error: deletionError } = await state.client.rpc("delete_own_account");
+
+				if (deletionError) {
+					console.error("Account deletion failed.", deletionError);
+					const deletionMessage = String(deletionError.message || "").toLowerCase();
+					setStatus(
+						status,
+						deletionMessage.includes("storage") || deletionMessage.includes("object")
+							? "Your account has attached files and could not be deleted. Please contact PCA for help."
+							: "Your account could not be deleted. Nothing was changed; please try again or contact PCA for help.",
+						"error"
+					);
+					passwordInput.value = "";
+					passwordInput.focus();
+					return;
+				}
+
+				deletionCompleted = true;
+				setStatus(status, "Account deleted. Returning to the sign-in page...", "success");
+
+				const { error: signOutError } = await state.client.auth.signOut({ scope: "local" });
+				if (signOutError) {
+					console.warn("The deleted account session could not be cleared normally.", signOutError);
+				}
+
+				state.session = null;
+				window.setTimeout(() => window.location.replace("login.html?accountDeleted=1"), 350);
+			} catch (error) {
+				console.error("Account deletion could not be completed.", error);
+				setStatus(status, "Your account could not be deleted. Nothing was changed; please refresh and try again.", "error");
+				passwordInput.value = "";
+				passwordInput.focus();
+			} finally {
+				if (!deletionCompleted) {
+					setFormBusy(form, false);
+					updateSubmitState();
+				}
+			}
+		});
+	};
+
 	const initializeUserDashboard = async () => {
 		const dashboard = document.querySelector("[data-user-dashboard]");
 
@@ -858,6 +975,8 @@
 		if (!session) {
 			return;
 		}
+
+		initializeAccountDeletion(session);
 
 		const status = document.querySelector("[data-dashboard-status]");
 		const list = document.querySelector("[data-dashboard-registrations]");
