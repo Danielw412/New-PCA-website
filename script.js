@@ -22,7 +22,7 @@ const revealMainContent = () => {
 	}
 
 	const nav = document.querySelector("#nav");
-	const navOffset = nav ? Math.min(nav.offsetHeight * 0.45, 70) : 44;
+	const navOffset = nav ? nav.offsetHeight + 24 : 44;
 	const targetTop = Math.max(0, main.getBoundingClientRect().top + window.scrollY - navOffset);
 
 	window.scrollTo({
@@ -151,8 +151,17 @@ const setupMobileNavPanelState = () => {
 	syncNavPanelState();
 };
 
+const setupNavigationAccessibility = () => {
+	const primaryNavigation = document.querySelector("#nav");
+	const primaryLinks = primaryNavigation?.querySelector(".links");
+
+	primaryNavigation?.setAttribute("aria-label", "Primary navigation");
+	primaryLinks?.setAttribute("aria-label", "Main pages");
+};
+
 setupScrollReveals();
 setupMobileNavPanelState();
+setupNavigationAccessibility();
 
 window.addEventListener("pageshow", () => {
 	document.body.classList.remove("pca-page-leaving");
@@ -214,7 +223,7 @@ const loadPcaBackend = () => {
 	}
 
 	const backendScript = document.createElement("script");
-	backendScript.src = "assets/js/pca-backend.js?v=20260703";
+	backendScript.src = "assets/js/pca-backend.js?v=20260704";
 	backendScript.dataset.pcaBackendScript = "true";
 	backendScript.defer = true;
 	document.body.appendChild(backendScript);

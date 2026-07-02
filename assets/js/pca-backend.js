@@ -305,6 +305,7 @@
 			accountLink.textContent = session ? "Dashboard" : "Log In";
 
 			const accountItem = accountLink.closest("li");
+			accountItem?.classList.add("pca-account-nav");
 			accountItem?.classList.toggle("active", pageName === (session ? "dashboard.html" : "login.html"));
 
 			let insertionPoint = accountItem;
@@ -312,6 +313,7 @@
 			if (session && isAdmin && insertionPoint) {
 				const adminItem = createElement("li");
 				adminItem.dataset.pcaDynamicNav = "true";
+				adminItem.classList.add("pca-admin-nav");
 				adminItem.classList.toggle("active", pageName === "admin-dashboard.html");
 				const adminLink = createElement("a", "", "Admin");
 				adminLink.href = "admin-dashboard.html";
@@ -323,6 +325,7 @@
 			if (session && insertionPoint) {
 				const signOutItem = createElement("li");
 				signOutItem.dataset.pcaDynamicNav = "true";
+				signOutItem.classList.add("pca-sign-out-nav");
 				const signOutLink = createElement("a", "", "Sign Out");
 				signOutLink.href = "#";
 				signOutLink.addEventListener("click", async (event) => {
