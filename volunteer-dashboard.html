@@ -1,0 +1,76 @@
+<!DOCTYPE HTML>
+<html lang="en">
+	<head>
+		<title>Volunteer Dashboard | PCA Youth Center</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		<meta name="description" content="View PCA Youth Center volunteer application status, assignments, and service hours." />
+		<link rel="stylesheet" href="assets/css/main.css" />
+		<link rel="stylesheet" href="styles.css?v=20260708" />
+		<noscript><link rel="stylesheet" href="assets/css/noscript.css" /></noscript>
+	</head>
+	<body class="is-preload">
+		<div class="pca-page-background" aria-hidden="true"><img src="images/homepage/garden-cleanup.jpg" alt="" /></div>
+		<div id="wrapper">
+			<header id="header"><a href="index.html" class="logo"><img src="images/homepage/pca-logo.png" alt="" /> PCA Youth Center</a></header>
+			<nav id="nav"><ul class="links"><li><a href="index.html">Home</a></li><li><a href="about.html">About</a></li><li><a href="membership.html">Membership</a></li><li><a href="student-council.html">Student Council</a></li><li><a href="events.html">Events</a></li><li class="active"><a href="volunteer.html">Volunteer</a></li><li><a href="support-us.html">Support Us</a></li><li><a href="bylaws.html">Bylaws</a></li><li><a href="aapi-statement.html">AAPI</a></li><li><a href="login.html">Log In</a></li></ul><ul class="icons"><li><a href="mailto:pcayouthcenter@gmail.com" class="icon solid fa-envelope"><span class="label">Email</span></a></li><li><a href="https://www.facebook.com/PCA-Youth-Center-105257804561315" class="icon brands fa-facebook-f"><span class="label">Facebook</span></a></li><li><a href="https://www.instagram.com/pcayouthcenter/" class="icon brands fa-instagram"><span class="label">Instagram</span></a></li></ul></nav>
+			<div id="main">
+				<section class="post pca-dashboard-page" data-volunteer-dashboard>
+					<header class="major"><span class="date">Teen Volunteer Account</span><h1>Volunteer Dashboard</h1><p>Welcome, <strong data-volunteer-dashboard-name>volunteer</strong>. Review your application, assignments, and service-hour history.</p></header>
+					<p class="pca-backend-status" data-volunteer-dashboard-status data-backend-status role="status" aria-live="polite">Loading your volunteer dashboard...</p>
+
+					<div class="pca-empty-state" data-volunteer-dashboard-mismatch hidden>
+						<h2>Teen volunteer account required</h2>
+						<p>This page is for individual teen volunteer accounts. Household event registrations remain available on the household dashboard.</p>
+						<a href="dashboard.html" class="button primary">Household Dashboard</a>
+					</div>
+
+					<div data-volunteer-dashboard-content hidden>
+						<section class="pca-volunteer-summary" aria-label="Volunteer summary">
+							<div><span>Application</span><strong data-volunteer-application-summary>Not submitted</strong></div>
+							<div><span>Submitted hours</span><strong data-volunteer-submitted-hours>0</strong></div>
+							<div><span>Approved hours</span><strong data-volunteer-approved-hours>0</strong></div>
+						</section>
+
+						<div class="pca-empty-state" data-volunteer-no-application hidden>
+							<h2>Start your volunteer application</h2>
+							<p>Submit one application before PCA can approve your account or create assignments.</p>
+							<a href="volunteer-apply.html" class="button primary">Apply to Volunteer</a>
+						</div>
+
+						<div class="pca-empty-state" data-volunteer-review-message hidden></div>
+
+						<div data-volunteer-approved-content hidden>
+							<section class="pca-volunteer-dashboard-section" aria-labelledby="volunteer-assignments-title">
+								<h2 id="volunteer-assignments-title">Assignments</h2>
+								<div class="pca-dashboard-grid" data-volunteer-assignments></div>
+							</section>
+
+							<details class="pca-admin-create-panel pca-volunteer-hours-panel" data-volunteer-hours-panel>
+								<summary><span>Submit Volunteer Hours</span><small>Report service completed for an assignment</small></summary>
+								<form data-volunteer-hours-form>
+									<div class="pca-admin-event-fields">
+										<div class="field pca-field-wide"><label for="volunteer-hours-assignment">Assignment</label><select id="volunteer-hours-assignment" name="assignment_id" required><option value="">Choose an assignment</option></select></div>
+										<div class="field"><label for="volunteer-hours-date">Service Date</label><input id="volunteer-hours-date" name="service_date" type="date" required /></div>
+										<div class="field"><label for="volunteer-hours-amount">Hours</label><input id="volunteer-hours-amount" name="submitted_hours" type="number" min="0.25" max="24" step="0.25" required /></div>
+										<div class="field pca-field-wide"><label for="volunteer-hours-description">What did you do?</label><textarea id="volunteer-hours-description" name="description" rows="3" maxlength="2000" required></textarea></div>
+									</div>
+									<p class="pca-backend-status pca-admin-create-status" data-volunteer-hours-status aria-live="polite"></p>
+									<ul class="actions"><li><button type="submit" class="button primary">Submit Hours</button></li></ul>
+								</form>
+							</details>
+
+							<section class="pca-volunteer-dashboard-section" aria-labelledby="volunteer-hours-history-title">
+								<h2 id="volunteer-hours-history-title">Hour History</h2>
+								<div class="table-wrapper pca-admin-table-wrapper"><table class="pca-volunteer-hours-table"><thead><tr><th>Date</th><th>Event / Role</th><th>Submitted</th><th>Approved</th><th>Status</th><th>Notes</th></tr></thead><tbody data-volunteer-hours-body></tbody></table></div>
+							</section>
+						</div>
+					</div>
+				</section>
+			</div>
+			<footer id="footer"><section><form method="post" action="mailto:pcayouthcenter@gmail.com"><div class="fields"><div class="field"><label for="name">Name</label><input type="text" name="name" id="name" /></div><div class="field"><label for="email">Email</label><input type="email" name="email" id="email" /></div><div class="field"><label for="message">Message</label><textarea name="message" id="message" rows="3"></textarea></div></div><ul class="actions"><li><input type="submit" value="Send Message" /></li></ul></form></section><section class="split contact"><section class="alt"><h3>Organization</h3><p>PCA Youth Center<br />Pittsburgh Chinese American Youth Center</p></section><section><h3>Email</h3><p><a href="mailto:pcayouthcenter@gmail.com">pcayouthcenter@gmail.com</a></p></section><section><h3>Nonprofit</h3><p>501(c)(3) youth organization led by adult and student volunteers.</p></section><section><h3>Social</h3><ul class="icons alt"><li><a href="mailto:pcayouthcenter@gmail.com" class="icon solid alt fa-envelope"><span class="label">Email</span></a></li><li><a href="https://www.facebook.com/PCA-Youth-Center-105257804561315" class="icon brands alt fa-facebook-f"><span class="label">Facebook</span></a></li><li><a href="https://www.instagram.com/pcayouthcenter/" class="icon brands alt fa-instagram"><span class="label">Instagram</span></a></li></ul></section></section></footer>
+			<div id="copyright"><ul><li>&copy; 2018-2026 PCA Youth Center</li><li>Design adapted from <a href="https://html5up.net">HTML5 UP</a></li></ul></div>
+		</div>
+		<script src="assets/js/jquery.min.js"></script><script src="assets/js/jquery.scrollex.min.js"></script><script src="assets/js/jquery.scrolly.min.js"></script><script src="assets/js/browser.min.js"></script><script src="assets/js/breakpoints.min.js"></script><script src="assets/js/util.js"></script><script src="assets/js/main.js"></script><script src="script.js?v=20260708"></script>
+	</body>
+</html>

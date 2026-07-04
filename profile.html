@@ -4,9 +4,9 @@
 		<title>My Profile | PCA Youth Center</title>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
-		<meta name="description" content="Manage your PCA Youth Center household account." />
+		<meta name="description" content="Manage your PCA Youth Center account and sign-in details." />
 		<link rel="stylesheet" href="assets/css/main.css" />
-		<link rel="stylesheet" href="styles.css?v=20260707" />
+		<link rel="stylesheet" href="styles.css?v=20260708" />
 		<noscript><link rel="stylesheet" href="assets/css/noscript.css" /></noscript>
 	</head>
 	<body class="is-preload">
@@ -16,21 +16,22 @@
 			<nav id="nav"><ul class="links"><li><a href="index.html">Home</a></li><li><a href="about.html">About</a></li><li><a href="membership.html">Membership</a></li><li><a href="student-council.html">Student Council</a></li><li><a href="events.html">Events</a></li><li><a href="volunteer.html">Volunteer</a></li><li><a href="support-us.html">Support Us</a></li><li><a href="bylaws.html">Bylaws</a></li><li><a href="aapi-statement.html">AAPI</a></li><li><a href="login.html">Log In</a></li></ul><ul class="icons"><li><a href="mailto:pcayouthcenter@gmail.com" class="icon solid fa-envelope"><span class="label">Email</span></a></li><li><a href="https://www.facebook.com/PCA-Youth-Center-105257804561315" class="icon brands fa-facebook-f"><span class="label">Facebook</span></a></li><li><a href="https://www.instagram.com/pcayouthcenter/" class="icon brands fa-instagram"><span class="label">Instagram</span></a></li></ul></nav>
 			<div id="main">
 				<section class="post pca-dashboard-page pca-profile-page" data-profile-page>
-					<header class="major"><span class="date">Household Profile</span><h1>Account &amp; Security</h1><p>Keep your household contact information and sign-in details up to date.</p></header>
+					<header class="major"><span class="date">Account Profile</span><h1>Account &amp; Security</h1><p>Keep your account holder information and sign-in details up to date.</p></header>
 					<p class="pca-backend-status" data-profile-page-status data-backend-status role="status" aria-live="polite">Loading your profile...</p>
 					<div data-profile-content hidden>
 						<section class="pca-profile-summary" aria-label="Account summary">
-							<div><span>Household contact</span><strong data-profile-summary-name></strong></div>
+							<div><span>Account holder</span><strong data-profile-summary-name></strong></div>
 							<div><span>Sign-in email</span><strong data-profile-summary-email></strong></div>
+							<div><span>Account use</span><strong data-profile-account-use></strong></div>
 							<div><span>Member since</span><strong data-profile-created-at></strong></div>
 						</section>
 
 						<div class="pca-profile-grid">
 							<section class="pca-profile-card" aria-labelledby="profile-name-title">
 								<h2 id="profile-name-title">Contact Name</h2>
-								<p>This name appears on your household dashboard and PCA registration records.</p>
+								<p>This name appears on your PCA dashboard and administrative records.</p>
 								<form data-profile-name-form>
-									<div class="fields"><div class="field"><label for="profile-full-name">Primary Contact Full Name</label><input id="profile-full-name" name="full_name" type="text" autocomplete="name" maxlength="120" required /></div></div>
+									<div class="fields"><div class="field"><label for="profile-full-name">Account Holder Full Name</label><input id="profile-full-name" name="full_name" type="text" autocomplete="name" maxlength="120" required /></div></div>
 									<ul class="actions"><li><button type="submit" class="button primary">Save Name</button></li></ul>
 									<p class="pca-backend-status" data-profile-name-status role="status" aria-live="polite"></p>
 								</form>
@@ -66,11 +67,11 @@
 							</section>
 						</div>
 
-						<ul class="actions special pca-profile-links"><li><a href="dashboard.html" class="button primary">View Registrations</a></li><li><a href="upcoming-events.html" class="button">Browse Upcoming Events</a></li></ul>
+						<ul class="actions special pca-profile-links"><li><a href="dashboard.html" class="button primary" data-profile-dashboard-link>View Dashboard</a></li><li><a href="upcoming-events.html" class="button">Browse Upcoming Events</a></li></ul>
 
 						<section class="pca-danger-zone" aria-labelledby="account-deletion-title" data-account-deletion>
-							<h2 id="account-deletion-title">Delete Household Account</h2>
-							<p>Permanently delete this account, including every event registration and attendee record associated with it. This cannot be undone.</p>
+							<h2 id="account-deletion-title">Delete PCA Account</h2>
+							<p>Permanently delete this account and its associated household registration or volunteer records. This cannot be undone.</p>
 							<details>
 								<summary>Delete account options</summary>
 								<form data-account-deletion-form>
@@ -90,6 +91,6 @@
 			<footer id="footer"><section><form method="post" action="mailto:pcayouthcenter@gmail.com"><div class="fields"><div class="field"><label for="name">Name</label><input type="text" name="name" id="name" /></div><div class="field"><label for="email">Email</label><input type="email" name="email" id="email" /></div><div class="field"><label for="message">Message</label><textarea name="message" id="message" rows="3"></textarea></div></div><ul class="actions"><li><input type="submit" value="Send Message" /></li></ul></form></section><section class="split contact"><section class="alt"><h3>Organization</h3><p>PCA Youth Center<br />Pittsburgh Chinese American Youth Center</p></section><section><h3>Email</h3><p><a href="mailto:pcayouthcenter@gmail.com">pcayouthcenter@gmail.com</a></p></section><section><h3>Nonprofit</h3><p>501(c)(3) youth organization led by adult and student volunteers.</p></section><section><h3>Social</h3><ul class="icons alt"><li><a href="mailto:pcayouthcenter@gmail.com" class="icon solid alt fa-envelope"><span class="label">Email</span></a></li><li><a href="https://www.facebook.com/PCA-Youth-Center-105257804561315" class="icon brands alt fa-facebook-f"><span class="label">Facebook</span></a></li><li><a href="https://www.instagram.com/pcayouthcenter/" class="icon brands alt fa-instagram"><span class="label">Instagram</span></a></li></ul></section></section></footer>
 			<div id="copyright"><ul><li>&copy; 2018-2026 PCA Youth Center</li><li>Design adapted from <a href="https://html5up.net">HTML5 UP</a></li></ul></div>
 		</div>
-		<script src="assets/js/jquery.min.js"></script><script src="assets/js/jquery.scrollex.min.js"></script><script src="assets/js/jquery.scrolly.min.js"></script><script src="assets/js/browser.min.js"></script><script src="assets/js/breakpoints.min.js"></script><script src="assets/js/util.js"></script><script src="assets/js/main.js"></script><script src="script.js?v=20260707"></script>
+		<script src="assets/js/jquery.min.js"></script><script src="assets/js/jquery.scrollex.min.js"></script><script src="assets/js/jquery.scrolly.min.js"></script><script src="assets/js/browser.min.js"></script><script src="assets/js/breakpoints.min.js"></script><script src="assets/js/util.js"></script><script src="assets/js/main.js"></script><script src="script.js?v=20260708"></script>
 	</body>
 </html>

@@ -21,6 +21,7 @@
 		client: null,
 		session: null,
 		isAdmin: false,
+		accountUse: null,
 		passwordRecovery: new URLSearchParams(window.location.hash.slice(1)).get("type") === "recovery",
 		authCallbackError: new URLSearchParams(window.location.hash.slice(1)).get("error_description") || "",
 	};
@@ -220,7 +221,7 @@
 		}
 
 		if (message.includes("user already registered")) {
-			return "A household account already exists for this email address.";
+			return "A PCA account already exists for this email address.";
 		}
 
 		if (message.includes("password")) {
@@ -278,6 +279,30 @@
 		return data.session;
 	};
 
+	const loadAccountUse = async (session = state.session) => {
+		if (!session?.user) {
+			state.accountUse = null;
+			return null;
+		}
+
+		const { data, error } = await state.client
+			.from("profiles")
+			.select("account_use")
+			.eq("id", session.user.id)
+			.single();
+
+		if (error) {
+			throw error;
+		}
+
+		state.accountUse = data.account_use;
+		return state.accountUse;
+	};
+
+	const accountDashboardDestination = () => state.accountUse === "volunteer"
+		? "volunteer-dashboard.html"
+		: "dashboard.html";
+
 	const checkAdmin = async (session = state.session) => {
 		if (!session?.user) {
 			state.isAdmin = false;
@@ -316,12 +341,13 @@
 			}
 
 			accountLink.dataset.pcaAccountLink = "true";
-			accountLink.href = session ? "dashboard.html" : "login.html";
+			const dashboardDestination = accountDashboardDestination();
+			accountLink.href = session ? dashboardDestination : "login.html";
 			accountLink.textContent = session ? "Dashboard" : "Log In";
 
 			const accountItem = accountLink.closest("li");
 			accountItem?.classList.add("pca-account-nav");
-			accountItem?.classList.toggle("active", pageName === (session ? "dashboard.html" : "login.html"));
+			accountItem?.classList.toggle("active", pageName === (session ? dashboardDestination : "login.html"));
 
 			let insertionPoint = accountItem;
 
@@ -392,13 +418,17 @@
 		const authenticatedPanel = document.querySelector("[data-authenticated-panel]");
 		const authenticatedEmail = document.querySelector("[data-authenticated-email]");
 		const tabs = document.querySelectorAll("[data-auth-tab]");
-		const nextDestination = safeNextDestination();
 		const loginNotice = document.querySelector("[data-login-notice]");
 		const loginQuery = new URLSearchParams(window.location.search);
+		const hasRequestedNext = loginQuery.has("next");
+		const requestedAccountUse = loginQuery.get("account") === "volunteer" ? "volunteer" : "household";
+		const destinationFor = (accountUse = state.accountUse) => hasRequestedNext
+			? safeNextDestination(accountUse === "volunteer" ? "volunteer-dashboard.html" : "dashboard.html")
+			: accountUse === "volunteer" ? "volunteer-dashboard.html" : "dashboard.html";
 
 		if (loginQuery.get("accountDeleted") === "1") {
 			loginNotice.hidden = false;
-			setStatus(loginNotice, "Your household account and its registration data were permanently deleted.", "success");
+			setStatus(loginNotice, "Your PCA account and its associated data were permanently deleted.", "success");
 		} else if (loginQuery.get("passwordReset") === "1") {
 			loginNotice.hidden = false;
 			setStatus(loginNotice, "Your password was reset. Sign in with your new password.", "success");
@@ -419,6 +449,15 @@
 
 		tabs.forEach((tab) => tab.addEventListener("click", () => showMode(tab.dataset.authTab)));
 
+		if (loginQuery.get("mode") === "signup") {
+			showMode("signup");
+		}
+
+		const requestedAccountOption = signUpForm.querySelector(`input[name="account_use"][value="${requestedAccountUse}"]`);
+		if (requestedAccountOption) {
+			requestedAccountOption.checked = true;
+		}
+
 		if (state.session) {
 			authForms.hidden = true;
 			authenticatedPanel.hidden = false;
@@ -428,7 +467,7 @@
 			authenticatedPanel.hidden = true;
 		}
 
-		document.querySelector("[data-login-dashboard]")?.setAttribute("href", nextDestination);
+		document.querySelector("[data-login-dashboard]")?.setAttribute("href", destinationFor());
 		document.querySelector("[data-login-signout]")?.addEventListener("click", async () => {
 			await state.client.auth.signOut();
 			window.location.reload();
@@ -440,7 +479,7 @@
 			setFormBusy(signInForm, true, "Signing In...");
 
 			const formData = new FormData(signInForm);
-			const { error } = await state.client.auth.signInWithPassword({
+			const { data, error } = await state.client.auth.signInWithPassword({
 				email: String(formData.get("email") || "").trim(),
 				password: String(formData.get("password") || ""),
 			});
@@ -451,7 +490,9 @@
 				return;
 			}
 
-			setStatus(signInStatus, "Signed in. Taking you to your household account...", "success");
+			await loadAccountUse(data.session);
+			const nextDestination = destinationFor();
+			setStatus(signInStatus, "Signed in. Taking you to your dashboard...", "success");
 			window.setTimeout(() => window.location.assign(nextDestination), 350);
 		});
 
@@ -468,33 +509,38 @@
 				return;
 			}
 
-			setFormBusy(signUpForm, true, "Creating Household Account...");
+			const accountUse = String(formData.get("account_use") || "household");
+			const nextDestination = destinationFor(accountUse);
+			setFormBusy(signUpForm, true, "Creating Account...");
 			const { data, error } = await state.client.auth.signUp({
 				email: String(formData.get("email") || "").trim(),
 				password,
 				options: {
 					data: {
 						full_name: String(formData.get("full_name") || "").trim(),
+						account_use: accountUse,
 					},
 					emailRedirectTo: new URL(nextDestination, window.location.href).href,
 				},
 			});
 
 			if (error) {
-				setStatus(signUpStatus, friendlyAuthError(error, "We could not create the household account. Please try again."), "error");
+				setStatus(signUpStatus, friendlyAuthError(error, "We could not create the account. Please try again."), "error");
 				setFormBusy(signUpForm, false);
 				return;
 			}
 
 			if (data.session) {
-				setStatus(signUpStatus, "Household account created. Taking you to your dashboard...", "success");
+				state.session = data.session;
+				state.accountUse = accountUse;
+				setStatus(signUpStatus, "Account created. Taking you to the next step...", "success");
 				window.setTimeout(() => window.location.assign(nextDestination), 450);
 				return;
 			}
 
 			setStatus(
 				signUpStatus,
-				"Household account created. Check your email to confirm it, then return here to sign in.",
+				"Account created. Check your email to confirm it, then return here to sign in.",
 				"success"
 			);
 			setFormBusy(signUpForm, false);
@@ -635,13 +681,17 @@
 		const actions = createElement("ul", "actions");
 		const actionItem = createElement("li");
 
-		if (canRegister) {
+		if (canRegister && (!session || state.accountUse === "household")) {
 			const destination = `register.html?event=${encodeURIComponent(event.id)}`;
 			const registerLink = createElement("a", "button primary", "Register");
 			registerLink.href = session ? destination : loginUrlFor(destination);
 			actionItem.appendChild(registerLink);
 		} else {
-			const closedButton = createElement("span", "button disabled", "Closed");
+			const closedButton = createElement(
+				"span",
+				"button disabled",
+				canRegister ? "Household Account Required" : "Closed"
+			);
 			closedButton.setAttribute("aria-disabled", "true");
 			actionItem.appendChild(closedButton);
 		}
@@ -808,6 +858,11 @@
 		const loading = document.querySelector("[data-registration-loading]");
 		const content = document.querySelector("[data-registration-content]");
 
+		if (state.accountUse !== "household") {
+			setStatus(loading, "Event attendee registration requires a household account. Teen volunteer accounts remain separate.", "error");
+			return;
+		}
+
 		if (!eventId) {
 			setStatus(loading, "No event was selected. Return to Upcoming Events and choose an event.", "error");
 			return;
@@ -948,6 +1003,348 @@
 	const makeStatusBadge = (status) => {
 		const badge = createElement("span", `pca-status-badge is-${status}`, status === "confirmed" ? "Confirmed" : "Waitlisted");
 		return badge;
+	};
+
+	const makeVolunteerStatusBadge = (status) => {
+		const labels = {
+			pending: "Pending",
+			approved: "Approved",
+			rejected: "Rejected",
+			assigned: "Assigned",
+			completed: "Completed",
+			cancelled: "Cancelled",
+			submitted: "Submitted",
+		};
+		return createElement("span", `pca-status-badge is-${status}`, labels[status] || status);
+	};
+
+	const initializeVolunteerApplicationPage = async () => {
+		const page = document.querySelector("[data-volunteer-application-page]");
+
+		if (!page) {
+			return;
+		}
+
+		const session = await requireSession();
+
+		if (!session) {
+			return;
+		}
+
+		const status = page.querySelector("[data-volunteer-application-status]");
+		const mismatch = page.querySelector("[data-volunteer-account-mismatch]");
+		const form = page.querySelector("[data-volunteer-application-form]");
+		const existingPanel = page.querySelector("[data-volunteer-application-existing]");
+		const existingStatus = page.querySelector("[data-volunteer-application-existing-status]");
+
+		page.querySelector("[data-volunteer-signout]")?.addEventListener("click", async () => {
+			await state.client.auth.signOut();
+			window.location.assign("login.html?mode=signup&account=volunteer&next=volunteer-apply.html");
+		});
+
+		if (state.accountUse !== "volunteer") {
+			setStatus(status);
+			mismatch.hidden = false;
+			return;
+		}
+
+		setStatus(status, "Checking for an existing application...", "info");
+		const { data: application, error } = await state.client
+			.from("volunteer_applications")
+			.select("id,status")
+			.eq("user_id", session.user.id)
+			.maybeSingle();
+
+		if (error) {
+			console.error("Volunteer application lookup failed.", error);
+			setStatus(status, "Your volunteer application could not be loaded. Please refresh and try again.", "error");
+			return;
+		}
+
+		setStatus(status);
+
+		if (application) {
+			existingStatus.replaceChildren(makeVolunteerStatusBadge(application.status));
+			existingPanel.hidden = false;
+			return;
+		}
+
+		form.hidden = false;
+		form.addEventListener("submit", async (event) => {
+			event.preventDefault();
+			setStatus(status);
+			const formData = new FormData(form);
+			setFormBusy(form, true, "Submitting...");
+
+			const { data, error: submitError } = await state.client
+				.from("volunteer_applications")
+				.insert({
+					age: Number(formData.get("age")),
+					grade_level: String(formData.get("grade_level") || ""),
+					school_name: String(formData.get("school_name") || "").trim(),
+					phone: String(formData.get("phone") || "").trim(),
+					parent_guardian_name: String(formData.get("parent_guardian_name") || "").trim(),
+					parent_guardian_email: String(formData.get("parent_guardian_email") || "").trim(),
+					parent_guardian_phone: String(formData.get("parent_guardian_phone") || "").trim(),
+					interests: String(formData.get("interests") || "").trim(),
+					experience: String(formData.get("experience") || "").trim(),
+					availability: String(formData.get("availability") || "").trim(),
+					parent_guardian_consent: formData.has("parent_guardian_consent"),
+				})
+				.select("id,status")
+				.single();
+
+			if (submitError || !data) {
+				console.error("Volunteer application submission failed.", submitError);
+				setStatus(status, submitError?.message || "Your application could not be submitted. Please try again.", "error");
+				setFormBusy(form, false);
+				return;
+			}
+
+			form.hidden = true;
+			existingStatus.replaceChildren(makeVolunteerStatusBadge(data.status));
+			existingPanel.hidden = false;
+			setStatus(status, "Your volunteer application was submitted for PCA review.", "success");
+		});
+	};
+
+	const createVolunteerAssignmentCard = (assignment) => {
+		const card = createElement("article", "pca-card pca-volunteer-assignment-card");
+		card.append(
+			makeVolunteerStatusBadge(assignment.status),
+			createElement("h3", "", assignment.event.title)
+		);
+		const details = createElement("div", "pca-event-details");
+		details.append(
+			makeEventDetail("Date & Time", formatEventRange(assignment.event)),
+			makeEventDetail("Location", assignment.event.location),
+			makeEventDetail("Role", assignment.role_title)
+		);
+		card.appendChild(details);
+
+		if (assignment.instructions) {
+			card.appendChild(createElement("p", "", assignment.instructions));
+		}
+
+		return card;
+	};
+
+	const initializeVolunteerDashboard = async () => {
+		const dashboard = document.querySelector("[data-volunteer-dashboard]");
+
+		if (!dashboard) {
+			return;
+		}
+
+		const session = await requireSession();
+
+		if (!session) {
+			return;
+		}
+
+		const pageStatus = dashboard.querySelector("[data-volunteer-dashboard-status]");
+		const mismatch = dashboard.querySelector("[data-volunteer-dashboard-mismatch]");
+		const content = dashboard.querySelector("[data-volunteer-dashboard-content]");
+
+		if (state.accountUse !== "volunteer") {
+			setStatus(pageStatus);
+			mismatch.hidden = false;
+			return;
+		}
+
+		setStatus(pageStatus, "Loading your volunteer dashboard...", "info");
+		const [profileResult, applicationResult, assignmentResult, hoursResult] = await Promise.all([
+			state.client.from("profiles").select("full_name,email").eq("id", session.user.id).single(),
+			state.client.from("volunteer_applications").select("id,status,admin_notes,submitted_at,reviewed_at").eq("user_id", session.user.id).maybeSingle(),
+			state.client
+				.from("volunteer_assignments")
+				.select(`
+					id,
+					role_title,
+					instructions,
+					status,
+					created_at,
+					event:events!volunteer_assignments_event_id_fkey(id,title,description,location,starts_at,ends_at)
+				`)
+				.eq("volunteer_user_id", session.user.id)
+				.order("created_at", { ascending: false }),
+			state.client
+				.from("volunteer_hours")
+				.select(`
+					id,
+					service_date,
+					submitted_hours,
+					approved_hours,
+					description,
+					status,
+					admin_notes,
+					submitted_at,
+					assignment:volunteer_assignments!volunteer_hours_assignment_id_fkey(
+						id,
+						role_title,
+						event:events!volunteer_assignments_event_id_fkey(id,title)
+					)
+				`)
+				.eq("volunteer_user_id", session.user.id)
+				.order("service_date", { ascending: false }),
+		]);
+
+		const queryError = profileResult.error || applicationResult.error || assignmentResult.error || hoursResult.error;
+
+		if (queryError) {
+			console.error("Volunteer dashboard query failed.", queryError);
+			setStatus(pageStatus, "Your volunteer dashboard could not be loaded. Please refresh and try again.", "error");
+			return;
+		}
+
+		const profile = profileResult.data;
+		const application = applicationResult.data;
+		const assignments = assignmentResult.data || [];
+		let hours = hoursResult.data || [];
+		const applicationSummary = dashboard.querySelector("[data-volunteer-application-summary]");
+		const submittedHours = dashboard.querySelector("[data-volunteer-submitted-hours]");
+		const approvedHours = dashboard.querySelector("[data-volunteer-approved-hours]");
+		const noApplication = dashboard.querySelector("[data-volunteer-no-application]");
+		const reviewMessage = dashboard.querySelector("[data-volunteer-review-message]");
+		const approvedContent = dashboard.querySelector("[data-volunteer-approved-content]");
+		const assignmentList = dashboard.querySelector("[data-volunteer-assignments]");
+		const hoursPanel = dashboard.querySelector("[data-volunteer-hours-panel]");
+		const hoursForm = dashboard.querySelector("[data-volunteer-hours-form]");
+		const hoursStatus = dashboard.querySelector("[data-volunteer-hours-status]");
+		const hoursBody = dashboard.querySelector("[data-volunteer-hours-body]");
+		const assignmentSelect = hoursForm.querySelector('select[name="assignment_id"]');
+		const serviceDateInput = hoursForm.querySelector('input[name="service_date"]');
+
+		dashboard.querySelector("[data-volunteer-dashboard-name]").textContent = profile.full_name;
+		content.hidden = false;
+		setStatus(pageStatus);
+
+		const renderHourSummary = () => {
+			const submittedTotal = hours.reduce((total, entry) => total + Number(entry.submitted_hours || 0), 0);
+			const approvedTotal = hours.reduce((total, entry) => total + Number(entry.approved_hours || 0), 0);
+			submittedHours.textContent = submittedTotal.toFixed(2).replace(/\.00$/, "");
+			approvedHours.textContent = approvedTotal.toFixed(2).replace(/\.00$/, "");
+		};
+
+		const renderHours = () => {
+			hoursBody.replaceChildren();
+
+			if (!hours.length) {
+				const row = createElement("tr");
+				const cell = createElement("td", "pca-admin-empty", "No volunteer hours have been submitted yet.");
+				cell.colSpan = 6;
+				row.appendChild(cell);
+				hoursBody.appendChild(row);
+				renderHourSummary();
+				return;
+			}
+
+			hours.forEach((entry) => {
+				const row = createElement("tr");
+				const assignmentName = entry.assignment
+					? `${entry.assignment.event.title} / ${entry.assignment.role_title}`
+					: "Assignment unavailable";
+				const statusCell = createElement("td");
+				statusCell.appendChild(makeVolunteerStatusBadge(entry.status));
+				row.append(
+					createElement("td", "", eventDateFormatter.format(new Date(`${entry.service_date}T12:00:00`))),
+					createElement("td", "", assignmentName),
+					createElement("td", "", String(entry.submitted_hours)),
+					createElement("td", "", entry.approved_hours == null ? "—" : String(entry.approved_hours)),
+					statusCell,
+					createElement("td", "", entry.admin_notes || "—")
+				);
+				hoursBody.appendChild(row);
+			});
+			renderHourSummary();
+		};
+
+		applicationSummary.replaceChildren(application ? makeVolunteerStatusBadge(application.status) : createElement("span", "", "Not submitted"));
+		renderHourSummary();
+
+		if (!application) {
+			noApplication.hidden = false;
+			return;
+		}
+
+		if (application.status !== "approved") {
+			reviewMessage.hidden = false;
+			reviewMessage.replaceChildren(
+				createElement("h2", "", application.status === "pending" ? "Application under review" : "Application not approved"),
+				createElement(
+					"p",
+					"",
+					application.status === "pending"
+						? "PCA administrators are reviewing your application. Assignments and hour submission will appear after approval."
+						: application.admin_notes || "Please contact PCA if you have questions about the decision."
+				)
+			);
+			return;
+		}
+
+		approvedContent.hidden = false;
+		assignmentList.replaceChildren();
+
+		if (!assignments.length) {
+			const empty = createElement("div", "pca-empty-state");
+			empty.appendChild(createElement("p", "", "No volunteer assignments have been added yet."));
+			assignmentList.appendChild(empty);
+		} else {
+			assignments.forEach((assignment) => assignmentList.appendChild(createVolunteerAssignmentCard(assignment)));
+		}
+
+		const activeAssignments = assignments.filter((assignment) => assignment.status !== "cancelled");
+		hoursPanel.hidden = activeAssignments.length === 0;
+		activeAssignments.forEach((assignment) => {
+			const option = createElement("option", "", `${assignment.event.title} — ${assignment.role_title}`);
+			option.value = assignment.id;
+			assignmentSelect.appendChild(option);
+		});
+		serviceDateInput.max = new Date().toISOString().slice(0, 10);
+		renderHours();
+
+		hoursForm.addEventListener("submit", async (event) => {
+			event.preventDefault();
+			setStatus(hoursStatus);
+			const formData = new FormData(hoursForm);
+			setFormBusy(hoursForm, true, "Submitting...");
+			const { error } = await state.client.from("volunteer_hours").insert({
+				assignment_id: String(formData.get("assignment_id") || ""),
+				service_date: String(formData.get("service_date") || ""),
+				submitted_hours: Number(formData.get("submitted_hours")),
+				description: String(formData.get("description") || "").trim(),
+			});
+
+			if (error) {
+				console.error("Volunteer hour submission failed.", error);
+				setStatus(hoursStatus, error.message || "Your hours could not be submitted. Please try again.", "error");
+				setFormBusy(hoursForm, false);
+				return;
+			}
+
+			const { data: refreshedHours, error: refreshError } = await state.client
+				.from("volunteer_hours")
+				.select(`
+					id,service_date,submitted_hours,approved_hours,description,status,admin_notes,submitted_at,
+					assignment:volunteer_assignments!volunteer_hours_assignment_id_fkey(
+						id,role_title,event:events!volunteer_assignments_event_id_fkey(id,title)
+					)
+				`)
+				.eq("volunteer_user_id", session.user.id)
+				.order("service_date", { ascending: false });
+
+			if (refreshError) {
+				console.error("Volunteer hours refresh failed.", refreshError);
+				window.location.reload();
+				return;
+			}
+
+			hours = refreshedHours || [];
+			hoursForm.reset();
+			setStatus(hoursStatus, "Your hours were submitted for administrator review.", "success");
+			setFormBusy(hoursForm, false);
+			renderHours();
+		});
 	};
 
 	const formatReferralSource = (source, otherDetail) => {
@@ -1128,6 +1525,8 @@
 		const summaryName = page.querySelector("[data-profile-summary-name]");
 		const summaryEmail = page.querySelector("[data-profile-summary-email]");
 		const createdAt = page.querySelector("[data-profile-created-at]");
+		const accountUse = page.querySelector("[data-profile-account-use]");
+		const dashboardLink = page.querySelector("[data-profile-dashboard-link]");
 		const nameForm = page.querySelector("[data-profile-name-form]");
 		const nameInput = nameForm.querySelector('input[name="full_name"]');
 		const nameStatus = nameForm.querySelector("[data-profile-name-status]");
@@ -1144,6 +1543,9 @@
 			summaryName.textContent = profile.full_name;
 			summaryEmail.textContent = profile.email;
 			createdAt.textContent = accountDateFormatter.format(new Date(profile.created_at));
+			accountUse.textContent = profile.account_use === "volunteer" ? "Teen volunteer" : "Household";
+			dashboardLink.href = profile.account_use === "volunteer" ? "volunteer-dashboard.html" : "dashboard.html";
+			dashboardLink.textContent = profile.account_use === "volunteer" ? "Volunteer Dashboard" : "Household Dashboard";
 			nameInput.value = profile.full_name;
 			emailInput.value = "";
 			emailInput.placeholder = profile.email;
@@ -1151,7 +1553,7 @@
 
 		const { data: profile, error: profileError } = await state.client
 			.from("profiles")
-			.select("full_name,email,created_at,updated_at")
+			.select("full_name,email,account_use,created_at,updated_at")
 			.eq("id", session.user.id)
 			.single();
 
@@ -1184,12 +1586,12 @@
 			const fullName = String(new FormData(nameForm).get("full_name") || "").trim();
 
 			if (!fullName || fullName.length > 120) {
-				setStatus(nameStatus, "Enter a contact name between 1 and 120 characters.", "error");
+				setStatus(nameStatus, "Enter an account holder name between 1 and 120 characters.", "error");
 				return;
 			}
 
 			if (fullName === currentProfile.full_name) {
-				setStatus(nameStatus, "Your contact name is already up to date.", "info");
+				setStatus(nameStatus, "Your account holder name is already up to date.", "info");
 				return;
 			}
 
@@ -1198,7 +1600,7 @@
 				.from("profiles")
 				.update({ full_name: fullName })
 				.eq("id", session.user.id)
-				.select("full_name,email,created_at,updated_at")
+				.select("full_name,email,account_use,created_at,updated_at")
 				.single();
 
 			if (error || !updatedProfile) {
@@ -1209,7 +1611,7 @@
 			}
 
 			renderProfile(updatedProfile);
-			setStatus(nameStatus, "Your household contact name was updated.", "success");
+			setStatus(nameStatus, "Your account holder name was updated.", "success");
 			setFormBusy(nameForm, false);
 		});
 
@@ -1315,6 +1717,11 @@
 		const session = await requireSession();
 
 		if (!session) {
+			return;
+		}
+
+		if (state.accountUse === "volunteer") {
+			window.location.replace("volunteer-dashboard.html");
 			return;
 		}
 
@@ -1438,6 +1845,381 @@
 		link.click();
 		link.remove();
 		URL.revokeObjectURL(downloadUrl);
+	};
+
+	const initializeAdminVolunteerManagement = async (events) => {
+		const region = document.querySelector("[data-admin-volunteer-region]");
+
+		if (!region) {
+			return;
+		}
+
+		const status = region.querySelector("[data-admin-volunteer-status]");
+		const applicationList = region.querySelector("[data-admin-volunteer-applications]");
+		const assignmentList = region.querySelector("[data-admin-volunteer-assignments]");
+		const hoursList = region.querySelector("[data-admin-volunteer-hours]");
+		const assignmentForm = region.querySelector("[data-admin-assignment-form]");
+		const assignmentStatus = region.querySelector("[data-admin-assignment-status]");
+		const volunteerSelect = assignmentForm.querySelector('select[name="volunteer_user_id"]');
+		const eventSelect = assignmentForm.querySelector('select[name="event_id"]');
+		let applications = [];
+		let assignments = [];
+		let hours = [];
+		let reviewControlCount = 0;
+
+		const appendEmptyState = (container, message) => {
+			const empty = createElement("div", "pca-empty-state");
+			empty.appendChild(createElement("p", "", message));
+			container.appendChild(empty);
+		};
+
+		const makeMailLink = (email) => {
+			const link = createElement("a", "", email);
+			link.href = `mailto:${email}`;
+			return link;
+		};
+
+		const makeReviewControls = ({ statusValue, statusOptions, notesValue = "", notesLabelText = "Administrator notes", buttonLabel, onSave, includeApprovedHours = null }) => {
+			const controls = createElement("div", "pca-admin-volunteer-review");
+			const controlPrefix = `admin-volunteer-review-${++reviewControlCount}`;
+			const statusField = createElement("div", "field");
+			const statusLabel = createElement("label", "", "Status");
+			const statusSelect = createElement("select");
+			statusLabel.htmlFor = `${controlPrefix}-status`;
+			statusSelect.id = `${controlPrefix}-status`;
+			statusOptions.forEach((optionValue) => {
+				const option = createElement("option", "", optionValue.charAt(0).toUpperCase() + optionValue.slice(1));
+				option.value = optionValue;
+				option.selected = optionValue === statusValue;
+				statusSelect.appendChild(option);
+			});
+			statusField.append(statusLabel, statusSelect);
+
+			const notesField = createElement("div", "field");
+			const notesLabel = createElement("label", "", notesLabelText);
+			const notesInput = document.createElement("textarea");
+			notesLabel.htmlFor = `${controlPrefix}-notes`;
+			notesInput.id = `${controlPrefix}-notes`;
+			notesInput.rows = 2;
+			notesInput.maxLength = 4000;
+			notesInput.value = notesValue;
+			notesField.append(notesLabel, notesInput);
+
+			let approvedHoursInput = null;
+			if (includeApprovedHours) {
+				const approvedField = createElement("div", "field");
+				const approvedLabel = createElement("label", "", "Approved hours");
+				approvedHoursInput = document.createElement("input");
+				approvedLabel.htmlFor = `${controlPrefix}-approved-hours`;
+				approvedHoursInput.id = `${controlPrefix}-approved-hours`;
+				approvedHoursInput.type = "number";
+				approvedHoursInput.min = "0.25";
+				approvedHoursInput.max = String(includeApprovedHours.submittedHours);
+				approvedHoursInput.step = "0.25";
+				approvedHoursInput.value = includeApprovedHours.value ?? includeApprovedHours.submittedHours;
+				approvedField.append(approvedLabel, approvedHoursInput);
+				controls.appendChild(approvedField);
+
+				const syncApprovedHours = () => {
+					const isApproved = statusSelect.value === "approved";
+					approvedHoursInput.disabled = !isApproved;
+					approvedHoursInput.required = isApproved;
+					if (!isApproved) {
+						approvedHoursInput.value = "";
+					} else if (!approvedHoursInput.value) {
+						approvedHoursInput.value = String(includeApprovedHours.submittedHours);
+					}
+				};
+				statusSelect.addEventListener("change", syncApprovedHours);
+				syncApprovedHours();
+			}
+
+			controls.append(statusField, notesField);
+			const saveButton = createElement("button", "button primary", buttonLabel);
+			saveButton.type = "button";
+			controls.appendChild(saveButton);
+			const itemStatus = createElement("p", "pca-admin-volunteer-item-status");
+
+			saveButton.addEventListener("click", async () => {
+				saveButton.disabled = true;
+				saveButton.textContent = "Saving...";
+				itemStatus.textContent = "";
+				itemStatus.className = "pca-admin-volunteer-item-status";
+
+				try {
+					await onSave({
+						status: statusSelect.value,
+						notes: notesInput.value.trim(),
+						approvedHours: approvedHoursInput?.value ? Number(approvedHoursInput.value) : null,
+					});
+					itemStatus.textContent = "Saved.";
+					itemStatus.classList.add("is-success");
+				} catch (error) {
+					console.error("Volunteer administration update failed.", error);
+					itemStatus.textContent = error.message || "This update could not be saved.";
+					itemStatus.classList.add("is-error");
+				} finally {
+					saveButton.disabled = false;
+					saveButton.textContent = buttonLabel;
+				}
+			});
+
+			return { controls, itemStatus };
+		};
+
+		const syncAssignmentVolunteerOptions = () => {
+			const previousValue = volunteerSelect.value;
+			volunteerSelect.replaceChildren(createElement("option", "", "Choose a volunteer"));
+			volunteerSelect.firstElementChild.value = "";
+			applications
+				.filter((application) => application.status === "approved")
+				.sort((a, b) => a.profile.full_name.localeCompare(b.profile.full_name))
+				.forEach((application) => {
+					const option = createElement("option", "", `${application.profile.full_name} (${application.profile.email})`);
+					option.value = application.user_id;
+					volunteerSelect.appendChild(option);
+				});
+			volunteerSelect.value = previousValue;
+		};
+
+		const renderApplications = () => {
+			applicationList.replaceChildren();
+
+			if (!applications.length) {
+				appendEmptyState(applicationList, "No volunteer applications have been submitted.");
+				syncAssignmentVolunteerOptions();
+				return;
+			}
+
+			applications.forEach((application) => {
+				const item = createElement("article", "pca-admin-volunteer-item");
+				const header = createElement("div", "pca-admin-volunteer-item-header");
+				const identity = createElement("div");
+				identity.append(createElement("h4", "", application.profile.full_name), makeMailLink(application.profile.email));
+				header.append(identity, makeVolunteerStatusBadge(application.status));
+
+				const details = createElement("div", "pca-admin-volunteer-details");
+				const guardian = createElement("p");
+				guardian.append(createElement("strong", "", "Parent / guardian: "), document.createTextNode(`${application.parent_guardian_name} · `), makeMailLink(application.parent_guardian_email), document.createTextNode(` · ${application.parent_guardian_phone}`));
+				[
+					["Applicant", `Age ${application.age}, grade ${application.grade_level} · ${application.school_name} · ${application.phone}`],
+					["Interests", application.interests],
+					["Experience", application.experience || "Not provided"],
+					["Availability", application.availability],
+				].forEach(([label, value]) => {
+					const detail = createElement("p");
+					detail.append(createElement("strong", "", `${label}: `), document.createTextNode(value));
+					details.appendChild(detail);
+				});
+				details.appendChild(guardian);
+
+				const review = makeReviewControls({
+					statusValue: application.status,
+					statusOptions: ["pending", "approved", "rejected"],
+					notesValue: application.admin_notes,
+					buttonLabel: "Save Review",
+					onSave: async (values) => {
+						const { data, error } = await state.client
+							.from("volunteer_applications")
+							.update({ status: values.status, admin_notes: values.notes })
+							.eq("id", application.id)
+							.select("status,admin_notes,reviewed_at")
+							.single();
+						if (error) {
+							throw error;
+						}
+						Object.assign(application, data);
+						renderApplications();
+					},
+				});
+				item.append(header, details, review.controls, review.itemStatus);
+				applicationList.appendChild(item);
+			});
+			syncAssignmentVolunteerOptions();
+		};
+
+		const renderAssignments = () => {
+			assignmentList.replaceChildren();
+
+			if (!assignments.length) {
+				appendEmptyState(assignmentList, "No volunteer assignments have been created.");
+				return;
+			}
+
+			assignments.forEach((assignment) => {
+				const item = createElement("article", "pca-admin-volunteer-item");
+				const header = createElement("div", "pca-admin-volunteer-item-header");
+				const identity = createElement("div");
+				identity.append(createElement("h4", "", assignment.profile.full_name), makeMailLink(assignment.profile.email));
+				header.append(identity, makeVolunteerStatusBadge(assignment.status));
+				const details = createElement("div", "pca-admin-volunteer-details");
+				[
+					["Event", `${assignment.event.title} · ${shortDateTimeFormatter.format(new Date(assignment.event.starts_at))}`],
+					["Role", assignment.role_title],
+					["Instructions", assignment.instructions || "None"],
+				].forEach(([label, value]) => {
+					const detail = createElement("p");
+					detail.append(createElement("strong", "", `${label}: `), document.createTextNode(value));
+					details.appendChild(detail);
+				});
+
+				const review = makeReviewControls({
+					statusValue: assignment.status,
+					statusOptions: ["assigned", "completed", "cancelled"],
+					notesValue: assignment.instructions,
+					notesLabelText: "Instructions",
+					buttonLabel: "Save Assignment",
+					onSave: async (values) => {
+						const { data, error } = await state.client
+							.from("volunteer_assignments")
+							.update({ status: values.status, instructions: values.notes })
+							.eq("id", assignment.id)
+							.select("status,instructions")
+							.single();
+						if (error) {
+							throw error;
+						}
+						Object.assign(assignment, data);
+						renderAssignments();
+					},
+				});
+				item.append(header, details, review.controls, review.itemStatus);
+				assignmentList.appendChild(item);
+			});
+		};
+
+		const renderHours = () => {
+			hoursList.replaceChildren();
+
+			if (!hours.length) {
+				appendEmptyState(hoursList, "No volunteer hours have been submitted.");
+				return;
+			}
+
+			hours.forEach((entry) => {
+				const item = createElement("article", "pca-admin-volunteer-item");
+				const header = createElement("div", "pca-admin-volunteer-item-header");
+				const identity = createElement("div");
+				identity.append(createElement("h4", "", entry.profile.full_name), makeMailLink(entry.profile.email));
+				header.append(identity, makeVolunteerStatusBadge(entry.status));
+				const details = createElement("div", "pca-admin-volunteer-details");
+				[
+					["Event / role", `${entry.assignment.event.title} · ${entry.assignment.role_title}`],
+					["Service date", eventDateFormatter.format(new Date(`${entry.service_date}T12:00:00`))],
+					["Submitted", `${entry.submitted_hours} hour${Number(entry.submitted_hours) === 1 ? "" : "s"}`],
+					["Work", entry.description],
+				].forEach(([label, value]) => {
+					const detail = createElement("p");
+					detail.append(createElement("strong", "", `${label}: `), document.createTextNode(value));
+					details.appendChild(detail);
+				});
+
+				const review = makeReviewControls({
+					statusValue: entry.status,
+					statusOptions: ["submitted", "approved", "rejected"],
+					notesValue: entry.admin_notes,
+					buttonLabel: "Save Hour Review",
+					includeApprovedHours: { submittedHours: entry.submitted_hours, value: entry.approved_hours },
+					onSave: async (values) => {
+						const { data, error } = await state.client
+							.from("volunteer_hours")
+							.update({ status: values.status, approved_hours: values.status === "approved" ? values.approvedHours : null, admin_notes: values.notes })
+							.eq("id", entry.id)
+							.select("status,approved_hours,admin_notes,reviewed_at")
+							.single();
+						if (error) {
+							throw error;
+						}
+						Object.assign(entry, data);
+						renderHours();
+					},
+				});
+				item.append(header, details, review.controls, review.itemStatus);
+				hoursList.appendChild(item);
+			});
+		};
+
+		const loadAssignments = async () => {
+			const { data, error } = await state.client
+				.from("volunteer_assignments")
+				.select(`
+					id,volunteer_user_id,event_id,role_title,instructions,status,created_at,
+					profile:profiles!volunteer_assignments_volunteer_user_id_fkey(full_name,email),
+					event:events!volunteer_assignments_event_id_fkey(id,title,starts_at)
+				`)
+				.order("created_at", { ascending: false });
+			if (error) {
+				throw error;
+			}
+			assignments = data || [];
+			renderAssignments();
+		};
+
+		region.hidden = false;
+		setStatus(status, "Loading volunteer program records...", "info");
+		const [applicationResult, hoursResult] = await Promise.all([
+			state.client
+				.from("volunteer_applications")
+				.select(`
+					id,user_id,age,grade_level,school_name,phone,parent_guardian_name,parent_guardian_email,parent_guardian_phone,
+					interests,experience,availability,status,admin_notes,submitted_at,reviewed_at,
+					profile:profiles!volunteer_applications_user_id_fkey(full_name,email)
+				`)
+				.order("submitted_at", { ascending: true }),
+			state.client
+				.from("volunteer_hours")
+				.select(`
+					id,volunteer_user_id,assignment_id,service_date,submitted_hours,approved_hours,description,status,admin_notes,submitted_at,reviewed_at,
+					profile:profiles!volunteer_hours_volunteer_user_id_fkey(full_name,email),
+					assignment:volunteer_assignments!volunteer_hours_assignment_id_fkey(
+						id,role_title,event:events!volunteer_assignments_event_id_fkey(id,title)
+					)
+				`)
+				.order("submitted_at", { ascending: true }),
+		]);
+
+		if (applicationResult.error || hoursResult.error) {
+			throw applicationResult.error || hoursResult.error;
+		}
+
+		applications = applicationResult.data || [];
+		hours = hoursResult.data || [];
+		renderApplications();
+		renderHours();
+		await loadAssignments();
+
+		events.forEach((event) => {
+			const option = createElement("option", "", `${event.title} — ${eventDateFormatter.format(new Date(event.starts_at))}`);
+			option.value = event.id;
+			eventSelect.appendChild(option);
+		});
+
+		assignmentForm.addEventListener("submit", async (event) => {
+			event.preventDefault();
+			setStatus(assignmentStatus);
+			const formData = new FormData(assignmentForm);
+			setFormBusy(assignmentForm, true, "Creating...");
+			const { error } = await state.client.from("volunteer_assignments").insert({
+				volunteer_user_id: String(formData.get("volunteer_user_id") || ""),
+				event_id: String(formData.get("event_id") || ""),
+				role_title: String(formData.get("role_title") || "").trim(),
+				instructions: String(formData.get("instructions") || "").trim(),
+			});
+
+			if (error) {
+				console.error("Volunteer assignment creation failed.", error);
+				setStatus(assignmentStatus, error.message || "The assignment could not be created.", "error");
+				setFormBusy(assignmentForm, false);
+				return;
+			}
+
+			assignmentForm.reset();
+			await loadAssignments();
+			setStatus(assignmentStatus, "The volunteer assignment was created.", "success");
+			setFormBusy(assignmentForm, false);
+		});
+
+		setStatus(status);
 	};
 
 	const initializeAdminDashboard = async () => {
@@ -1628,12 +2410,24 @@
 		controls.hidden = false;
 		tableRegion.hidden = false;
 		renderRows();
+
+		try {
+			await initializeAdminVolunteerManagement(events || []);
+		} catch (error) {
+			console.error("Volunteer administration records could not be loaded.", error);
+			const volunteerRegion = document.querySelector("[data-admin-volunteer-region]");
+			const volunteerStatus = document.querySelector("[data-admin-volunteer-status]");
+			if (volunteerRegion) {
+				volunteerRegion.hidden = false;
+			}
+			setStatus(volunteerStatus, "Volunteer records could not be loaded. Household registration tools remain available.", "error");
+		}
 	};
 
 	const showBackendFailure = (error) => {
 		console.error("PCA backend initialization failed.", error);
 		document.querySelectorAll("[data-backend-status]").forEach((element) => {
-			setStatus(element, "The registration service is temporarily unavailable. Please refresh or try again later.", "error");
+			setStatus(element, "The PCA account service is temporarily unavailable. Please refresh or try again later.", "error");
 			element.hidden = false;
 		});
 	};
@@ -1661,16 +2455,25 @@
 				window.dispatchEvent(new CustomEvent("pca:password-recovery"));
 			}
 
-			window.setTimeout(() => syncNavigation(session), 0);
+			window.setTimeout(async () => {
+				try {
+					await loadAccountUse(session);
+					await syncNavigation(session);
+				} catch (error) {
+					console.error("Account navigation could not be refreshed.", error);
+				}
+			}, 0);
 		});
 
 		await getSession();
+		await loadAccountUse(state.session);
 		await syncNavigation(state.session);
 
 		window.PCA = {
 			supabase: state.client,
 			getSession,
 			checkAdmin,
+			getAccountUse: () => state.accountUse,
 		};
 
 		await Promise.all([
@@ -1678,6 +2481,8 @@
 			initializePasswordRecoveryPage(),
 			initializeUpcomingEventsPage(),
 			initializeRegistrationPage(),
+			initializeVolunteerApplicationPage(),
+			initializeVolunteerDashboard(),
 			initializeUserDashboard(),
 			initializeProfilePage(),
 			initializeAdminDashboard(),
