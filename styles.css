@@ -1189,6 +1189,18 @@ ul.actions.special {
 	margin: 0;
 }
 
+.pca-forgot-password,
+.pca-back-link {
+	margin: -0.5rem 0 1.25rem;
+	font-size: 0.92rem;
+	font-weight: 700;
+	text-align: center;
+}
+
+.pca-back-link {
+	margin: 1.5rem 0 0;
+}
+
 .pca-authenticated-panel {
 	text-align: center;
 }
@@ -1250,6 +1262,90 @@ ul.actions.special {
 
 .pca-dashboard-page > header.major p {
 	margin-bottom: 0;
+}
+
+.pca-profile-summary {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 1px;
+	max-width: 64rem;
+	margin: 0 auto clamp(1.5rem, 3vw, 2.25rem);
+	overflow: hidden;
+	border: 1px solid var(--pca-line);
+	border-radius: var(--pca-radius-md);
+	background: var(--pca-line);
+	box-shadow: var(--pca-shadow-soft);
+}
+
+.pca-profile-summary > div {
+	min-width: 0;
+	padding: 1.25rem 1.35rem;
+	background: rgba(255, 255, 255, 0.84);
+}
+
+.pca-profile-summary span,
+.pca-profile-summary strong {
+	display: block;
+}
+
+.pca-profile-summary span {
+	margin-bottom: 0.35rem;
+	color: var(--pca-red);
+	font-family: "Source Sans Pro", Helvetica, sans-serif;
+	font-size: 0.72rem;
+	font-weight: 900;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.pca-profile-summary strong {
+	overflow-wrap: anywhere;
+	color: var(--pca-ink);
+	font-family: "Source Sans Pro", Helvetica, sans-serif;
+	font-size: 1rem;
+}
+
+.pca-profile-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: clamp(1rem, 2.5vw, 1.75rem);
+	max-width: 64rem;
+	margin: 0 auto;
+}
+
+.pca-profile-card {
+	padding: clamp(1.35rem, 3vw, 2rem);
+	border: 1px solid var(--pca-line);
+	border-radius: var(--pca-radius-md);
+	background: rgba(255, 255, 255, 0.76);
+	box-shadow: var(--pca-shadow-soft);
+}
+
+.pca-profile-card-wide {
+	grid-column: 1 / -1;
+}
+
+#main > .post .pca-profile-card h2 {
+	margin: 0 0 0.65rem;
+	font-size: clamp(1.45rem, 2.5vw, 1.9rem);
+}
+
+.pca-profile-card > p {
+	margin-bottom: 1.5rem;
+	color: var(--pca-muted);
+}
+
+.pca-profile-card form,
+.pca-profile-card .actions {
+	margin-bottom: 0;
+}
+
+.pca-profile-card .pca-backend-status {
+	text-align: left;
+}
+
+.pca-profile-links {
+	margin: clamp(2rem, 4vw, 3rem) 0 0;
 }
 
 .pca-dashboard-grid {
@@ -1670,8 +1766,13 @@ input[type="submit"]:disabled {
 
 @media screen and (max-width: 980px) {
 	.pca-events-grid,
-	.pca-dashboard-grid {
+	.pca-dashboard-grid,
+	.pca-profile-grid {
 		grid-template-columns: 1fr;
+	}
+
+	.pca-profile-card-wide {
+		grid-column: auto;
 	}
 
 	.pca-admin-controls {
@@ -1747,6 +1848,15 @@ input[type="submit"]:disabled {
 	}
 
 	.pca-danger-zone .button {
+		width: 100%;
+	}
+
+	.pca-profile-summary {
+		grid-template-columns: 1fr;
+	}
+
+	.pca-profile-card .button,
+	.pca-profile-links .button {
 		width: 100%;
 	}
 }

@@ -21,6 +21,8 @@
 		client: null,
 		session: null,
 		isAdmin: false,
+		passwordRecovery: new URLSearchParams(window.location.hash.slice(1)).get("type") === "recovery",
+		authCallbackError: new URLSearchParams(window.location.hash.slice(1)).get("error_description") || "",
 	};
 
 	const dateTimeFormatter = new Intl.DateTimeFormat("en-US", {
@@ -37,6 +39,11 @@
 
 	const eventDateFormatter = new Intl.DateTimeFormat("en-US", {
 		dateStyle: "medium",
+		timeZone: APP_TIME_ZONE,
+	});
+
+	const accountDateFormatter = new Intl.DateTimeFormat("en-US", {
+		dateStyle: "long",
 		timeZone: APP_TIME_ZONE,
 	});
 
@@ -227,6 +234,22 @@
 		return fallback;
 	};
 
+	const passwordValidationMessage = (password) => {
+		if (password.length < 8 || !/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/\d/.test(password)) {
+			return "Use at least 8 characters with uppercase and lowercase letters and a number.";
+		}
+
+		return "";
+	};
+
+	const clearAuthCallbackFragment = () => {
+		if (!window.location.hash) {
+			return;
+		}
+
+		window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
+	};
+
 	const formatEventRange = (event) => {
 		const start = new Date(event.starts_at);
 		const end = new Date(event.ends_at);
@@ -302,6 +325,18 @@
 
 			let insertionPoint = accountItem;
 
+			if (session && insertionPoint) {
+				const profileItem = createElement("li");
+				profileItem.dataset.pcaDynamicNav = "true";
+				profileItem.classList.add("pca-profile-nav");
+				profileItem.classList.toggle("active", pageName === "profile.html");
+				const profileLink = createElement("a", "", "Profile");
+				profileLink.href = "profile.html";
+				profileItem.appendChild(profileLink);
+				insertionPoint.insertAdjacentElement("afterend", profileItem);
+				insertionPoint = profileItem;
+			}
+
 			if (session && isAdmin && insertionPoint) {
 				const adminItem = createElement("li");
 				adminItem.dataset.pcaDynamicNav = "true";
@@ -358,11 +393,15 @@
 		const authenticatedEmail = document.querySelector("[data-authenticated-email]");
 		const tabs = document.querySelectorAll("[data-auth-tab]");
 		const nextDestination = safeNextDestination();
-		const accountDeletedStatus = document.querySelector("[data-account-deleted-status]");
+		const loginNotice = document.querySelector("[data-login-notice]");
+		const loginQuery = new URLSearchParams(window.location.search);
 
-		if (new URLSearchParams(window.location.search).get("accountDeleted") === "1") {
-			accountDeletedStatus.hidden = false;
-			setStatus(accountDeletedStatus, "Your household account and its registration data were permanently deleted.", "success");
+		if (loginQuery.get("accountDeleted") === "1") {
+			loginNotice.hidden = false;
+			setStatus(loginNotice, "Your household account and its registration data were permanently deleted.", "success");
+		} else if (loginQuery.get("passwordReset") === "1") {
+			loginNotice.hidden = false;
+			setStatus(loginNotice, "Your password was reset. Sign in with your new password.", "success");
 		}
 
 		const showMode = (mode) => {
@@ -459,6 +498,114 @@
 				"success"
 			);
 			setFormBusy(signUpForm, false);
+		});
+	};
+
+	const initializePasswordRecoveryPage = async () => {
+		const page = document.querySelector("[data-password-recovery-page]");
+
+		if (!page) {
+			return;
+		}
+
+		const requestPanel = page.querySelector("[data-recovery-request-panel]");
+		const requestForm = page.querySelector("[data-recovery-request-form]");
+		const requestStatus = page.querySelector("[data-recovery-request-status]");
+		const updatePanel = page.querySelector("[data-recovery-update-panel]");
+		const updateForm = page.querySelector("[data-recovery-update-form]");
+		const updateStatus = page.querySelector("[data-recovery-update-status]");
+		const pageStatus = page.querySelector("[data-recovery-page-status]");
+		const recoveryRequested = new URLSearchParams(window.location.search).get("mode") === "recovery";
+
+		const showUpdatePanel = () => {
+			if (!state.passwordRecovery || !state.session) {
+				return;
+			}
+
+			requestPanel.hidden = true;
+			updatePanel.hidden = false;
+			setStatus(pageStatus);
+			clearAuthCallbackFragment();
+			updateForm.querySelector('input[name="password"]')?.focus();
+		};
+
+		window.addEventListener("pca:password-recovery", showUpdatePanel, { once: true });
+
+		if (state.authCallbackError) {
+			setStatus(pageStatus, "This recovery link is invalid or has expired. Request a new link below.", "error");
+			clearAuthCallbackFragment();
+		} else if (state.passwordRecovery && state.session) {
+			showUpdatePanel();
+		} else if (recoveryRequested) {
+			setStatus(pageStatus, "This recovery link is invalid or has expired. Request a new link below.", "error");
+		} else if (state.session) {
+			window.location.replace("profile.html");
+			return;
+		}
+
+		requestForm.addEventListener("submit", async (event) => {
+			event.preventDefault();
+			setStatus(requestStatus);
+			setFormBusy(requestForm, true, "Sending Link...");
+
+			const email = String(new FormData(requestForm).get("email") || "").trim();
+			const redirectTo = new URL("reset-password.html?mode=recovery", window.location.href).href;
+			const { error } = await state.client.auth.resetPasswordForEmail(email, { redirectTo });
+
+			if (error) {
+				setStatus(requestStatus, friendlyAuthError(error, "A recovery link could not be sent. Please wait and try again."), "error");
+				setFormBusy(requestForm, false);
+				return;
+			}
+
+			requestForm.reset();
+			setStatus(requestStatus, "If an account exists for that email, a recovery link is on its way. Check your inbox and spam folder.", "success");
+			setFormBusy(requestForm, false);
+		});
+
+		updateForm.addEventListener("submit", async (event) => {
+			event.preventDefault();
+			setStatus(updateStatus);
+
+			if (!state.passwordRecovery || !state.session) {
+				setStatus(updateStatus, "This recovery session is no longer valid. Request a new recovery link.", "error");
+				return;
+			}
+
+			const formData = new FormData(updateForm);
+			const password = String(formData.get("password") || "");
+			const confirmation = String(formData.get("password_confirmation") || "");
+			const validationMessage = passwordValidationMessage(password);
+
+			if (validationMessage) {
+				setStatus(updateStatus, validationMessage, "error");
+				return;
+			}
+
+			if (password !== confirmation) {
+				setStatus(updateStatus, "The passwords do not match.", "error");
+				return;
+			}
+
+			setFormBusy(updateForm, true, "Resetting Password...");
+			const { error } = await state.client.auth.updateUser({ password });
+
+			if (error) {
+				setStatus(updateStatus, friendlyAuthError(error, "Your password could not be reset. Request a new recovery link and try again."), "error");
+				setFormBusy(updateForm, false);
+				return;
+			}
+
+			setStatus(updateStatus, "Password reset. Signing out your active sessions...", "success");
+			const { error: signOutError } = await state.client.auth.signOut({ scope: "global" });
+
+			if (signOutError) {
+				console.warn("Sessions could not be revoked normally after password recovery.", signOutError);
+			}
+
+			state.passwordRecovery = false;
+			state.session = null;
+			window.setTimeout(() => window.location.replace("login.html?passwordReset=1"), 350);
 		});
 	};
 
@@ -963,6 +1110,201 @@
 		});
 	};
 
+	const initializeProfilePage = async () => {
+		const page = document.querySelector("[data-profile-page]");
+
+		if (!page) {
+			return;
+		}
+
+		const session = await requireSession();
+
+		if (!session) {
+			return;
+		}
+
+		const pageStatus = page.querySelector("[data-profile-page-status]");
+		const content = page.querySelector("[data-profile-content]");
+		const summaryName = page.querySelector("[data-profile-summary-name]");
+		const summaryEmail = page.querySelector("[data-profile-summary-email]");
+		const createdAt = page.querySelector("[data-profile-created-at]");
+		const nameForm = page.querySelector("[data-profile-name-form]");
+		const nameInput = nameForm.querySelector('input[name="full_name"]');
+		const nameStatus = nameForm.querySelector("[data-profile-name-status]");
+		const emailForm = page.querySelector("[data-profile-email-form]");
+		const emailInput = emailForm.querySelector('input[name="email"]');
+		const emailPasswordInput = emailForm.querySelector('input[name="current_password"]');
+		const emailStatus = emailForm.querySelector("[data-profile-email-status]");
+		const passwordForm = page.querySelector("[data-profile-password-form]");
+		const passwordStatus = passwordForm.querySelector("[data-profile-password-status]");
+		let currentProfile;
+
+		const renderProfile = (profile) => {
+			currentProfile = profile;
+			summaryName.textContent = profile.full_name;
+			summaryEmail.textContent = profile.email;
+			createdAt.textContent = accountDateFormatter.format(new Date(profile.created_at));
+			nameInput.value = profile.full_name;
+			emailInput.value = "";
+			emailInput.placeholder = profile.email;
+		};
+
+		const { data: profile, error: profileError } = await state.client
+			.from("profiles")
+			.select("full_name,email,created_at,updated_at")
+			.eq("id", session.user.id)
+			.single();
+
+		if (profileError || !profile) {
+			console.error("Profile query failed.", profileError);
+			setStatus(pageStatus, "Your profile could not be loaded. Please refresh and try again.", "error");
+			return;
+		}
+
+		renderProfile(profile);
+		content.hidden = false;
+		initializeAccountDeletion(session);
+
+		const profileQuery = new URLSearchParams(window.location.search);
+
+		if (state.authCallbackError) {
+			setStatus(pageStatus, "The email confirmation link is invalid or has expired. Your sign-in email was not changed.", "error");
+			clearAuthCallbackFragment();
+		} else if (profileQuery.get("emailChange") === "1") {
+			setStatus(pageStatus, "Email confirmation processed. If both addresses have been confirmed, the updated sign-in email appears below.", "success");
+			clearAuthCallbackFragment();
+		} else {
+			setStatus(pageStatus);
+		}
+
+		nameForm.addEventListener("submit", async (event) => {
+			event.preventDefault();
+			setStatus(nameStatus);
+
+			const fullName = String(new FormData(nameForm).get("full_name") || "").trim();
+
+			if (!fullName || fullName.length > 120) {
+				setStatus(nameStatus, "Enter a contact name between 1 and 120 characters.", "error");
+				return;
+			}
+
+			if (fullName === currentProfile.full_name) {
+				setStatus(nameStatus, "Your contact name is already up to date.", "info");
+				return;
+			}
+
+			setFormBusy(nameForm, true, "Saving Name...");
+			const { data: updatedProfile, error } = await state.client
+				.from("profiles")
+				.update({ full_name: fullName })
+				.eq("id", session.user.id)
+				.select("full_name,email,created_at,updated_at")
+				.single();
+
+			if (error || !updatedProfile) {
+				console.error("Profile name update failed.", error);
+				setStatus(nameStatus, "Your contact name could not be saved. Please try again.", "error");
+				setFormBusy(nameForm, false);
+				return;
+			}
+
+			renderProfile(updatedProfile);
+			setStatus(nameStatus, "Your household contact name was updated.", "success");
+			setFormBusy(nameForm, false);
+		});
+
+		emailForm.addEventListener("submit", async (event) => {
+			event.preventDefault();
+			setStatus(emailStatus);
+
+			const formData = new FormData(emailForm);
+			const newEmail = String(formData.get("email") || "").trim();
+			const currentPassword = String(formData.get("current_password") || "");
+
+			if (newEmail.toLowerCase() === currentProfile.email.toLowerCase()) {
+				setStatus(emailStatus, "Enter a different email address.", "error");
+				return;
+			}
+
+			setFormBusy(emailForm, true, "Requesting Change...");
+			setStatus(emailStatus, "Verifying your password...", "info");
+
+			const { data: signInData, error: passwordError } = await state.client.auth.signInWithPassword({
+				email: session.user.email || currentProfile.email,
+				password: currentPassword,
+			});
+
+			if (passwordError || signInData.user?.id !== session.user.id) {
+				setStatus(
+					emailStatus,
+					String(passwordError?.message || "").toLowerCase().includes("invalid login credentials")
+						? "The current password is incorrect. Your email was not changed."
+						: friendlyAuthError(passwordError, "Your password could not be verified. Your email was not changed."),
+					"error"
+				);
+				emailPasswordInput.value = "";
+				emailPasswordInput.focus();
+				setFormBusy(emailForm, false);
+				return;
+			}
+
+			setStatus(emailStatus, "Password verified. Sending confirmation emails...", "info");
+			const emailRedirectTo = new URL("profile.html?emailChange=1", window.location.href).href;
+			const { error } = await state.client.auth.updateUser({ email: newEmail }, { emailRedirectTo });
+
+			if (error) {
+				setStatus(emailStatus, friendlyAuthError(error, "The email change could not be requested. Please try again."), "error");
+				emailPasswordInput.value = "";
+				setFormBusy(emailForm, false);
+				return;
+			}
+
+			emailForm.reset();
+			emailInput.placeholder = currentProfile.email;
+			setStatus(emailStatus, "Confirmation links were sent to your current and new email addresses. Accept both links to finish the change.", "success");
+			setFormBusy(emailForm, false);
+		});
+
+		passwordForm.addEventListener("submit", async (event) => {
+			event.preventDefault();
+			setStatus(passwordStatus);
+
+			const formData = new FormData(passwordForm);
+			const currentPassword = String(formData.get("current_password") || "");
+			const password = String(formData.get("password") || "");
+			const confirmation = String(formData.get("password_confirmation") || "");
+			const validationMessage = passwordValidationMessage(password);
+
+			if (validationMessage) {
+				setStatus(passwordStatus, validationMessage, "error");
+				return;
+			}
+
+			if (password !== confirmation) {
+				setStatus(passwordStatus, "The new passwords do not match.", "error");
+				return;
+			}
+
+			if (password === currentPassword) {
+				setStatus(passwordStatus, "Choose a new password that differs from your current password.", "error");
+				return;
+			}
+
+			setFormBusy(passwordForm, true, "Updating Password...");
+			const { error } = await state.client.auth.updateUser({ password, currentPassword });
+
+			if (error) {
+				setStatus(passwordStatus, friendlyAuthError(error, "Your password could not be updated. Please try again."), "error");
+				setFormBusy(passwordForm, false);
+				return;
+			}
+
+			passwordForm.reset();
+			setStatus(passwordStatus, "Your password was updated.", "success");
+			setFormBusy(passwordForm, false);
+		});
+	};
+
 	const initializeUserDashboard = async () => {
 		const dashboard = document.querySelector("[data-user-dashboard]");
 
@@ -975,8 +1317,6 @@
 		if (!session) {
 			return;
 		}
-
-		initializeAccountDeletion(session);
 
 		const status = document.querySelector("[data-dashboard-status]");
 		const list = document.querySelector("[data-dashboard-registrations]");
@@ -1313,6 +1653,17 @@
 			},
 		});
 
+		state.client.auth.onAuthStateChange((authEvent, session) => {
+			state.session = session;
+
+			if (authEvent === "PASSWORD_RECOVERY") {
+				state.passwordRecovery = true;
+				window.dispatchEvent(new CustomEvent("pca:password-recovery"));
+			}
+
+			window.setTimeout(() => syncNavigation(session), 0);
+		});
+
 		await getSession();
 		await syncNavigation(state.session);
 
@@ -1322,16 +1673,13 @@
 			checkAdmin,
 		};
 
-		state.client.auth.onAuthStateChange((_event, session) => {
-			state.session = session;
-			window.setTimeout(() => syncNavigation(session), 0);
-		});
-
 		await Promise.all([
 			initializeLoginPage(),
+			initializePasswordRecoveryPage(),
 			initializeUpcomingEventsPage(),
 			initializeRegistrationPage(),
 			initializeUserDashboard(),
+			initializeProfilePage(),
 			initializeAdminDashboard(),
 		]);
 
