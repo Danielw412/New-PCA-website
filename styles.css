@@ -1169,6 +1169,353 @@ ul.actions.special {
 	}
 }
 
+/* PCA platform expansion: all new workflows intentionally reuse the existing
+   paper surfaces, red palette, Source Sans Pro controls, radii, and shadows. */
+
+.pca-paper-panel {
+	padding: clamp(1.35rem, 3vw, 2rem);
+	margin: 1.75rem 0;
+	border: 1px solid var(--pca-line);
+	border-radius: var(--pca-radius-lg);
+	background: var(--pca-surface);
+	box-shadow: var(--pca-shadow-soft);
+}
+
+.pca-three-column-cards,
+.pca-account-benefits,
+.pca-admin-metric-grid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 1.25rem;
+}
+
+.pca-three-column-cards > .pca-card,
+.pca-admin-metric-grid > .pca-card {
+	height: 100%;
+}
+
+.pca-feature-icon {
+	display: inline-grid;
+	width: 2.8rem;
+	height: 2.8rem;
+	place-items: center;
+	margin-bottom: 1rem;
+	border-radius: 50%;
+	background: rgba(215, 25, 32, 0.1);
+	color: var(--pca-red);
+	font-size: 1.15rem;
+}
+
+.pca-step-list,
+.pca-benefit-list,
+.pca-compact-list,
+.pca-editor-post-list {
+	margin-bottom: 1.5rem;
+}
+
+.pca-benefit-list {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.55rem 1.5rem;
+	padding-left: 1.25rem;
+}
+
+.pca-benefit-list li::marker {
+	color: var(--pca-red);
+}
+
+.pca-registration-paths {
+	margin-top: 2rem;
+}
+
+.pca-registration-paths > h2 {
+	text-align: center;
+}
+
+.pca-registration-path-card {
+	display: flex;
+	align-items: flex-start;
+	flex-direction: column;
+}
+
+.pca-registration-path-card .button {
+	margin-top: auto;
+}
+
+.pca-saved-member-picker {
+	padding: 1rem;
+	margin: 1.25rem 0;
+	border: 1px dashed rgba(215, 25, 32, 0.3);
+	border-radius: var(--pca-radius-md);
+	background: rgba(255, 248, 246, 0.7);
+}
+
+.pca-saved-member-picker p {
+	margin: 0.2rem 0 0.75rem;
+	color: var(--pca-muted);
+}
+
+.pca-saved-member-picker .button {
+	margin: 0 0.5rem 0.5rem 0;
+}
+
+.pca-registration-success {
+	max-width: 54rem;
+	margin-right: auto;
+	margin-left: auto;
+}
+
+.pca-dashboard-toolbar,
+.pca-admin-workspace-tabs {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 0.6rem;
+	margin: 0 auto 2rem;
+}
+
+.pca-dashboard-toolbar .button,
+.pca-admin-workspace-tabs .button {
+	margin: 0;
+}
+
+.pca-status-badge,
+.pca-role-chip {
+	display: inline-flex;
+	align-items: center;
+	min-height: 1.8rem;
+	padding: 0.2rem 0.7rem;
+	border: 1px solid rgba(215, 25, 32, 0.22);
+	border-radius: 999px;
+	background: rgba(215, 25, 32, 0.08);
+	color: var(--pca-red-dark);
+	font-family: "Source Sans Pro", Helvetica, sans-serif;
+	font-size: 0.76rem;
+	font-weight: 800;
+	letter-spacing: 0.05em;
+	line-height: 1.2;
+	text-transform: uppercase;
+}
+
+.pca-status-badge.is-approved,
+.pca-status-badge.is-confirmed {
+	border-color: rgba(37, 103, 60, 0.25);
+	background: rgba(37, 103, 60, 0.08);
+	color: #25673c;
+}
+
+.pca-role-list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.6rem;
+}
+
+.pca-saved-member-grid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 1rem;
+}
+
+.pca-saved-member-card .button {
+	margin: 0.25rem 0.4rem 0 0;
+}
+
+.pca-blog-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 1.5rem;
+}
+
+.pca-blog-card {
+	display: flex;
+	align-items: flex-start;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+.pca-blog-card .pca-blog-cover {
+	width: calc(100% + 3rem);
+	margin: -1.5rem -1.5rem 1.25rem;
+}
+
+.pca-blog-card .pca-blog-cover img,
+.pca-blog-post-cover,
+.pca-blog-inline-image img {
+	display: block;
+	width: 100%;
+	height: auto;
+	object-fit: cover;
+}
+
+.pca-blog-card .pca-blog-cover img {
+	aspect-ratio: 16 / 9;
+}
+
+.pca-blog-card .actions {
+	margin-top: auto;
+}
+
+.pca-blog-meta {
+	margin-bottom: 0.65rem;
+	color: var(--pca-red-dark);
+	font-family: "Source Sans Pro", Helvetica, sans-serif;
+	font-size: 0.82rem;
+	font-weight: 800;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+}
+
+.pca-blog-content {
+	max-width: 48rem;
+	margin: 0 auto;
+}
+
+.pca-blog-content blockquote {
+	padding: 1.25rem 1.5rem;
+	border-left: 0.3rem solid var(--pca-red);
+	border-radius: 0 var(--pca-radius-md) var(--pca-radius-md) 0;
+	background: rgba(215, 25, 32, 0.05);
+}
+
+.pca-blog-inline-image {
+	margin: 2rem 0;
+}
+
+.pca-editor-layout {
+	display: grid;
+	grid-template-columns: minmax(13rem, 0.32fr) minmax(0, 1fr);
+	align-items: start;
+	gap: 1.5rem;
+}
+
+.pca-editor-layout > .pca-paper-panel {
+	margin: 0;
+}
+
+.pca-editor-block {
+	padding: 1rem;
+	margin-bottom: 1rem;
+	border: 1px solid var(--pca-line);
+	border-radius: var(--pca-radius-md);
+	background: rgba(255, 255, 255, 0.65);
+}
+
+.pca-editor-block legend {
+	padding: 0 0.45rem;
+	color: var(--pca-red-dark);
+	font-family: "Source Sans Pro", Helvetica, sans-serif;
+	font-weight: 800;
+}
+
+.pca-editor-block-actions {
+	display: flex;
+	align-items: end;
+}
+
+.pca-admin-workspace-panel {
+	padding: clamp(1.25rem, 3vw, 2rem);
+	border: 1px solid var(--pca-line);
+	border-radius: var(--pca-radius-lg);
+	background: rgba(255, 250, 248, 0.78);
+	box-shadow: var(--pca-shadow-soft);
+}
+
+.pca-admin-workspace-panel > h2 {
+	margin-bottom: 1.35rem;
+}
+
+.pca-admin-metric-grid {
+	grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.pca-admin-metric-grid .pca-card {
+	text-align: center;
+}
+
+.pca-admin-metric-grid strong {
+	display: block;
+	color: var(--pca-red);
+	font-family: "Source Sans Pro", Helvetica, sans-serif;
+	font-size: clamp(1.8rem, 4vw, 2.7rem);
+	font-weight: 900;
+	line-height: 1;
+}
+
+.pca-admin-metric-grid span {
+	display: block;
+	margin-top: 0.65rem;
+	color: var(--pca-muted);
+	font-size: 0.85rem;
+}
+
+.pca-admin-workspace-panel .table-wrapper {
+	margin-top: 1.25rem;
+}
+
+.pca-admin-workspace-panel table {
+	min-width: 52rem;
+}
+
+.pca-admin-workspace-panel td .button {
+	margin: 0.2rem 0.35rem 0.2rem 0;
+}
+
+.pca-inline-check {
+	display: block;
+	margin-bottom: 0.4rem;
+	white-space: nowrap;
+}
+
+.pca-admin-access-form {
+	max-width: 48rem;
+}
+
+@media screen and (max-width: 980px) {
+	.pca-three-column-cards,
+	.pca-account-benefits,
+	.pca-admin-metric-grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.pca-editor-layout {
+		grid-template-columns: 1fr;
+	}
+
+	.pca-saved-member-grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+@media screen and (max-width: 736px) {
+	.pca-three-column-cards,
+	.pca-account-benefits,
+	.pca-admin-metric-grid,
+	.pca-blog-grid,
+	.pca-benefit-list {
+		grid-template-columns: 1fr;
+	}
+
+	.pca-saved-member-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.pca-dashboard-toolbar,
+	.pca-admin-workspace-tabs {
+		align-items: stretch;
+		flex-direction: column;
+	}
+
+	.pca-dashboard-toolbar .button,
+	.pca-admin-workspace-tabs .button {
+		width: 100%;
+	}
+
+	.pca-blog-card .pca-blog-cover {
+		width: calc(100% + 2.5rem);
+		margin: -1.25rem -1.25rem 1.1rem;
+	}
+}
+
 [hidden] {
 	display: none !important;
 }

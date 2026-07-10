@@ -279,6 +279,8 @@
 		return data.session;
 	};
 
+	const isPermanentSession = (session = state.session) => Boolean(session?.user && !session.user.is_anonymous && session.user.email);
+
 	const loadAccountUse = async (session = state.session) => {
 		if (!session?.user) {
 			state.accountUse = null;
@@ -289,18 +291,18 @@
 			.from("profiles")
 			.select("account_use")
 			.eq("id", session.user.id)
-			.single();
+			.maybeSingle();
 
 		if (error) {
 			throw error;
 		}
 
-		state.accountUse = data.account_use;
+		state.accountUse = data?.account_use || null;
 		return state.accountUse;
 	};
 
 	const accountDashboardDestination = () => state.accountUse === "volunteer"
-		? "volunteer-dashboard.html"
+		? "teen-member-dashboard.html"
 		: "dashboard.html";
 
 	const checkAdmin = async (session = state.session) => {
@@ -326,7 +328,8 @@
 	};
 
 	const syncNavigation = async (session = state.session) => {
-		const isAdmin = session ? await checkAdmin(session) : false;
+		const permanentSession = isPermanentSession(session);
+		const isAdmin = permanentSession ? await checkAdmin(session) : false;
 		const pageName = currentPageName();
 		const linkLists = document.querySelectorAll("#nav .links, #navPanel .links");
 
@@ -342,16 +345,16 @@
 
 			accountLink.dataset.pcaAccountLink = "true";
 			const dashboardDestination = accountDashboardDestination();
-			accountLink.href = session ? dashboardDestination : "login.html";
-			accountLink.textContent = session ? "Dashboard" : "Log In";
+			accountLink.href = permanentSession ? dashboardDestination : "login.html";
+			accountLink.textContent = "Account";
 
 			const accountItem = accountLink.closest("li");
 			accountItem?.classList.add("pca-account-nav");
-			accountItem?.classList.toggle("active", pageName === (session ? dashboardDestination : "login.html"));
+			accountItem?.classList.toggle("active", pageName === (permanentSession ? dashboardDestination : "login.html"));
 
 			let insertionPoint = accountItem;
 
-			if (session && insertionPoint) {
+			if (permanentSession && insertionPoint) {
 				const profileItem = createElement("li");
 				profileItem.dataset.pcaDynamicNav = "true";
 				profileItem.classList.add("pca-profile-nav");
@@ -363,7 +366,7 @@
 				insertionPoint = profileItem;
 			}
 
-			if (session && isAdmin && insertionPoint) {
+			if (permanentSession && isAdmin && insertionPoint) {
 				const adminItem = createElement("li");
 				adminItem.dataset.pcaDynamicNav = "true";
 				adminItem.classList.add("pca-admin-nav");
@@ -375,7 +378,7 @@
 				insertionPoint = adminItem;
 			}
 
-			if (session && insertionPoint) {
+			if (permanentSession && insertionPoint) {
 				const signOutItem = createElement("li");
 				signOutItem.dataset.pcaDynamicNav = "true";
 				signOutItem.classList.add("pca-sign-out-nav");
@@ -421,10 +424,10 @@
 		const loginNotice = document.querySelector("[data-login-notice]");
 		const loginQuery = new URLSearchParams(window.location.search);
 		const hasRequestedNext = loginQuery.has("next");
-		const requestedAccountUse = loginQuery.get("account") === "volunteer" ? "volunteer" : "household";
+		const requestedAccountUse = ["teen_member", "volunteer"].includes(loginQuery.get("account")) ? "teen_member" : "household";
 		const destinationFor = (accountUse = state.accountUse) => hasRequestedNext
-			? safeNextDestination(accountUse === "volunteer" ? "volunteer-dashboard.html" : "dashboard.html")
-			: accountUse === "volunteer" ? "volunteer-dashboard.html" : "dashboard.html";
+			? safeNextDestination(["teen_member", "volunteer"].includes(accountUse) ? "teen-member-dashboard.html" : "dashboard.html")
+			: ["teen_member", "volunteer"].includes(accountUse) ? "teen-member-dashboard.html" : "dashboard.html";
 
 		if (loginQuery.get("accountDeleted") === "1") {
 			loginNotice.hidden = false;
@@ -458,7 +461,7 @@
 			requestedAccountOption.checked = true;
 		}
 
-		if (state.session) {
+		if (isPermanentSession(state.session)) {
 			authForms.hidden = true;
 			authenticatedPanel.hidden = false;
 			authenticatedEmail.textContent = state.session.user.email || "your account";
@@ -518,7 +521,8 @@
 				options: {
 					data: {
 						full_name: String(formData.get("full_name") || "").trim(),
-						account_use: accountUse,
+						account_type: accountUse,
+						account_use: accountUse === "teen_member" ? "volunteer" : "household",
 					},
 					emailRedirectTo: new URL(nextDestination, window.location.href).href,
 				},
@@ -684,7 +688,7 @@
 		if (canRegister && (!session || state.accountUse === "household")) {
 			const destination = `register.html?event=${encodeURIComponent(event.id)}`;
 			const registerLink = createElement("a", "button primary", "Register");
-			registerLink.href = session ? destination : loginUrlFor(destination);
+			registerLink.href = destination;
 			actionItem.appendChild(registerLink);
 		} else {
 			const closedButton = createElement(
