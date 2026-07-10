@@ -7,8 +7,8 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js";
-import { importedPosts } from "./blog-seed.js";
+} from "./core-auth.js?v=20260710";
+import { importedPosts } from "./blog-seed.js?v=20260710";
 
 const imageUrl = (supabase, source, path) => {
 	if (!source || !path) return "";
@@ -258,7 +258,9 @@ const initializeBlogEditor = async () => {
 			published_at: published ? (existing?.published_at || new Date().toISOString()) : null,
 			author_user_id: existing?.author_user_id || session.user.id,
 			author_display_name: String(values.get("author_display_name") || "").trim(),
-			cover_image_source: coverPath ? "storage" : null,
+			cover_image_source: coverPath
+				? (existing?.cover_image_path === coverPath ? existing.cover_image_source : "storage")
+				: null,
 			cover_image_path: coverPath || null,
 			cover_image_alt: coverPath ? coverAlt : null,
 		};

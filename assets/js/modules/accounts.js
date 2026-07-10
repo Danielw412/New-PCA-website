@@ -9,7 +9,7 @@ import {
 	requirePermanentAccount,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js";
+} from "./core-auth.js?v=20260710";
 
 const roleLabels = {
 	student_council: "Student Council",

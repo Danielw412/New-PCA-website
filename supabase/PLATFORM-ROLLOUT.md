@@ -9,6 +9,8 @@ Apply these migrations in order after a linked dry run:
 1. `20260709233656_expand_accounts_registration_blog_platform.sql`
 2. `20260709234450_add_platform_rpcs_and_security.sql`
 3. `20260709235000_import_legacy_blog_posts.sql`
+4. `20260710002000_harden_platform_post_deploy.sql`
+5. `20260710003500_minimize_public_rpc_definer_surface.sql`
 
 The expand migration keeps the old physical table names and exposes the canonical names as security-invoker views. This allows the currently published frontend and the new modular frontend to overlap safely.
 
@@ -24,6 +26,14 @@ These settings are hosted project configuration and are not changed by PostgreSQ
 - Put the matching public Turnstile site key in the `pca-turnstile-site-key` meta tag in `register.html`.
 - Enable leaked-password protection while retaining immediate-access email signup and the current password requirements.
 
+Guest registration is fail-closed: the browser will not create an anonymous
+session when the public site key is blank. Do not enable hosted anonymous Auth
+until Turnstile is configured in both Cloudflare and Supabase.
+
+Leaked-password protection is available only on paid Supabase plans. If the
+project remains on the Free plan, retain the current length/complexity rules and
+leave the advisor warning documented until the project is upgraded.
+
 `supabase/config.toml` mirrors anonymous sign-in, manual linking, and Turnstile for linked/local configuration. `SUPABASE_AUTH_TURNSTILE_SECRET` must come from an ignored environment file or deployment secret; never commit it.
 
 ## 3. Deploy and verify
@@ -37,4 +47,3 @@ The browser frontend uses canonical API names. Cached copies of the previous fro
 Create the contract migration only after production traffic and counts have been verified. It should rename the physical legacy tables to their canonical names, replace the temporary views with compatibility views under the old names, refresh grants/RLS relationships, and then remove compatibility objects only after the cache window has passed.
 
 Do not ship the contract migration in the same deployment as the expand migration.
-

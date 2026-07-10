@@ -1,8 +1,8 @@
-import { syncPlatformNavigation } from "./modules/core-auth.js";
-import { initializeAccountPages } from "./modules/accounts.js";
-import { initializeRegistrationPages } from "./modules/events-registration.js";
-import { initializeBlogPages } from "./modules/blog.js";
-import { initializeAdministrationPages } from "./modules/administration.js";
+import { syncPlatformNavigation } from "./modules/core-auth.js?v=20260710";
+import { initializeAccountPages } from "./modules/accounts.js?v=20260710";
+import { initializeRegistrationPages } from "./modules/events-registration.js?v=20260710";
+import { initializeBlogPages } from "./modules/blog.js?v=20260710";
+import { initializeAdministrationPages } from "./modules/administration.js?v=20260710";
 
 const initializePlatform = async () => {
 	await syncPlatformNavigation();
@@ -22,4 +22,3 @@ initializePlatform().catch((error) => {
 		status.hidden = false;
 	});
 });
-

@@ -9,7 +9,7 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js";
+} from "./core-auth.js?v=20260710";
 
 const referralLabels = {
 	friend_recommendation: "Friend recommendation",
@@ -39,7 +39,9 @@ const loadTurnstile = async () => {
 
 const getTurnstileToken = async (container) => {
 	const siteKey = document.querySelector('meta[name="pca-turnstile-site-key"]')?.content.trim();
-	if (!siteKey) return null;
+	if (!siteKey) {
+		throw new Error("Guest registration is temporarily unavailable because its security check is not configured.");
+	}
 	const turnstile = await loadTurnstile();
 	return new Promise((resolve, reject) => {
 		let widgetId;

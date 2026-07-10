@@ -223,13 +223,13 @@ const loadPcaBackend = () => {
 	}
 
 	const backendScript = document.createElement("script");
-	backendScript.src = "assets/js/pca-backend.js?v=20260709";
+	backendScript.src = "assets/js/pca-backend.js?v=20260710";
 	backendScript.dataset.pcaBackendScript = "true";
 	backendScript.defer = true;
 	document.body.appendChild(backendScript);
 
 	const platformScript = document.createElement("script");
-	platformScript.src = "assets/js/pca-platform.js?v=20260709";
+	platformScript.src = "assets/js/pca-platform.js?v=20260710";
 	platformScript.type = "module";
 	platformScript.dataset.pcaPlatformScript = "true";
 	document.body.appendChild(platformScript);
