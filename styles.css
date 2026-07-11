@@ -1411,6 +1411,34 @@ input[type="radio"] + label {
 	gap: 1rem;
 }
 
+.pca-registration-form {
+	display: grid;
+	gap: 1.5rem;
+}
+
+.pca-registration-form > .pca-paper-panel,
+.pca-registration-form > .pca-attendee-notice,
+.pca-registration-form > .actions {
+	margin: 0;
+}
+
+.pca-saved-member-picker {
+	padding: 1rem 1.15rem;
+	border: 1px solid var(--pca-line);
+	border-radius: var(--pca-radius-md);
+	background: var(--pca-soft);
+}
+
+.pca-saved-member-picker > p {
+	margin: 0.2rem 0 0.8rem;
+}
+
+.pca-saved-member-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.65rem;
+}
+
 .pca-participant-row {
 	padding: 1.2rem;
 	border: 1px solid var(--pca-line);
@@ -1420,6 +1448,10 @@ input[type="radio"] + label {
 
 .pca-participant-fields {
 	grid-template-columns: minmax(0, 1.5fr) minmax(10rem, 1fr) minmax(7rem, 0.6fr) minmax(0, 1.5fr);
+}
+
+.pca-participant-remove {
+	align-self: end;
 }
 
 .pca-participant-fields .field,

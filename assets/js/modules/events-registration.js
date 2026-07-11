@@ -9,7 +9,7 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260710-ui-refresh";
+} from "./core-auth.js?v=20260711-registration-fixes";
 
 const referralLabels = {
 	friend_recommendation: "Friend recommendation",
@@ -212,6 +212,7 @@ const initializeRegistrationPage = async () => {
 			savedMembers.replaceChildren();
 			if (members?.length) {
 				savedMembers.hidden = false;
+				const memberActions = createElement("div", "pca-saved-member-actions");
 				members.forEach((member) => {
 					const button = createElement("button", "button small", member.full_name);
 					button.type = "button";
@@ -219,8 +220,9 @@ const initializeRegistrationPage = async () => {
 						...member,
 						household_member_id: member.id,
 					})));
-					savedMembers.appendChild(button);
+					memberActions.appendChild(button);
 				});
+				savedMembers.appendChild(memberActions);
 			}
 		}
 
