@@ -1,7 +1,7 @@
 import { syncPlatformNavigation } from "./modules/core-auth.js?v=20260711-spacing-rhythm";
 import { initializeAccountPages } from "./modules/accounts.js?v=20260711-spacing-rhythm";
 import { initializeRegistrationPages } from "./modules/events-registration.js?v=20260711-spacing-rhythm";
-import { initializeBlogPages } from "./modules/blog.js?v=20260711-spacing-rhythm";
+import { initializeBlogPages } from "./modules/blog.js?v=20260711-legacy-blog-import";
 import { initializeAdministrationPages } from "./modules/administration.js?v=20260711-spacing-rhythm";
 
 const initializePlatform = async () => {

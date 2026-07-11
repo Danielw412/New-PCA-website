@@ -1,4 +1,4 @@
-const ASSET_VERSION = "20260711-spacing-rhythm";
+const ASSET_VERSION = "20260711-legacy-blog-import";
 const MOBILE_NAV_QUERY = window.matchMedia("(max-width: 980px)");
 const REDUCED_MOTION_QUERY = window.matchMedia("(prefers-reduced-motion: reduce)");
 

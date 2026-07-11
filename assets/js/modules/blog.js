@@ -8,7 +8,7 @@ import {
 	setFormBusy,
 	setStatus,
 } from "./core-auth.js?v=20260711-spacing-rhythm";
-import { importedPosts } from "./blog-seed.js?v=20260711-spacing-rhythm";
+import { importedPosts } from "./blog-seed.js?v=20260711-legacy-blog-import";
 
 const imageUrl = (supabase, source, path) => {
 	if (!source || !path) return "";
