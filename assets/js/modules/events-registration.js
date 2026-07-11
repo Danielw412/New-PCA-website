@@ -9,7 +9,7 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260711-guest-registration";
+} from "./core-auth.js?v=20260711-guest-registration-v2";
 
 const referralLabels = {
 	friend_recommendation: "Friend recommendation",
@@ -68,49 +68,62 @@ const loadTurnstile = () => {
 	return turnstileReadinessPromise;
 };
 
-const getTurnstileToken = async (container) => {
+const createTurnstileChallenge = async (container) => {
 	const siteKey = document.querySelector('meta[name="pca-turnstile-site-key"]')?.content.trim();
 	if (!siteKey) {
 		throw new Error("Guest registration is temporarily unavailable because its security check is not configured.");
 	}
 	const turnstile = await loadTurnstile();
-	return new Promise((resolve, reject) => {
-		let widgetId;
-		let settled = false;
-		let fallbackTimeout;
-		const cleanup = () => {
-			window.clearTimeout(fallbackTimeout);
-			if (widgetId !== undefined) {
-				try { turnstile.reset(widgetId); } catch (error) { console.debug("Turnstile reset skipped.", error); }
-				try { turnstile.remove(widgetId); } catch (error) { console.debug("Turnstile removal skipped.", error); }
-			}
-			container.replaceWith(container.cloneNode(false));
-		};
-		const finish = (callback) => {
-			if (settled) return;
-			settled = true;
-			Promise.resolve().then(() => {
-				cleanup();
-				callback();
-			});
-		};
-		const fail = (message) => finish(() => reject(new Error(message)));
-
-		widgetId = turnstile.render(container, {
-			sitekey: siteKey,
-			size: "invisible",
-			execution: "execute",
-			callback: (token) => finish(() => resolve(token)),
-			"error-callback": () => fail("The guest security check failed. Please try again."),
-			"expired-callback": () => fail("The guest security check expired. Please try again."),
-			"timeout-callback": () => fail("The guest security check timed out. Please try again."),
+	let widgetId;
+	let settled = false;
+	let fallbackTimeout;
+	let execution;
+	let terminalResult;
+	const cleanup = () => {
+		window.clearTimeout(fallbackTimeout);
+		if (widgetId !== undefined) {
+			try { turnstile.reset(widgetId); } catch (error) { console.debug("Turnstile reset skipped.", error); }
+			try { turnstile.remove(widgetId); } catch (error) { console.debug("Turnstile removal skipped.", error); }
+		}
+		container.replaceWith(container.cloneNode(false));
+	};
+	const finish = (result) => {
+		if (settled) return;
+		settled = true;
+		Promise.resolve().then(() => {
+			cleanup();
+			terminalResult = result;
+			if (!execution) return;
+			if (result.error) execution.reject(result.error);
+			else execution.resolve(result.token);
 		});
-		fallbackTimeout = window.setTimeout(
-			() => fail("The guest security check timed out. Please try again."),
-			30000
-		);
-		turnstile.execute(widgetId);
+	};
+	const fail = (message) => finish({ error: new Error(message) });
+
+	widgetId = turnstile.render(container, {
+		sitekey: siteKey,
+		size: "invisible",
+		execution: "execute",
+		callback: (token) => finish({ token }),
+		"error-callback": () => fail("The guest security check failed. Please try again."),
+		"expired-callback": () => fail("The guest security check expired. Please try again."),
+		"timeout-callback": () => fail("The guest security check timed out. Please try again."),
 	});
+
+	return {
+		execute: () => {
+			if (terminalResult?.error) return Promise.reject(terminalResult.error);
+			if (terminalResult?.token) return Promise.resolve(terminalResult.token);
+			return new Promise((resolve, reject) => {
+				execution = { resolve, reject };
+				fallbackTimeout = window.setTimeout(
+					() => fail("The guest security check timed out. Please try again."),
+					30000
+				);
+				turnstile.execute(widgetId);
+			});
+		},
+	};
 };
 
 const createAttendeeRow = (index, attendee = {}) => {
@@ -297,7 +310,18 @@ const initializeRegistrationPage = async () => {
 	page.querySelector("[data-register-create-account]").href = `login.html?mode=signup&account=household&next=${encodeURIComponent(`register.html?event=${eventId}`)}`;
 	const guestButton = page.querySelector("[data-register-as-guest]");
 	let guestStartPromise = null;
-	if (!chooser.hidden) void loadTurnstile().catch(() => {});
+	let preparedGuestChallengePromise = null;
+	const prepareGuestChallenge = () => {
+		if (!preparedGuestChallengePromise) {
+			preparedGuestChallengePromise = createTurnstileChallenge(page.querySelector("[data-turnstile-container]"))
+				.catch((error) => {
+					preparedGuestChallengePromise = null;
+					throw error;
+				});
+		}
+		return preparedGuestChallengePromise;
+	};
+	if (!chooser.hidden) void prepareGuestChallenge().catch(() => {});
 	guestButton.addEventListener("click", () => {
 		if (guestStartPromise) return;
 		guestButton.disabled = true;
@@ -312,7 +336,9 @@ const initializeRegistrationPage = async () => {
 				return;
 			}
 
-			const captchaToken = await getTurnstileToken(page.querySelector("[data-turnstile-container]"));
+			const guestChallenge = await prepareGuestChallenge();
+			const captchaToken = await guestChallenge.execute();
+			preparedGuestChallengePromise = null;
 			const { data, error } = await supabase.auth.signInAnonymously({ options: { captchaToken } });
 			if (error) throw error;
 			session = data.session;
@@ -320,10 +346,14 @@ const initializeRegistrationPage = async () => {
 			await showForm();
 			setStatus(status);
 		})().catch((error) => {
+			preparedGuestChallengePromise = null;
 			setStatus(status, friendlyError(error, "Guest registration could not be started."), "error");
 		}).finally(() => {
 			guestStartPromise = null;
-			if (!chooser.hidden) guestButton.disabled = false;
+			if (!chooser.hidden) {
+				guestButton.disabled = false;
+				void prepareGuestChallenge().catch(() => {});
+			}
 		});
 	});
 

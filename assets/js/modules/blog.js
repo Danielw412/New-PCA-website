@@ -7,8 +7,8 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260711-guest-registration";
-import { importedPosts } from "./blog-seed.js?v=20260711-guest-registration";
+} from "./core-auth.js?v=20260711-guest-registration-v2";
+import { importedPosts } from "./blog-seed.js?v=20260711-guest-registration-v2";
 
 const imageUrl = (supabase, source, path) => {
 	if (!source || !path) return "";

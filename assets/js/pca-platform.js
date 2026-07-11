@@ -1,8 +1,8 @@
-import { syncPlatformNavigation } from "./modules/core-auth.js?v=20260711-guest-registration";
-import { initializeAccountPages } from "./modules/accounts.js?v=20260711-guest-registration";
-import { initializeRegistrationPages } from "./modules/events-registration.js?v=20260711-guest-registration";
-import { initializeBlogPages } from "./modules/blog.js?v=20260711-guest-registration";
-import { initializeAdministrationPages } from "./modules/administration.js?v=20260711-guest-registration";
+import { syncPlatformNavigation } from "./modules/core-auth.js?v=20260711-guest-registration-v2";
+import { initializeAccountPages } from "./modules/accounts.js?v=20260711-guest-registration-v2";
+import { initializeRegistrationPages } from "./modules/events-registration.js?v=20260711-guest-registration-v2";
+import { initializeBlogPages } from "./modules/blog.js?v=20260711-guest-registration-v2";
+import { initializeAdministrationPages } from "./modules/administration.js?v=20260711-guest-registration-v2";
 
 const initializePlatform = async () => {
 	await syncPlatformNavigation();
