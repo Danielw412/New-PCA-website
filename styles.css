@@ -663,6 +663,11 @@ input[type="submit"]:disabled {
 	grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.pca-saved-member-grid {
+	width: 100%;
+	box-sizing: border-box;
+}
+
 .pca-card,
 .pca-paper-panel,
 .pca-event,
@@ -1357,6 +1362,13 @@ input[type="radio"] + label {
 	border-radius: var(--pca-radius-md);
 	background: var(--pca-soft);
 	text-align: center;
+}
+
+.pca-dashboard-grid > .pca-empty-state,
+.pca-saved-member-grid > .pca-empty-state {
+	grid-column: 1 / -1;
+	width: 100%;
+	box-sizing: border-box;
 }
 
 .pca-event-details {
