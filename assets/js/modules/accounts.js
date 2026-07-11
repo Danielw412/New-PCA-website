@@ -9,7 +9,7 @@ import {
 	requirePermanentAccount,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260711-spacing-rhythm";
+} from "./core-auth.js?v=20260711-guest-registration";
 
 const roleLabels = {
 	student_council: "Student Council",

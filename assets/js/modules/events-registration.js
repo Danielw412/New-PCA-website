@@ -9,7 +9,7 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260711-spacing-rhythm";
+} from "./core-auth.js?v=20260711-guest-registration";
 
 const referralLabels = {
 	friend_recommendation: "Friend recommendation",
@@ -23,18 +23,49 @@ const referralLabels = {
 	other: "Other",
 };
 
-const loadTurnstile = async () => {
-	if (window.turnstile) return window.turnstile;
-	await new Promise((resolve, reject) => {
-		const script = document.createElement("script");
-		script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
-		script.async = true;
-		script.defer = true;
-		script.onload = resolve;
-		script.onerror = () => reject(new Error("The guest security check could not be loaded."));
-		document.head.appendChild(script);
+const turnstileScriptId = "pca-turnstile-script";
+const turnstileOnloadCallback = "pcaTurnstileOnload";
+let turnstileReadinessPromise = null;
+
+const loadTurnstile = () => {
+	if (turnstileReadinessPromise) return turnstileReadinessPromise;
+
+	turnstileReadinessPromise = new Promise((resolve, reject) => {
+		if (window.turnstile) {
+			resolve(window.turnstile);
+			return;
+		}
+
+		const rejectLoad = () => reject(new Error("The guest security check could not be loaded. Please try again."));
+		window[turnstileOnloadCallback] = () => {
+			if (!window.turnstile) {
+				rejectLoad();
+				return;
+			}
+			resolve(window.turnstile);
+		};
+
+		let script = document.getElementById(turnstileScriptId);
+		if (!script) {
+			script = document.createElement("script");
+			script.id = turnstileScriptId;
+			script.src = `https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=${turnstileOnloadCallback}`;
+			script.async = true;
+			script.defer = true;
+			script.onerror = rejectLoad;
+			document.head.appendChild(script);
+		}
+	}).then((turnstile) => {
+		delete window[turnstileOnloadCallback];
+		return turnstile;
+	}).catch((error) => {
+		document.getElementById(turnstileScriptId)?.remove();
+		delete window[turnstileOnloadCallback];
+		turnstileReadinessPromise = null;
+		throw error;
 	});
-	return window.turnstile;
+
+	return turnstileReadinessPromise;
 };
 
 const getTurnstileToken = async (container) => {
@@ -45,17 +76,39 @@ const getTurnstileToken = async (container) => {
 	const turnstile = await loadTurnstile();
 	return new Promise((resolve, reject) => {
 		let widgetId;
+		let settled = false;
+		let fallbackTimeout;
+		const cleanup = () => {
+			window.clearTimeout(fallbackTimeout);
+			if (widgetId !== undefined) {
+				try { turnstile.reset(widgetId); } catch (error) { console.debug("Turnstile reset skipped.", error); }
+				try { turnstile.remove(widgetId); } catch (error) { console.debug("Turnstile removal skipped.", error); }
+			}
+			container.replaceWith(container.cloneNode(false));
+		};
+		const finish = (callback) => {
+			if (settled) return;
+			settled = true;
+			Promise.resolve().then(() => {
+				cleanup();
+				callback();
+			});
+		};
+		const fail = (message) => finish(() => reject(new Error(message)));
+
 		widgetId = turnstile.render(container, {
 			sitekey: siteKey,
 			size: "invisible",
 			execution: "execute",
-			callback: (token) => {
-				turnstile.remove(widgetId);
-				resolve(token);
-			},
-			"error-callback": () => reject(new Error("The guest security check failed. Please try again.")),
-			"expired-callback": () => reject(new Error("The guest security check expired. Please try again.")),
+			callback: (token) => finish(() => resolve(token)),
+			"error-callback": () => fail("The guest security check failed. Please try again."),
+			"expired-callback": () => fail("The guest security check expired. Please try again."),
+			"timeout-callback": () => fail("The guest security check timed out. Please try again."),
 		});
+		fallbackTimeout = window.setTimeout(
+			() => fail("The guest security check timed out. Please try again."),
+			30000
+		);
 		turnstile.execute(widgetId);
 	});
 };
@@ -242,23 +295,36 @@ const initializeRegistrationPage = async () => {
 
 	page.querySelector("[data-register-signin]").href = `login.html?next=${encodeURIComponent(`register.html?event=${eventId}`)}`;
 	page.querySelector("[data-register-create-account]").href = `login.html?mode=signup&account=household&next=${encodeURIComponent(`register.html?event=${eventId}`)}`;
-	page.querySelector("[data-register-as-guest]").addEventListener("click", async () => {
-		const button = page.querySelector("[data-register-as-guest]");
-		button.disabled = true;
+	const guestButton = page.querySelector("[data-register-as-guest]");
+	let guestStartPromise = null;
+	if (!chooser.hidden) void loadTurnstile().catch(() => {});
+	guestButton.addEventListener("click", () => {
+		if (guestStartPromise) return;
+		guestButton.disabled = true;
 		setStatus(status, "Starting secure guest registration...", "info");
-		try {
+
+		guestStartPromise = (async () => {
+			session = await getSession();
+			context = session ? await getAccountContext() : {};
+			if (session && context.is_anonymous) {
+				await showForm();
+				setStatus(status);
+				return;
+			}
+
 			const captchaToken = await getTurnstileToken(page.querySelector("[data-turnstile-container]"));
-			const options = captchaToken ? { captchaToken } : undefined;
-			const { data, error } = await supabase.auth.signInAnonymously({ options });
+			const { data, error } = await supabase.auth.signInAnonymously({ options: { captchaToken } });
 			if (error) throw error;
 			session = data.session;
 			context = await getAccountContext();
 			await showForm();
 			setStatus(status);
-		} catch (error) {
-			button.disabled = false;
+		})().catch((error) => {
 			setStatus(status, friendlyError(error, "Guest registration could not be started."), "error");
-		}
+		}).finally(() => {
+			guestStartPromise = null;
+			if (!chooser.hidden) guestButton.disabled = false;
+		});
 	});
 
 	page.querySelector("[data-add-attendee]").addEventListener("click", () => {

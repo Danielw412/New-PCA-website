@@ -280,6 +280,12 @@
 	};
 
 	const isPermanentSession = (session = state.session) => Boolean(session?.user && !session.user.is_anonymous && session.user.email);
+	const isAnonymousSession = (session = state.session) => Boolean(session?.user?.is_anonymous);
+	const canRegisterForHouseholdEvent = (session = state.session) => (
+		!session?.user
+		|| isAnonymousSession(session)
+		|| (isPermanentSession(session) && state.accountUse === "household")
+	);
 
 	const loadAccountUse = async (session = state.session) => {
 		if (!session?.user) {
@@ -760,7 +766,7 @@
 		const actions = createElement("ul", "actions");
 		const actionItem = createElement("li");
 
-		if (canRegister && (!session || state.accountUse === "household")) {
+		if (canRegister && canRegisterForHouseholdEvent(session)) {
 			const destination = `register.html?event=${encodeURIComponent(event.id)}`;
 			const registerLink = createElement("a", "button primary", "Register");
 			registerLink.href = destination;
