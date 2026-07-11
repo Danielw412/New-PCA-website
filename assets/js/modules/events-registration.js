@@ -9,7 +9,7 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260710";
+} from "./core-auth.js?v=20260710-ui-refresh";
 
 const referralLabels = {
 	friend_recommendation: "Friend recommendation",

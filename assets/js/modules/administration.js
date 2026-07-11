@@ -7,7 +7,7 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260710";
+} from "./core-auth.js?v=20260710-ui-refresh";
 
 const timeZonePartsFormatter = new Intl.DateTimeFormat("en-CA", {
 	timeZone: "America/New_York",
@@ -46,15 +46,31 @@ const initializeWorkspaceTabs = (page) => {
 	const tabs = [...page.querySelectorAll("[data-admin-tab]")];
 	const panels = [...page.querySelectorAll("[data-admin-panel]")];
 	const show = (name) => {
+		const selectedName = tabs.some((tab) => tab.dataset.adminTab === name) ? name : "overview";
 		tabs.forEach((tab) => {
-			const active = tab.dataset.adminTab === name;
+			const active = tab.dataset.adminTab === selectedName;
 			tab.classList.toggle("primary", active);
+			tab.classList.toggle("is-selected", active);
 			tab.setAttribute("aria-selected", String(active));
+			tab.tabIndex = active ? 0 : -1;
 		});
-		panels.forEach((panel) => { panel.hidden = panel.dataset.adminPanel !== name; });
-		window.history.replaceState(null, "", `#${name}`);
+		panels.forEach((panel) => { panel.hidden = panel.dataset.adminPanel !== selectedName; });
+		window.history.replaceState(null, "", `#${selectedName}`);
 	};
-	tabs.forEach((tab) => tab.addEventListener("click", () => show(tab.dataset.adminTab)));
+	tabs.forEach((tab, index) => {
+		tab.addEventListener("click", () => show(tab.dataset.adminTab));
+		tab.addEventListener("keydown", (event) => {
+			let nextIndex = null;
+			if (["ArrowDown", "ArrowRight"].includes(event.key)) nextIndex = (index + 1) % tabs.length;
+			if (["ArrowUp", "ArrowLeft"].includes(event.key)) nextIndex = (index - 1 + tabs.length) % tabs.length;
+			if (event.key === "Home") nextIndex = 0;
+			if (event.key === "End") nextIndex = tabs.length - 1;
+			if (nextIndex === null) return;
+			event.preventDefault();
+			show(tabs[nextIndex].dataset.adminTab);
+			tabs[nextIndex].focus();
+		});
+	});
 	show(window.location.hash.slice(1) || "overview");
 };
 

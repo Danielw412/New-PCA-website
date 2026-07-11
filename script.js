@@ -1,235 +1,219 @@
-const autoRevealKey = "pcaAutoRevealMain";
-const revealSelectors = [
-	"#main > .post",
-	"#main > .posts > article",
-	"#main > .pca-band",
-	".pca-card",
-	".pca-event",
-	".pca-member",
-	".pca-partner",
-	".pca-placeholder",
-	".image.main",
-	".image.fit",
-	"ul.actions",
-	"#footer > section",
+const ASSET_VERSION = "20260710-ui-refresh";
+const MOBILE_NAV_QUERY = window.matchMedia("(max-width: 980px)");
+const REDUCED_MOTION_QUERY = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+const body = document.body;
+const header = document.querySelector(".site-header");
+const navigation = document.querySelector("[data-site-nav]");
+const menuToggle = document.querySelector("[data-site-menu-toggle]");
+let menuReturnFocus = null;
+
+const focusableSelector = [
+	'a[href]:not([tabindex="-1"])',
+	'button:not([disabled]):not([hidden]):not([tabindex="-1"])',
+	'input:not([disabled]):not([tabindex="-1"])',
+	'select:not([disabled]):not([tabindex="-1"])',
+	'textarea:not([disabled]):not([tabindex="-1"])',
 ].join(",");
 
-const revealMainContent = () => {
-	const main = document.querySelector("#main");
+const getDropdownButton = (dropdown) => {
+	if (!dropdown) return null;
+	return dropdown.matches("[data-pca-account-menu]")
+		? dropdown.querySelector(".nav-account__row > button")
+		: dropdown.querySelector(":scope > button");
+};
 
-	if (!main) {
-		return;
-	}
+const closeDropdown = (dropdown, restoreFocus = false) => {
+	if (!dropdown) return;
+	const button = getDropdownButton(dropdown);
+	dropdown.classList.remove("is-open");
+	button?.setAttribute("aria-expanded", "false");
+	if (button && dropdown.matches("[data-pca-account-menu]")) button.setAttribute("aria-label", "Open account menu");
+	if (restoreFocus) button?.focus();
+};
 
-	const nav = document.querySelector("#nav");
-	const navOffset = nav ? nav.offsetHeight + 24 : 44;
-	const targetTop = Math.max(0, main.getBoundingClientRect().top + window.scrollY - navOffset);
-
-	window.scrollTo({
-		top: targetTop,
-		behavior: "smooth",
+const closeAllDropdowns = (except = null) => {
+	document.querySelectorAll("[data-nav-dropdown].is-open").forEach((dropdown) => {
+		if (dropdown !== except) closeDropdown(dropdown);
 	});
 };
 
+const openDropdown = (dropdown) => {
+	const button = getDropdownButton(dropdown);
+	if (!button || button.hidden) return;
+	closeAllDropdowns(dropdown);
+	dropdown.classList.add("is-open");
+	button.setAttribute("aria-expanded", "true");
+	if (dropdown.matches("[data-pca-account-menu]")) button.setAttribute("aria-label", "Close account menu");
+};
+
+const toggleDropdown = (dropdown) => {
+	if (dropdown.classList.contains("is-open")) closeDropdown(dropdown);
+	else openDropdown(dropdown);
+};
+
+document.querySelectorAll("[data-nav-dropdown]").forEach((dropdown) => {
+	const button = getDropdownButton(dropdown);
+	if (!button) return;
+
+	button.addEventListener("click", (event) => {
+		event.stopPropagation();
+		toggleDropdown(dropdown);
+	});
+
+	button.addEventListener("keydown", (event) => {
+		if (event.key === "ArrowDown") {
+			event.preventDefault();
+			openDropdown(dropdown);
+			const firstLink = dropdown.querySelector(".nav-submenu a");
+			firstLink?.focus();
+		} else if (event.key === "Escape") {
+			event.preventDefault();
+			closeDropdown(dropdown, true);
+		}
+	});
+
+	dropdown.querySelector(".nav-submenu")?.addEventListener("keydown", (event) => {
+		if (event.key !== "Escape") return;
+		event.preventDefault();
+		closeDropdown(dropdown, true);
+	});
+});
+
+const setMenuOpen = (open, restoreFocus = false) => {
+	if (!navigation || !menuToggle) return;
+	body.classList.toggle("is-menu-open", open);
+	menuToggle.setAttribute("aria-expanded", String(open));
+	menuToggle.querySelector(".site-menu-toggle__label").textContent = open ? "Close" : "Menu";
+
+	if (open) {
+		menuReturnFocus = document.activeElement;
+		window.requestAnimationFrame(() => {
+			navigation.querySelector(focusableSelector)?.focus();
+		});
+		return;
+	}
+
+	closeAllDropdowns();
+	if (restoreFocus && menuReturnFocus instanceof HTMLElement) menuReturnFocus.focus();
+	menuReturnFocus = null;
+};
+
+menuToggle?.addEventListener("click", () => {
+	setMenuOpen(!body.classList.contains("is-menu-open"), body.classList.contains("is-menu-open"));
+});
+
+navigation?.addEventListener("click", (event) => {
+	if (event.target === navigation && MOBILE_NAV_QUERY.matches) {
+		setMenuOpen(false, true);
+		return;
+	}
+
+	const link = event.target.closest("a[href]");
+	if (link && MOBILE_NAV_QUERY.matches) setMenuOpen(false);
+});
+
+document.addEventListener("click", (event) => {
+	if (event.target.closest("[data-nav-dropdown]")) return;
+	closeAllDropdowns();
+});
+
+document.addEventListener("keydown", (event) => {
+	if (event.key === "Escape" && body.classList.contains("is-menu-open")) {
+		event.preventDefault();
+		setMenuOpen(false, true);
+		return;
+	}
+
+	if (event.key !== "Tab" || !body.classList.contains("is-menu-open") || !navigation) return;
+	const focusable = Array.from(navigation.querySelectorAll(focusableSelector)).filter((element) => element.offsetParent !== null);
+	if (!focusable.length) return;
+	const first = focusable[0];
+	const last = focusable[focusable.length - 1];
+	if (event.shiftKey && document.activeElement === first) {
+		event.preventDefault();
+		last.focus();
+	} else if (!event.shiftKey && document.activeElement === last) {
+		event.preventDefault();
+		first.focus();
+	}
+});
+
+const handleNavigationBreakpoint = () => {
+	if (!MOBILE_NAV_QUERY.matches) setMenuOpen(false);
+};
+
+if (typeof MOBILE_NAV_QUERY.addEventListener === "function") {
+	MOBILE_NAV_QUERY.addEventListener("change", handleNavigationBreakpoint);
+} else {
+	MOBILE_NAV_QUERY.addListener(handleNavigationBreakpoint);
+}
+
+let scrollFrame = null;
+const updateHeaderState = () => {
+	scrollFrame = null;
+	header?.classList.toggle("is-scrolled", window.scrollY > 12);
+};
+
+window.addEventListener("scroll", () => {
+	if (scrollFrame !== null) return;
+	scrollFrame = window.requestAnimationFrame(updateHeaderState);
+}, { passive: true });
+updateHeaderState();
+
 const setupScrollReveals = () => {
-	const revealElements = Array.from(document.querySelectorAll(revealSelectors));
+	const candidates = Array.from(document.querySelectorAll([
+		"[data-reveal]",
+		"#main:not(.home-main) > .post",
+		"#main:not(.home-main) > .posts",
+		"#main:not(.home-main) > .pca-band",
+	].join(",")));
 
-	const revealVisibleElements = () => {
-		const revealLine = window.innerHeight * 0.92;
+	if (!candidates.length || REDUCED_MOTION_QUERY.matches) {
+		candidates.forEach((element) => element.classList.add("is-visible"));
+		return;
+	}
 
-		revealElements.forEach((element) => {
-			if (element.classList.contains("is-visible")) {
-				return;
-			}
+	candidates.forEach((element) => element.setAttribute("data-reveal", ""));
+	body.classList.add("pca-motion-ready");
 
-			if (element.getBoundingClientRect().top < revealLine) {
-				element.classList.add("is-visible");
-			}
+	const revealVisible = () => {
+		candidates.forEach((element) => {
+			if (element.getBoundingClientRect().top < window.innerHeight * 0.94) element.classList.add("is-visible");
 		});
 	};
 
-	revealElements.forEach((element, index) => {
-		element.classList.add("pca-scroll-reveal");
-		element.style.setProperty("--pca-reveal-delay", `${Math.min(index % 4, 3) * 55}ms`);
-	});
-
 	if (!("IntersectionObserver" in window)) {
-		let ticking = false;
-
-		const revealVisibleElementsOnFrame = () => {
-			ticking = false;
-			revealVisibleElements();
-
-			if (revealElements.every((element) => element.classList.contains("is-visible"))) {
-				window.removeEventListener("scroll", queueRevealCheck);
-				window.removeEventListener("resize", queueRevealCheck);
-			}
-		};
-
-		const queueRevealCheck = () => {
-			if (ticking) {
-				return;
-			}
-
-			ticking = true;
-			window.requestAnimationFrame(revealVisibleElementsOnFrame);
-		};
-
-		window.addEventListener("scroll", queueRevealCheck, { passive: true });
-		window.addEventListener("resize", queueRevealCheck);
-		queueRevealCheck();
+		revealVisible();
+		window.addEventListener("scroll", revealVisible, { passive: true });
 		return;
 	}
 
-	const observer = new IntersectionObserver(
-		(entries) => {
-			entries.forEach((entry) => {
-				if (!entry.isIntersecting) {
-					return;
-				}
+	const observer = new IntersectionObserver((entries) => {
+		entries.forEach((entry) => {
+			if (!entry.isIntersecting) return;
+			entry.target.classList.add("is-visible");
+			observer.unobserve(entry.target);
+		});
+	}, { rootMargin: "0px 0px -8% 0px", threshold: 0.08 });
 
-				entry.target.classList.add("is-visible");
-				observer.unobserve(entry.target);
-			});
-		},
-		{
-			rootMargin: "0px 0px -12% 0px",
-			threshold: 0.14,
-		}
-	);
-
-	revealElements.forEach((element) => observer.observe(element));
-	revealVisibleElements();
-
-	window.setTimeout(revealVisibleElements, 250);
-	window.setTimeout(() => {
-		revealElements.forEach((element) => element.classList.add("is-visible"));
-	}, 1200);
-};
-
-const setupMobileNavPanelState = () => {
-	const navPanel = document.querySelector("#navPanel");
-	const wrapper = document.querySelector("#wrapper");
-	const mobileNavQuery = window.matchMedia("(max-width: 980px)");
-
-	if (!navPanel || !wrapper) {
-		return;
-	}
-
-	const syncNavPanelState = () => {
-		const isVisible = document.body.classList.contains("is-navPanel-visible") && mobileNavQuery.matches;
-
-		if (isVisible) {
-			navPanel.style.setProperty("-webkit-transform", "translateX(0)", "important");
-			navPanel.style.setProperty("-ms-transform", "translateX(0)", "important");
-			navPanel.style.setProperty("transform", "translateX(0)", "important");
-			navPanel.style.setProperty("visibility", "visible", "important");
-			navPanel.style.setProperty("box-shadow", "0 0 1.5rem 0 rgba(0, 0, 0, 0.2)", "important");
-			wrapper.style.setProperty("opacity", "0.5", "important");
-			return;
-		}
-
-		navPanel.style.removeProperty("-webkit-transform");
-		navPanel.style.removeProperty("-ms-transform");
-		navPanel.style.removeProperty("transform");
-		navPanel.style.removeProperty("visibility");
-		navPanel.style.removeProperty("box-shadow");
-		wrapper.style.removeProperty("opacity");
-	};
-
-	new MutationObserver(syncNavPanelState).observe(document.body, {
-		attributes: true,
-		attributeFilter: ["class"],
-	});
-
-	if (typeof mobileNavQuery.addEventListener === "function") {
-		mobileNavQuery.addEventListener("change", syncNavPanelState);
-	} else if (typeof mobileNavQuery.addListener === "function") {
-		mobileNavQuery.addListener(syncNavPanelState);
-	}
-
-	syncNavPanelState();
-};
-
-const setupNavigationAccessibility = () => {
-	const primaryNavigation = document.querySelector("#nav");
-	const primaryLinks = primaryNavigation?.querySelector(".links");
-
-	primaryNavigation?.setAttribute("aria-label", "Primary navigation");
-	primaryLinks?.setAttribute("aria-label", "Main pages");
+	candidates.forEach((element) => observer.observe(element));
+	revealVisible();
 };
 
 setupScrollReveals();
-setupMobileNavPanelState();
-setupNavigationAccessibility();
-
-window.addEventListener("pageshow", () => {
-	document.body.classList.remove("pca-page-leaving");
-	document.body.classList.add("pca-page-ready");
-
-	if (sessionStorage.getItem(autoRevealKey) === "true") {
-		sessionStorage.removeItem(autoRevealKey);
-		window.setTimeout(revealMainContent, 260);
-	}
-});
-
-document.querySelectorAll('a[href]').forEach((link) => {
-	link.addEventListener("click", (event) => {
-		const href = link.getAttribute("href");
-
-		if (!href || href.startsWith("#") || link.target || link.hasAttribute("download")) {
-			return;
-		}
-
-		const nextUrl = new URL(href, window.location.href);
-		const currentUrl = new URL(window.location.href);
-		const isInternalPage = nextUrl.origin === currentUrl.origin && nextUrl.pathname.endsWith(".html");
-		const isSamePageAnchor = nextUrl.pathname === currentUrl.pathname && nextUrl.hash;
-		const navPanel = link.closest("#navPanel");
-		const isNavTab = Boolean(link.closest("#nav .links, #navPanel"));
-		const isSamePageTab = isNavTab && nextUrl.pathname === currentUrl.pathname && !nextUrl.hash;
-
-		if (!isInternalPage || isSamePageAnchor) {
-			return;
-		}
-
-		if (navPanel) {
-			event.stopPropagation();
-			document.body.classList.remove("is-navPanel-visible");
-		}
-
-		if (isSamePageTab) {
-			event.preventDefault();
-			window.setTimeout(revealMainContent, navPanel ? 260 : 0);
-			return;
-		}
-
-		event.preventDefault();
-
-		if (isNavTab) {
-			sessionStorage.setItem(autoRevealKey, "true");
-		}
-
-		document.body.classList.add("pca-page-leaving");
-		window.setTimeout(() => {
-			window.location.href = nextUrl.href;
-		}, navPanel ? 260 : 180);
-	});
-});
 
 const loadPcaBackend = () => {
-	if (document.querySelector('script[data-pca-backend-script]')) {
-		return;
-	}
+	if (document.querySelector("script[data-pca-backend-script]")) return;
 
 	const backendScript = document.createElement("script");
-	backendScript.src = "assets/js/pca-backend.js?v=20260710";
+	backendScript.src = `assets/js/pca-backend.js?v=${ASSET_VERSION}`;
 	backendScript.dataset.pcaBackendScript = "true";
 	backendScript.defer = true;
 	document.body.appendChild(backendScript);
 
 	const platformScript = document.createElement("script");
-	platformScript.src = "assets/js/pca-platform.js?v=20260710";
+	platformScript.src = `assets/js/pca-platform.js?v=${ASSET_VERSION}`;
 	platformScript.type = "module";
 	platformScript.dataset.pcaPlatformScript = "true";
 	document.body.appendChild(platformScript);

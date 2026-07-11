@@ -1,8 +1,8 @@
-import { syncPlatformNavigation } from "./modules/core-auth.js?v=20260710";
-import { initializeAccountPages } from "./modules/accounts.js?v=20260710";
-import { initializeRegistrationPages } from "./modules/events-registration.js?v=20260710";
-import { initializeBlogPages } from "./modules/blog.js?v=20260710";
-import { initializeAdministrationPages } from "./modules/administration.js?v=20260710";
+import { syncPlatformNavigation } from "./modules/core-auth.js?v=20260710-ui-refresh";
+import { initializeAccountPages } from "./modules/accounts.js?v=20260710-ui-refresh";
+import { initializeRegistrationPages } from "./modules/events-registration.js?v=20260710-ui-refresh";
+import { initializeBlogPages } from "./modules/blog.js?v=20260710-ui-refresh";
+import { initializeAdministrationPages } from "./modules/administration.js?v=20260710-ui-refresh";
 
 const initializePlatform = async () => {
 	await syncPlatformNavigation();

@@ -9,7 +9,7 @@ import {
 	requirePermanentAccount,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260710";
+} from "./core-auth.js?v=20260710-ui-refresh";
 
 const roleLabels = {
 	student_council: "Student Council",
@@ -278,7 +278,12 @@ const initializeHouseholdDashboard = async () => {
 
 	page.querySelectorAll("[data-registration-filter]").forEach((button) => button.addEventListener("click", () => {
 		const filter = button.dataset.registrationFilter;
-		page.querySelectorAll("[data-registration-filter]").forEach((item) => item.classList.toggle("primary", item === button));
+		page.querySelectorAll("[data-registration-filter]").forEach((item) => {
+			const selected = item === button;
+			item.classList.toggle("primary", selected);
+			item.classList.toggle("is-selected", selected);
+			item.setAttribute("aria-pressed", String(selected));
+		});
 		container.querySelectorAll("[data-registration-group]").forEach((card) => {
 			card.hidden = filter !== "all" && card.dataset.registrationGroup !== filter;
 		});

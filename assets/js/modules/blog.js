@@ -7,8 +7,8 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260710";
-import { importedPosts } from "./blog-seed.js?v=20260710";
+} from "./core-auth.js?v=20260710-ui-refresh";
+import { importedPosts } from "./blog-seed.js?v=20260710-ui-refresh";
 
 const imageUrl = (supabase, source, path) => {
 	if (!source || !path) return "";

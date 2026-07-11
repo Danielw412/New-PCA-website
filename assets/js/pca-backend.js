@@ -331,6 +331,68 @@
 		const permanentSession = isPermanentSession(session);
 		const isAdmin = permanentSession ? await checkAdmin(session) : false;
 		const pageName = currentPageName();
+		const accountMenus = document.querySelectorAll("[data-pca-account-menu]");
+
+		if (accountMenus.length) {
+			const dashboardDestination = accountDashboardDestination();
+			const accountPages = new Set([
+				"login.html",
+				"reset-password.html",
+				"dashboard.html",
+				"profile.html",
+				"admin-dashboard.html",
+				"teen-member-apply.html",
+				"teen-member-dashboard.html",
+			]);
+
+			accountMenus.forEach((menu) => {
+				const accountLink = menu.querySelector("[data-pca-account-link]");
+				const actions = menu.querySelector("[data-pca-account-actions]");
+				const toggle = menu.querySelector(".nav-account__row > button");
+
+				if (!accountLink || !actions) return;
+
+				accountLink.href = permanentSession ? dashboardDestination : "login.html";
+				accountLink.textContent = "Account";
+				menu.classList.toggle("is-current", accountPages.has(pageName));
+				actions.replaceChildren();
+
+				const appendAction = (label, href, className, active, listener) => {
+					const item = createElement("li", className);
+					item.dataset.pcaDynamicNav = "true";
+					item.classList.toggle("active", active);
+					const link = createElement("a", "", label);
+					link.href = href;
+					if (listener) link.addEventListener("click", listener);
+					item.appendChild(link);
+					actions.appendChild(item);
+				};
+
+				if (permanentSession) {
+					appendAction("Profile", "profile.html", "pca-profile-nav", pageName === "profile.html");
+					if (isAdmin) appendAction("Admin", "admin-dashboard.html", "pca-admin-nav", pageName === "admin-dashboard.html");
+					appendAction("Sign Out", "#", "pca-sign-out-nav", false, async (event) => {
+						event.preventDefault();
+						const signOutLink = event.currentTarget;
+						signOutLink.textContent = "Signing Out...";
+						await state.client.auth.signOut();
+						window.location.assign("index.html");
+					});
+				}
+
+				if (toggle) {
+					toggle.hidden = actions.childElementCount === 0;
+					if (toggle.hidden) {
+						toggle.setAttribute("aria-expanded", "false");
+						menu.classList.remove("is-open");
+					}
+				}
+			});
+
+			document.dispatchEvent(new CustomEvent("pca:navigation-updated"));
+			return;
+		}
+
 		const linkLists = document.querySelectorAll("#nav .links, #navPanel .links");
 
 		linkLists.forEach((links) => {
@@ -444,13 +506,26 @@
 			tabs.forEach((tab) => {
 				const selected = tab.dataset.authTab === mode;
 				tab.classList.toggle("primary", selected);
+				tab.classList.toggle("is-selected", selected);
 				tab.setAttribute("aria-selected", String(selected));
+				tab.tabIndex = selected ? 0 : -1;
 			});
 			setStatus(signInStatus);
 			setStatus(signUpStatus);
 		};
 
-		tabs.forEach((tab) => tab.addEventListener("click", () => showMode(tab.dataset.authTab)));
+		tabs.forEach((tab, index) => {
+			tab.addEventListener("click", () => showMode(tab.dataset.authTab));
+			tab.addEventListener("keydown", (event) => {
+				if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+				event.preventDefault();
+				let nextIndex = event.key === "ArrowLeft" ? (index - 1 + tabs.length) % tabs.length : (index + 1) % tabs.length;
+				if (event.key === "Home") nextIndex = 0;
+				if (event.key === "End") nextIndex = tabs.length - 1;
+				showMode(tabs[nextIndex].dataset.authTab);
+				tabs[nextIndex].focus();
+			});
+		});
 
 		if (loginQuery.get("mode") === "signup") {
 			showMode("signup");

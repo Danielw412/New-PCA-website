@@ -1,10 +1,88 @@
 <!DOCTYPE HTML>
-<html lang="en"><head><title>Teen Member Dashboard | PCA Youth Center</title><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" /><link rel="stylesheet" href="assets/css/main.css" /><link rel="stylesheet" href="styles.css?v=20260710" /><noscript><link rel="stylesheet" href="assets/css/noscript.css" /></noscript></head>
-	<body class="is-preload"><div class="pca-page-background" aria-hidden="true"><img src="images/homepage/garden-cleanup.jpg" alt="" /></div><div id="wrapper"><header id="header"><a href="index.html" class="logo"><img src="images/homepage/pca-logo.png" alt="" /> PCA Youth Center</a></header>
-		<nav id="nav"><ul class="links"><li><a href="index.html">Home</a></li><li><a href="about.html">About</a></li><li><a href="membership.html">Membership</a></li><li><a href="student-council.html">Student Council</a></li><li><a href="events.html">Events</a></li><li><a href="teen-members.html">Teen Members</a></li><li><a href="blog.html">Blog</a></li><li><a href="support-us.html">Support Us</a></li><li class="active"><a href="login.html" data-pca-account-link>Account</a></li></ul></nav>
-		<div id="main"><section class="post pca-dashboard-page" data-teen-dashboard><header class="major"><span class="date">Teen Member Account</span><h1>Welcome, <span data-teen-name>Teen Member</span></h1><p>Your approval, assigned roles, volunteer work, and editor access are organized here.</p></header><p class="pca-backend-status" data-teen-dashboard-status data-platform-status aria-live="polite">Loading your dashboard...</p>
+<html lang="en"><head><title>Teen Member Dashboard | PCA Youth Center</title><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="theme-color" content="#fffaf7" />
+		<link rel="stylesheet" href="assets/css/fontawesome-all.min.css" /><link rel="stylesheet" href="styles.css?v=20260710-ui-refresh" /></head>
+		<body>
+		<a class="skip-link" href="#main">Skip to content</a>
+		<header id="header" class="site-header">
+			<div class="site-header__inner">
+				<a class="site-brand" href="index.html" aria-label="PCA Youth Center home">
+					<img src="images/homepage/pca-logo.png" width="44" height="45" alt="" />
+					<span>PCA Youth Center</span>
+				</a>
+				<button class="site-menu-toggle" type="button" aria-expanded="false" aria-controls="nav" data-site-menu-toggle>
+					<span class="site-menu-toggle__label">Menu</span>
+					<span class="site-menu-toggle__icon" aria-hidden="true"><span></span><span></span></span>
+				</button>
+				<nav id="nav" class="site-nav" aria-label="Primary navigation" data-site-nav>
+					<div class="site-nav__panel">
+						<ul class="links">
+							<li class="nav-item nav-home"><a href="index.html">Home</a></li>
+							<li class="nav-item"><a href="about.html">About</a></li>
+							<li class="nav-item nav-item--dropdown" data-nav-dropdown>
+								<button type="button" aria-expanded="false" aria-controls="pca-nav-involved">Get Involved <span class="icon solid fa-chevron-down" aria-hidden="true"></span></button>
+								<ul class="nav-submenu" id="pca-nav-involved">
+									<li><a href="membership.html">Membership</a></li>
+									<li><a href="teen-members.html">Teen Members</a></li>
+									<li><a href="student-council.html">Student Council</a></li>
+								</ul>
+							</li>
+							<li class="nav-item nav-item--dropdown" data-nav-dropdown>
+								<button type="button" aria-expanded="false" aria-controls="pca-nav-events">Events <span class="icon solid fa-chevron-down" aria-hidden="true"></span></button>
+								<ul class="nav-submenu" id="pca-nav-events">
+									<li><a href="events.html">Events Overview</a></li>
+									<li><a href="upcoming-events.html">Upcoming Events</a></li>
+									<li><a href="past-events.html">Past Events</a></li>
+								</ul>
+							</li>
+							<li class="nav-item"><a href="blog.html">Stories</a></li>
+							<li class="nav-item nav-support"><a href="support-us.html">Support Us</a></li>
+							<li class="nav-item nav-account nav-item--dropdown is-current" data-nav-dropdown data-pca-account-menu>
+								<div class="nav-account__row">
+									<a href="login.html" data-pca-account-link aria-current="page">Account</a>
+									<button type="button" aria-expanded="false" aria-controls="pca-account-actions" aria-label="Open account menu" hidden><span class="icon solid fa-chevron-down" aria-hidden="true"></span></button>
+								</div>
+								<ul class="nav-submenu nav-account__actions" id="pca-account-actions" data-pca-account-actions></ul>
+							</li>
+						</ul>
+						<div class="site-nav__social" aria-label="PCA social links">
+							<a href="mailto:pcayouthcenter@gmail.com" aria-label="Email PCA Youth Center"><span class="icon solid fa-envelope" aria-hidden="true"></span></a>
+							<a href="https://www.facebook.com/PCA-Youth-Center-105257804561315" aria-label="PCA Youth Center on Facebook"><span class="icon brands fa-facebook-f" aria-hidden="true"></span></a>
+							<a href="https://www.instagram.com/pcayouthcenter/" aria-label="PCA Youth Center on Instagram"><span class="icon brands fa-instagram" aria-hidden="true"></span></a>
+						</div>
+					</div>
+				</nav>
+			</div>
+		</header>
+		<div id="wrapper">
+			<main id="main"><section class="post pca-dashboard-page" data-teen-dashboard><header class="major"><span class="date">Teen Member Account</span><h1>Welcome, <span data-teen-name>Teen Member</span></h1><p>Your approval, assigned roles, volunteer work, and editor access are organized here.</p></header><p class="pca-backend-status" data-teen-dashboard-status data-platform-status aria-live="polite">Loading your dashboard...</p>
 			<div class="pca-dashboard-grid"><article class="pca-card"><h2>Application</h2><div data-teen-application-summary></div></article><article class="pca-card"><h2>Active Roles</h2><div class="pca-role-list" data-teen-role-list></div></article></div>
 			<section class="pca-paper-panel" data-editor-tools hidden><header><span>Blog Editor</span><h2>Write for PCA</h2></header><p>Create, edit, publish, and unpublish your own PCA articles.</p><a href="blog-editor.html" class="button primary">Open Blog Editor</a></section>
 			<section class="pca-paper-panel" data-volunteer-tools hidden><header><span>Volunteer</span><h2>Volunteer Profile, Assignments, and Service</h2></header><form data-teen-volunteer-profile-form><h3>Volunteer Details</h3><div class="fields"><div class="field half"><label for="volunteer-grade">Grade Level</label><select id="volunteer-grade" name="grade_level" required><option value="">Choose grade</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="Recent Graduate">Recent Graduate</option></select></div><div class="field half"><label for="volunteer-phone">Phone</label><input id="volunteer-phone" name="phone" type="tel" maxlength="40" required /></div><div class="field"><label for="volunteer-school">School</label><input id="volunteer-school" name="school_name" type="text" maxlength="200" required /></div><div class="field"><label for="volunteer-interests">Interests and Skills</label><textarea id="volunteer-interests" name="interests" rows="3" maxlength="2000" required></textarea></div><div class="field"><label for="volunteer-experience">Experience</label><textarea id="volunteer-experience" name="experience" rows="3" maxlength="2000"></textarea></div><div class="field"><label for="volunteer-availability">Availability</label><textarea id="volunteer-availability" name="availability" rows="3" maxlength="2000" required></textarea></div></div><button type="submit" class="button primary">Save Volunteer Details</button><p class="pca-backend-status" data-teen-volunteer-profile-status aria-live="polite"></p></form><hr /><h3>Event Assignments</h3><div class="pca-dashboard-grid" data-teen-assignments></div><form data-teen-hours-form><h3>Submit Service Hours</h3><div class="fields"><div class="field"><label for="hours-assignment">Assignment</label><select id="hours-assignment" name="assignment_id" required><option value="">Choose an assignment</option></select></div><div class="field half"><label for="hours-date">Service Date</label><input id="hours-date" name="service_date" type="date" required /></div><div class="field half"><label for="hours-total">Hours</label><input id="hours-total" name="submitted_hours" type="number" min="0.25" max="24" step="0.25" required /></div><div class="field"><label for="hours-description">Work Completed</label><textarea id="hours-description" name="description" rows="3" maxlength="2000" required></textarea></div></div><button type="submit" class="button primary">Submit Hours</button><p class="pca-backend-status" data-teen-hours-status aria-live="polite"></p></form><div class="table-wrapper"><table><thead><tr><th>Date</th><th>Submitted</th><th>Approved</th><th>Status</th><th>Description</th></tr></thead><tbody data-teen-hours-body></tbody></table></div></section>
-		</section></div><footer id="footer"><section><h3>Account Help</h3><p><a href="profile.html">Manage profile and password</a></p></section><section class="split contact"><section><h3>Information</h3><ul class="pca-footer-links"><li><a href="bylaws.html">Bylaws</a></li><li><a href="aapi-statement.html">AAPI Statement</a></li></ul></section></section></footer><div id="copyright"><ul><li>&copy; 2018-2026 PCA Youth Center</li></ul></div></div>
-		<script src="assets/js/jquery.min.js"></script><script src="assets/js/jquery.scrollex.min.js"></script><script src="assets/js/jquery.scrolly.min.js"></script><script src="assets/js/browser.min.js"></script><script src="assets/js/breakpoints.min.js"></script><script src="assets/js/util.js"></script><script src="assets/js/main.js"></script><script src="script.js?v=20260710"></script></body></html>
+		</section></main>
+			<footer id="footer" class="site-footer">
+				<div class="site-footer__inner">
+					<section class="site-footer__brand">
+						<a class="site-brand site-brand--footer" href="index.html">
+							<img src="images/homepage/pca-logo.png" width="44" height="45" alt="" />
+							<span>PCA Youth Center</span>
+						</a>
+						<p>Leadership, culture, and community service for Pittsburgh youth.</p>
+						<a class="site-footer__email" href="mailto:pcayouthcenter@gmail.com"><span class="icon solid fa-envelope" aria-hidden="true"></span> pcayouthcenter@gmail.com</a>
+					</section>
+					<nav class="site-footer__links" aria-label="Footer navigation">
+						<div><h2>Explore</h2><a href="about.html">About</a><a href="events.html">Events</a><a href="blog.html">Stories</a></div>
+						<div><h2>Get Involved</h2><a href="membership.html">Membership</a><a href="teen-members.html">Teen Members</a><a href="student-council.html">Student Council</a></div>
+						<div><h2>Organization</h2><a href="support-us.html">Support Us</a><a href="bylaws.html">Bylaws</a><a href="aapi-statement.html">AAPI Statement</a></div>
+					</nav>
+					<section class="site-footer__connect">
+						<h2>Connect</h2>
+						<div class="site-footer__social">
+							<a href="https://www.facebook.com/PCA-Youth-Center-105257804561315" aria-label="PCA Youth Center on Facebook"><span class="icon brands fa-facebook-f" aria-hidden="true"></span></a>
+							<a href="https://www.instagram.com/pcayouthcenter/" aria-label="PCA Youth Center on Instagram"><span class="icon brands fa-instagram" aria-hidden="true"></span></a>
+						</div>
+						<a class="button primary" href="support-us.html">Support PCA</a>
+					</section>
+				</div>
+				<div class="site-footer__bottom"><span>&copy; 2018-2026 PCA Youth Center</span><span>Design adapted from <a href="https://html5up.net">HTML5 UP</a></span></div>
+			</footer></div><script src="script.js?v=20260710-ui-refresh"></script></body></html>

@@ -3,26 +3,90 @@
 	<head>
 		<title>Admin Dashboard | PCA Youth Center</title>
 		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="theme-color" content="#fffaf7" />
 		<meta name="description" content="PCA Youth Center administrator dashboard for registrations and volunteer management." />
-		<link rel="stylesheet" href="assets/css/main.css" />
-		<link rel="stylesheet" href="styles.css?v=20260710" />
-		<noscript><link rel="stylesheet" href="assets/css/noscript.css" /></noscript>
+		<link rel="stylesheet" href="assets/css/fontawesome-all.min.css" />
+		<link rel="stylesheet" href="styles.css?v=20260710-ui-refresh" />
 	</head>
-	<body class="is-preload">
-		<div class="pca-page-background" aria-hidden="true"><img src="images/homepage/garden-cleanup.jpg" alt="" /></div>
+		<body>
+		<a class="skip-link" href="#main">Skip to content</a>
+		<header id="header" class="site-header">
+			<div class="site-header__inner">
+				<a class="site-brand" href="index.html" aria-label="PCA Youth Center home">
+					<img src="images/homepage/pca-logo.png" width="44" height="45" alt="" />
+					<span>PCA Youth Center</span>
+				</a>
+				<button class="site-menu-toggle" type="button" aria-expanded="false" aria-controls="nav" data-site-menu-toggle>
+					<span class="site-menu-toggle__label">Menu</span>
+					<span class="site-menu-toggle__icon" aria-hidden="true"><span></span><span></span></span>
+				</button>
+				<nav id="nav" class="site-nav" aria-label="Primary navigation" data-site-nav>
+					<div class="site-nav__panel">
+						<ul class="links">
+							<li class="nav-item nav-home"><a href="index.html">Home</a></li>
+							<li class="nav-item"><a href="about.html">About</a></li>
+							<li class="nav-item nav-item--dropdown" data-nav-dropdown>
+								<button type="button" aria-expanded="false" aria-controls="pca-nav-involved">Get Involved <span class="icon solid fa-chevron-down" aria-hidden="true"></span></button>
+								<ul class="nav-submenu" id="pca-nav-involved">
+									<li><a href="membership.html">Membership</a></li>
+									<li><a href="teen-members.html">Teen Members</a></li>
+									<li><a href="student-council.html">Student Council</a></li>
+								</ul>
+							</li>
+							<li class="nav-item nav-item--dropdown" data-nav-dropdown>
+								<button type="button" aria-expanded="false" aria-controls="pca-nav-events">Events <span class="icon solid fa-chevron-down" aria-hidden="true"></span></button>
+								<ul class="nav-submenu" id="pca-nav-events">
+									<li><a href="events.html">Events Overview</a></li>
+									<li><a href="upcoming-events.html">Upcoming Events</a></li>
+									<li><a href="past-events.html">Past Events</a></li>
+								</ul>
+							</li>
+							<li class="nav-item"><a href="blog.html">Stories</a></li>
+							<li class="nav-item nav-support"><a href="support-us.html">Support Us</a></li>
+							<li class="nav-item nav-account nav-item--dropdown is-current" data-nav-dropdown data-pca-account-menu>
+								<div class="nav-account__row">
+									<a href="login.html" data-pca-account-link aria-current="page">Account</a>
+									<button type="button" aria-expanded="false" aria-controls="pca-account-actions" aria-label="Open account menu" hidden><span class="icon solid fa-chevron-down" aria-hidden="true"></span></button>
+								</div>
+								<ul class="nav-submenu nav-account__actions" id="pca-account-actions" data-pca-account-actions></ul>
+							</li>
+						</ul>
+						<div class="site-nav__social" aria-label="PCA social links">
+							<a href="mailto:pcayouthcenter@gmail.com" aria-label="Email PCA Youth Center"><span class="icon solid fa-envelope" aria-hidden="true"></span></a>
+							<a href="https://www.facebook.com/PCA-Youth-Center-105257804561315" aria-label="PCA Youth Center on Facebook"><span class="icon brands fa-facebook-f" aria-hidden="true"></span></a>
+							<a href="https://www.instagram.com/pcayouthcenter/" aria-label="PCA Youth Center on Instagram"><span class="icon brands fa-instagram" aria-hidden="true"></span></a>
+						</div>
+					</div>
+				</nav>
+			</div>
+		</header>
 		<div id="wrapper">
-			<header id="header"><a href="index.html" class="logo"><img src="images/homepage/pca-logo.png" alt="" /> PCA Youth Center</a></header>
-			<nav id="nav"><ul class="links"><li><a href="index.html">Home</a></li><li><a href="about.html">About</a></li><li><a href="membership.html">Membership</a></li><li><a href="student-council.html">Student Council</a></li><li><a href="events.html">Events</a></li><li><a href="teen-members.html">Teen Members</a></li><li><a href="blog.html">Blog</a></li><li><a href="support-us.html">Support Us</a></li><li class="active"><a href="login.html" data-pca-account-link>Account</a></li></ul><ul class="icons"><li><a href="mailto:pcayouthcenter@gmail.com" class="icon solid fa-envelope"><span class="label">Email</span></a></li><li><a href="https://www.facebook.com/PCA-Youth-Center-105257804561315" class="icon brands fa-facebook-f"><span class="label">Facebook</span></a></li><li><a href="https://www.instagram.com/pcayouthcenter/" class="icon brands fa-instagram"><span class="label">Instagram</span></a></li></ul></nav>
-			<div id="main">
+			<main id="main">
 				<section class="post pca-dashboard-page pca-admin-dashboard-page" data-platform-admin>
 					<header class="major"><span class="date" data-admin-level>Administrator</span><h1>PCA Administration</h1><p>Manage events, registrations, households, Teen Members, blog content, and site access from one organized workspace.</p></header>
 					<p class="pca-backend-status" data-platform-admin-status data-platform-status aria-live="polite">Checking administrator access...</p>
-					<div class="pca-admin-workspace-tabs" role="tablist" aria-label="Administration sections"><button type="button" class="button small" role="tab" data-admin-tab="overview">Overview</button><button type="button" class="button small" role="tab" data-admin-tab="events">Events</button><button type="button" class="button small" role="tab" data-admin-tab="registrations">Registrations</button><button type="button" class="button small" role="tab" data-admin-tab="households">Households</button><button type="button" class="button small" role="tab" data-admin-tab="teen-members">Teen Members</button><button type="button" class="button small" role="tab" data-admin-tab="blog">Blog</button><button type="button" class="button small" role="tab" data-admin-tab="access">Access</button></div>
+					<div class="pca-admin-dashboard-layout">
+						<aside class="pca-admin-workspace-nav" aria-label="Administration workspace">
+							<div class="pca-admin-workspace-tabs" role="tablist" aria-label="Administration sections" aria-orientation="vertical">
+								<span class="pca-admin-tab-group" role="presentation">Operations</span>
+								<button id="admin-tab-overview" type="button" class="button small primary is-selected" role="tab" aria-selected="true" aria-controls="admin-panel-overview" data-admin-tab="overview">Overview</button>
+								<button id="admin-tab-events" type="button" class="button small" role="tab" aria-selected="false" aria-controls="admin-panel-events" tabindex="-1" data-admin-tab="events">Events</button>
+								<button id="admin-tab-registrations" type="button" class="button small" role="tab" aria-selected="false" aria-controls="admin-panel-registrations" tabindex="-1" data-admin-tab="registrations">Registrations</button>
+								<span class="pca-admin-tab-group" role="presentation">Community</span>
+								<button id="admin-tab-households" type="button" class="button small" role="tab" aria-selected="false" aria-controls="admin-panel-households" tabindex="-1" data-admin-tab="households">Households</button>
+								<button id="admin-tab-teen-members" type="button" class="button small" role="tab" aria-selected="false" aria-controls="admin-panel-teen-members" tabindex="-1" data-admin-tab="teen-members">Teen Members</button>
+								<span class="pca-admin-tab-group" role="presentation">Publishing</span>
+								<button id="admin-tab-blog" type="button" class="button small" role="tab" aria-selected="false" aria-controls="admin-panel-blog" tabindex="-1" data-admin-tab="blog">Blog</button>
+								<span class="pca-admin-tab-group" role="presentation">Access</span>
+								<button id="admin-tab-access" type="button" class="button small" role="tab" aria-selected="false" aria-controls="admin-panel-access" tabindex="-1" data-admin-tab="access">Access</button>
+							</div>
+						</aside>
+						<div class="pca-admin-workspace-content">
 
-					<section class="pca-admin-workspace-panel" data-admin-panel="overview"><h2>Overview</h2><div class="pca-admin-metric-grid"><article class="pca-card"><strong data-admin-count="events">—</strong><span>Events</span></article><article class="pca-card"><strong data-admin-count="registrations">—</strong><span>Registrations</span></article><article class="pca-card"><strong data-admin-count="households">—</strong><span>Households</span></article><article class="pca-card"><strong data-admin-count="teen-applications">—</strong><span>Pending Teen Applications</span></article><article class="pca-card"><strong data-admin-count="blog-posts">—</strong><span>Blog Posts</span></article></div></section>
+					<section id="admin-panel-overview" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-overview" data-admin-panel="overview"><h2>Overview</h2><div class="pca-admin-metric-grid"><article class="pca-card"><strong data-admin-count="events">—</strong><span>Events</span></article><article class="pca-card"><strong data-admin-count="registrations">—</strong><span>Registrations</span></article><article class="pca-card"><strong data-admin-count="households">—</strong><span>Households</span></article><article class="pca-card"><strong data-admin-count="teen-applications">—</strong><span>Pending Teen Applications</span></article><article class="pca-card"><strong data-admin-count="blog-posts">—</strong><span>Blog Posts</span></article></div></section>
 
-					<section class="pca-admin-workspace-panel" data-admin-panel="events" hidden><h2>Events</h2><details class="pca-admin-create-panel" open><summary><span>Create or Edit an Event</span><small>Times are entered in Eastern Time</small></summary><form data-admin-event-form><input type="hidden" name="event_id" />
+					<section id="admin-panel-events" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-events" data-admin-panel="events" hidden><h2>Events</h2><details class="pca-admin-create-panel" open><summary><span>Create or Edit an Event</span><small>Times are entered in Eastern Time</small></summary><form data-admin-event-form><input type="hidden" name="event_id" />
 							<div class="pca-admin-event-fields">
 								<div class="field pca-field-wide"><label for="admin-event-title">Event title</label><input type="text" id="admin-event-title" name="title" maxlength="160" required /></div>
 								<div class="field pca-field-wide"><label for="admin-event-description">Description</label><textarea id="admin-event-description" name="description" rows="3" maxlength="5000"></textarea></div>
@@ -42,20 +106,45 @@
 						</form>
 					</details><div class="table-wrapper"><table><thead><tr><th>Event</th><th>Date</th><th>Location</th><th>State</th><th>Actions</th></tr></thead><tbody data-admin-events-body></tbody></table></div></section>
 
-					<section class="pca-admin-workspace-panel" data-admin-panel="registrations" hidden><h2>Registrations</h2><p>Manage household and guest registrations. Cancelling a confirmed group runs strict FIFO waitlist promotion.</p><div class="table-wrapper"><table><thead><tr><th>Event</th><th>Contact</th><th>Email</th><th>Attendees</th><th>Status</th><th>Source</th><th>Actions</th></tr></thead><tbody data-admin-registrations-body></tbody></table></div></section>
+					<section id="admin-panel-registrations" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-registrations" data-admin-panel="registrations" hidden><h2>Registrations</h2><p>Manage household and guest registrations. Cancelling a confirmed group runs strict FIFO waitlist promotion.</p><div class="table-wrapper"><table><thead><tr><th>Event</th><th>Contact</th><th>Email</th><th>Attendees</th><th>Status</th><th>Source</th><th>Actions</th></tr></thead><tbody data-admin-registrations-body></tbody></table></div></section>
 
-					<section class="pca-admin-workspace-panel" data-admin-panel="households" hidden><h2>Household Accounts</h2><div class="field"><label for="admin-household-search">Search households</label><input id="admin-household-search" type="search" data-admin-household-search placeholder="Name or email" /></div><p class="pca-form-help">Administrators can edit contact information, saved members, and request password-reset emails. Household accounts cannot be deleted or suspended here.</p><div class="table-wrapper"><table><thead><tr><th>Name</th><th>Contact Email</th><th>Phone</th><th>Actions</th></tr></thead><tbody data-admin-households-body></tbody></table></div><div class="pca-paper-panel" data-admin-household-members hidden></div></section>
+					<section id="admin-panel-households" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-households" data-admin-panel="households" hidden><h2>Household Accounts</h2><div class="field"><label for="admin-household-search">Search households</label><input id="admin-household-search" type="search" data-admin-household-search placeholder="Name or email" /></div><p class="pca-form-help">Administrators can edit contact information, saved members, and request password-reset emails. Household accounts cannot be deleted or suspended here.</p><div class="table-wrapper"><table><thead><tr><th>Name</th><th>Contact Email</th><th>Phone</th><th>Actions</th></tr></thead><tbody data-admin-households-body></tbody></table></div><div class="pca-paper-panel" data-admin-household-members hidden></div></section>
 
-					<section class="pca-admin-workspace-panel" data-admin-panel="teen-members" hidden><h2>Teen Members</h2><p>Approve applications and assign any combination of Student Council, Blog Editor, and Volunteer roles.</p><div class="table-wrapper"><table><thead><tr><th>Teen</th><th>Email</th><th>Age</th><th>Guardian</th><th>Status</th><th>Roles</th><th>Actions</th></tr></thead><tbody data-admin-teens-body></tbody></table></div><details class="pca-admin-create-panel"><summary><span>Create Volunteer Assignment</span><small>Assign an approved volunteer to an event</small></summary><form data-admin-volunteer-assignment-form><div class="fields"><div class="field half"><label for="admin-volunteer-user">Teen Volunteer</label><select id="admin-volunteer-user" name="teen_member_user_id" required><option value="">Choose a volunteer</option></select></div><div class="field half"><label for="admin-volunteer-event">Event</label><select id="admin-volunteer-event" name="event_id" required><option value="">Choose an event</option></select></div><div class="field"><label for="admin-volunteer-role">Assignment Role</label><input id="admin-volunteer-role" name="role_title" type="text" maxlength="160" required /></div><div class="field"><label for="admin-volunteer-instructions">Instructions</label><textarea id="admin-volunteer-instructions" name="instructions" rows="3" maxlength="4000"></textarea></div></div><button type="submit" class="button primary">Create Assignment</button><p class="pca-backend-status" data-admin-volunteer-assignment-status aria-live="polite"></p></form></details><h3>Volunteer Assignments</h3><div class="table-wrapper"><table><thead><tr><th>Volunteer</th><th>Event</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead><tbody data-admin-volunteer-assignments-body></tbody></table></div><h3>Submitted Service Hours</h3><div class="table-wrapper"><table><thead><tr><th>Volunteer</th><th>Date</th><th>Submitted</th><th>Description</th><th>Status</th><th>Review</th></tr></thead><tbody data-admin-volunteer-hours-body></tbody></table></div></section>
+					<section id="admin-panel-teen-members" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-teen-members" data-admin-panel="teen-members" hidden><h2>Teen Members</h2><p>Approve applications and assign any combination of Student Council, Blog Editor, and Volunteer roles.</p><div class="table-wrapper"><table><thead><tr><th>Teen</th><th>Email</th><th>Age</th><th>Guardian</th><th>Status</th><th>Roles</th><th>Actions</th></tr></thead><tbody data-admin-teens-body></tbody></table></div><details class="pca-admin-create-panel"><summary><span>Create Volunteer Assignment</span><small>Assign an approved volunteer to an event</small></summary><form data-admin-volunteer-assignment-form><div class="fields"><div class="field half"><label for="admin-volunteer-user">Teen Volunteer</label><select id="admin-volunteer-user" name="teen_member_user_id" required><option value="">Choose a volunteer</option></select></div><div class="field half"><label for="admin-volunteer-event">Event</label><select id="admin-volunteer-event" name="event_id" required><option value="">Choose an event</option></select></div><div class="field"><label for="admin-volunteer-role">Assignment Role</label><input id="admin-volunteer-role" name="role_title" type="text" maxlength="160" required /></div><div class="field"><label for="admin-volunteer-instructions">Instructions</label><textarea id="admin-volunteer-instructions" name="instructions" rows="3" maxlength="4000"></textarea></div></div><button type="submit" class="button primary">Create Assignment</button><p class="pca-backend-status" data-admin-volunteer-assignment-status aria-live="polite"></p></form></details><h3>Volunteer Assignments</h3><div class="table-wrapper"><table><thead><tr><th>Volunteer</th><th>Event</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead><tbody data-admin-volunteer-assignments-body></tbody></table></div><h3>Submitted Service Hours</h3><div class="table-wrapper"><table><thead><tr><th>Volunteer</th><th>Date</th><th>Submitted</th><th>Description</th><th>Status</th><th>Review</th></tr></thead><tbody data-admin-volunteer-hours-body></tbody></table></div></section>
 
-					<section class="pca-admin-workspace-panel" data-admin-panel="blog" hidden><h2>Blog</h2><p>Administrators can create and manage every post, including posts authored by Teen Member editors.</p><ul class="actions"><li><a href="blog-editor.html" class="button primary">Open Blog Editor</a></li><li><a href="blog.html" class="button">View Public Blog</a></li></ul></section>
+					<section id="admin-panel-blog" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-blog" data-admin-panel="blog" hidden><h2>Blog</h2><p>Administrators can create and manage every post, including posts authored by Teen Member editors.</p><ul class="actions"><li><a href="blog-editor.html" class="button primary">Open Blog Editor</a></li><li><a href="blog.html" class="button">View Public Blog</a></li></ul></section>
 
-					<section class="pca-admin-workspace-panel" data-admin-panel="access" hidden><h2>Site Access</h2><p>Super administrators can promote existing permanent accounts or remove administrator access. Self-demotion and removal of the final super administrator are blocked by the database.</p><form class="pca-paper-panel pca-admin-access-form" data-admin-access-form><div class="fields"><div class="field"><label for="admin-access-user">Existing Account</label><select id="admin-access-user" name="user_id" required></select></div><div class="field"><label for="admin-access-level">Access Level</label><select id="admin-access-level" name="access_level"><option value="admin">Administrator</option><option value="super_admin">Super Administrator</option></select></div></div><button type="submit" class="button primary">Grant Access</button></form><div class="table-wrapper"><table><thead><tr><th>Name</th><th>Email</th><th>Access</th><th>Actions</th></tr></thead><tbody data-admin-access-body></tbody></table></div></section>
+					<section id="admin-panel-access" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-access" data-admin-panel="access" hidden><h2>Site Access</h2><p>Super administrators can promote existing permanent accounts or remove administrator access. Self-demotion and removal of the final super administrator are blocked by the database.</p><form class="pca-paper-panel pca-admin-access-form" data-admin-access-form><div class="fields"><div class="field"><label for="admin-access-user">Existing Account</label><select id="admin-access-user" name="user_id" required></select></div><div class="field"><label for="admin-access-level">Access Level</label><select id="admin-access-level" name="access_level"><option value="admin">Administrator</option><option value="super_admin">Super Administrator</option></select></div></div><button type="submit" class="button primary">Grant Access</button></form><div class="table-wrapper"><table><thead><tr><th>Name</th><th>Email</th><th>Access</th><th>Actions</th></tr></thead><tbody data-admin-access-body></tbody></table></div></section>
+						</div>
+					</div>
 				</section>
-			</div>
-			<footer id="footer"><section><form method="post" action="mailto:pcayouthcenter@gmail.com"><div class="fields"><div class="field"><label for="name">Name</label><input type="text" name="name" id="name" /></div><div class="field"><label for="email">Email</label><input type="email" name="email" id="email" /></div><div class="field"><label for="message">Message</label><textarea name="message" id="message" rows="3"></textarea></div></div><ul class="actions"><li><input type="submit" value="Send Message" /></li></ul></form></section><section class="split contact"><section class="alt"><h3>Organization</h3><p>PCA Youth Center<br />Pittsburgh Chinese American Youth Center</p></section><section><h3>Email</h3><p><a href="mailto:pcayouthcenter@gmail.com">pcayouthcenter@gmail.com</a></p></section><section><h3>Nonprofit</h3><p>501(c)(3) youth organization led by adult and student volunteers.</p></section><section><h3>Social</h3><ul class="icons alt"><li><a href="mailto:pcayouthcenter@gmail.com" class="icon solid alt fa-envelope"><span class="label">Email</span></a></li><li><a href="https://www.facebook.com/PCA-Youth-Center-105257804561315" class="icon brands alt fa-facebook-f"><span class="label">Facebook</span></a></li><li><a href="https://www.instagram.com/pcayouthcenter/" class="icon brands alt fa-instagram"><span class="label">Instagram</span></a></li></ul></section></section></footer>
-			<div id="copyright"><ul><li>&copy; 2018-2026 PCA Youth Center</li><li>Design adapted from <a href="https://html5up.net">HTML5 UP</a></li></ul></div>
-		</div>
-		<script src="assets/js/jquery.min.js"></script><script src="assets/js/jquery.scrollex.min.js"></script><script src="assets/js/jquery.scrolly.min.js"></script><script src="assets/js/browser.min.js"></script><script src="assets/js/breakpoints.min.js"></script><script src="assets/js/util.js"></script><script src="assets/js/main.js"></script><script src="script.js?v=20260710"></script>
+			</main>
+			<footer id="footer" class="site-footer">
+				<div class="site-footer__inner">
+					<section class="site-footer__brand">
+						<a class="site-brand site-brand--footer" href="index.html">
+							<img src="images/homepage/pca-logo.png" width="44" height="45" alt="" />
+							<span>PCA Youth Center</span>
+						</a>
+						<p>Leadership, culture, and community service for Pittsburgh youth.</p>
+						<a class="site-footer__email" href="mailto:pcayouthcenter@gmail.com"><span class="icon solid fa-envelope" aria-hidden="true"></span> pcayouthcenter@gmail.com</a>
+					</section>
+					<nav class="site-footer__links" aria-label="Footer navigation">
+						<div><h2>Explore</h2><a href="about.html">About</a><a href="events.html">Events</a><a href="blog.html">Stories</a></div>
+						<div><h2>Get Involved</h2><a href="membership.html">Membership</a><a href="teen-members.html">Teen Members</a><a href="student-council.html">Student Council</a></div>
+						<div><h2>Organization</h2><a href="support-us.html">Support Us</a><a href="bylaws.html">Bylaws</a><a href="aapi-statement.html">AAPI Statement</a></div>
+					</nav>
+					<section class="site-footer__connect">
+						<h2>Connect</h2>
+						<div class="site-footer__social">
+							<a href="https://www.facebook.com/PCA-Youth-Center-105257804561315" aria-label="PCA Youth Center on Facebook"><span class="icon brands fa-facebook-f" aria-hidden="true"></span></a>
+							<a href="https://www.instagram.com/pcayouthcenter/" aria-label="PCA Youth Center on Instagram"><span class="icon brands fa-instagram" aria-hidden="true"></span></a>
+						</div>
+						<a class="button primary" href="support-us.html">Support PCA</a>
+					</section>
+				</div>
+				<div class="site-footer__bottom"><span>&copy; 2018-2026 PCA Youth Center</span><span>Design adapted from <a href="https://html5up.net">HTML5 UP</a></span></div>
+			</footer>
+		</div><script src="script.js?v=20260710-ui-refresh"></script>
 	</body>
 </html>
