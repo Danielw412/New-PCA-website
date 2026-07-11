@@ -9,7 +9,7 @@ import {
 	requirePermanentAccount,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260711-registration-fixes";
+} from "./core-auth.js?v=20260711-spacing-rhythm";
 
 const roleLabels = {
 	student_council: "Student Council",
@@ -247,6 +247,33 @@ const initializeHouseholdDashboard = async () => {
 	const status = page.querySelector("[data-household-dashboard-status]");
 	const container = page.querySelector("[data-household-registrations]");
 	page.querySelector("[data-household-name]").textContent = account.context.profile.full_name;
+	let activeRegistrationFilter = "all";
+
+	const syncRegistrationFilter = () => {
+		const cards = [...container.querySelectorAll("[data-registration-group]")];
+		let visibleCount = 0;
+		cards.forEach((card) => {
+			const visible = activeRegistrationFilter === "all" || card.dataset.registrationGroup === activeRegistrationFilter;
+			card.hidden = !visible;
+			if (visible) visibleCount += 1;
+		});
+
+		let emptyState = container.querySelector("[data-registration-empty]");
+		if (!emptyState) {
+			emptyState = createElement("p", "pca-empty-state");
+			emptyState.dataset.registrationEmpty = "true";
+			container.appendChild(emptyState);
+		}
+		const emptyMessages = {
+			all: "No event registrations yet.",
+			upcoming: "No upcoming event registrations.",
+			past: "No past event registrations.",
+			waitlisted: "No waitlisted registrations.",
+			cancelled: "No cancelled registrations.",
+		};
+		emptyState.textContent = emptyMessages[activeRegistrationFilter] || "No matching registrations.";
+		emptyState.hidden = visibleCount > 0;
+	};
 
 	const loadRegistrations = async () => {
 		setStatus(status, "Loading registration history...", "info");
@@ -254,7 +281,7 @@ const initializeHouseholdDashboard = async () => {
 		if (error) throw error;
 		container.replaceChildren();
 		if (!registrations?.length) {
-			container.appendChild(createElement("p", "pca-empty-state", "No event registrations yet."));
+			syncRegistrationFilter();
 			setStatus(status);
 			return;
 		}
@@ -273,20 +300,19 @@ const initializeHouseholdDashboard = async () => {
 			const attendees = (attendeesResult.data || []).filter((attendee) => attendee.registration_id === registration.id);
 			container.appendChild(renderHouseholdRegistration(registration, event, attendees, supabase, loadRegistrations));
 		});
+		syncRegistrationFilter();
 		setStatus(status);
 	};
 
 	page.querySelectorAll("[data-registration-filter]").forEach((button) => button.addEventListener("click", () => {
-		const filter = button.dataset.registrationFilter;
+		activeRegistrationFilter = button.dataset.registrationFilter;
 		page.querySelectorAll("[data-registration-filter]").forEach((item) => {
 			const selected = item === button;
 			item.classList.toggle("primary", selected);
 			item.classList.toggle("is-selected", selected);
 			item.setAttribute("aria-pressed", String(selected));
 		});
-		container.querySelectorAll("[data-registration-group]").forEach((card) => {
-			card.hidden = filter !== "all" && card.dataset.registrationGroup !== filter;
-		});
+		syncRegistrationFilter();
 	}));
 
 	const memberList = page.querySelector("[data-household-member-list]");
@@ -332,7 +358,9 @@ const initializeHouseholdDashboard = async () => {
 				if (removeError) window.alert(friendlyError(removeError));
 				else await loadMembers();
 			});
-			card.append(edit, remove);
+			const actions = createElement("div", "pca-saved-member-card-actions");
+			actions.append(edit, remove);
+			card.appendChild(actions);
 			memberList.appendChild(card);
 		});
 	};

@@ -7,8 +7,8 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260711-registration-fixes";
-import { importedPosts } from "./blog-seed.js?v=20260711-registration-fixes";
+} from "./core-auth.js?v=20260711-spacing-rhythm";
+import { importedPosts } from "./blog-seed.js?v=20260711-spacing-rhythm";
 
 const imageUrl = (supabase, source, path) => {
 	if (!source || !path) return "";

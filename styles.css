@@ -383,6 +383,29 @@ summary:focus-visible {
 	color: var(--pca-red-700);
 }
 
+@media (hover: hover) and (min-width: 981px) {
+	.nav-item--dropdown:hover > .nav-submenu,
+	.nav-item--dropdown:focus-within > .nav-submenu {
+		opacity: 1;
+		visibility: visible;
+		transform: translateY(0);
+	}
+
+	.nav-item--dropdown:hover .fa-chevron-down,
+	.nav-item--dropdown:focus-within .fa-chevron-down {
+		transform: rotate(180deg);
+	}
+
+	.nav-item--dropdown::after {
+		position: absolute;
+		top: 100%;
+		left: 0;
+		width: 100%;
+		height: 10px;
+		content: "";
+	}
+}
+
 .site-nav__social,
 .site-menu-toggle {
 	display: none;
@@ -728,6 +751,17 @@ input[type="submit"]:disabled {
 	margin: -0.5rem -0.5rem 1.35rem;
 }
 
+/* Shared vertical rhythm for adjacent page sections and nested panels. */
+.post > .pca-three-column-cards + .pca-paper-panel,
+.post > .pca-paper-panel + .pca-paper-panel,
+.pca-dashboard-grid + .pca-paper-panel {
+	margin-top: 1.5rem;
+}
+
+.pca-paper-panel > .pca-saved-member-grid + .pca-admin-create-panel {
+	margin-top: 1.25rem;
+}
+
 #main > .posts {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -780,6 +814,17 @@ input[type="submit"]:disabled {
 .pca-registration-path-card .button,
 .pca-saved-member-card .button {
 	margin-top: auto;
+}
+
+.pca-saved-member-card .pca-saved-member-card-actions {
+	display: grid;
+	gap: 0.65rem;
+	margin-top: auto;
+}
+
+.pca-saved-member-card .pca-saved-member-card-actions .button {
+	width: 100%;
+	margin-top: 0;
 }
 
 .pca-band {
@@ -1605,6 +1650,14 @@ input[type="radio"] + label {
 	gap: 0.5rem;
 }
 
+.pca-editor-layout > form.pca-paper-panel > .field {
+	margin-top: 0.75rem;
+}
+
+.pca-editor-layout > form.pca-paper-panel > .actions {
+	margin-top: 1.25rem;
+}
+
 /* Administration */
 
 #main > .post.pca-dashboard-page {
@@ -1663,6 +1716,11 @@ input[type="radio"] + label {
 	margin-bottom: 1.2rem;
 }
 
+.pca-admin-workspace-panel > h3 {
+	margin-top: 2rem;
+	margin-bottom: 1rem;
+}
+
 .pca-admin-metric-grid {
 	grid-template-columns: repeat(3, minmax(0, 1fr));
 	margin-top: 0;
@@ -1678,7 +1736,7 @@ input[type="radio"] + label {
 }
 
 .pca-admin-create-panel {
-	margin: 0 0 1.25rem;
+	margin: 1.5rem 0;
 	overflow: hidden;
 	border: 1px solid var(--pca-line);
 	border-radius: var(--pca-radius-md);

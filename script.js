@@ -1,4 +1,4 @@
-const ASSET_VERSION = "20260711-registration-fixes";
+const ASSET_VERSION = "20260711-spacing-rhythm";
 const MOBILE_NAV_QUERY = window.matchMedia("(max-width: 980px)");
 const REDUCED_MOTION_QUERY = window.matchMedia("(prefers-reduced-motion: reduce)");
 
@@ -55,6 +55,18 @@ const toggleDropdown = (dropdown) => {
 document.querySelectorAll("[data-nav-dropdown]").forEach((dropdown) => {
 	const button = getDropdownButton(dropdown);
 	if (!button) return;
+	let hoverCloseTimer = null;
+
+	dropdown.addEventListener("mouseenter", () => {
+		if (MOBILE_NAV_QUERY.matches || button.hidden) return;
+		window.clearTimeout(hoverCloseTimer);
+		openDropdown(dropdown);
+	});
+
+	dropdown.addEventListener("mouseleave", () => {
+		if (MOBILE_NAV_QUERY.matches) return;
+		hoverCloseTimer = window.setTimeout(() => closeDropdown(dropdown), 140);
+	});
 
 	button.addEventListener("click", (event) => {
 		event.stopPropagation();

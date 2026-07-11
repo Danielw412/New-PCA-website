@@ -1,8 +1,8 @@
-import { syncPlatformNavigation } from "./modules/core-auth.js?v=20260711-registration-fixes";
-import { initializeAccountPages } from "./modules/accounts.js?v=20260711-registration-fixes";
-import { initializeRegistrationPages } from "./modules/events-registration.js?v=20260711-registration-fixes";
-import { initializeBlogPages } from "./modules/blog.js?v=20260711-registration-fixes";
-import { initializeAdministrationPages } from "./modules/administration.js?v=20260711-registration-fixes";
+import { syncPlatformNavigation } from "./modules/core-auth.js?v=20260711-spacing-rhythm";
+import { initializeAccountPages } from "./modules/accounts.js?v=20260711-spacing-rhythm";
+import { initializeRegistrationPages } from "./modules/events-registration.js?v=20260711-spacing-rhythm";
+import { initializeBlogPages } from "./modules/blog.js?v=20260711-spacing-rhythm";
+import { initializeAdministrationPages } from "./modules/administration.js?v=20260711-spacing-rhythm";
 
 const initializePlatform = async () => {
 	await syncPlatformNavigation();

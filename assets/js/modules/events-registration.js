@@ -9,7 +9,7 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260711-registration-fixes";
+} from "./core-auth.js?v=20260711-spacing-rhythm";
 
 const referralLabels = {
 	friend_recommendation: "Friend recommendation",
