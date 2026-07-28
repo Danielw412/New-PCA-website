@@ -1,8 +1,8 @@
-import { initializeAccountPages } from "./modules/accounts.js?v=20260728-redesign-v1";
-import { initializeRegistrationPages } from "./modules/events-registration.js?v=20260728-redesign-v1";
-import { initializeBlogPages } from "./modules/blog.js?v=20260728-redesign-v1";
-import { initializeAdministrationPages, prepareAdministrationShell } from "./modules/administration.js?v=20260728-redesign-v1";
-import { initializeCouncilPages, prepareCouncilAdminShell } from "./modules/council.js?v=20260728-redesign-v1";
+import { initializeAccountPages } from "./modules/accounts.js?v=20260728-redesign-v2";
+import { initializeRegistrationPages } from "./modules/events-registration.js?v=20260728-redesign-v2";
+import { initializeBlogPages } from "./modules/blog.js?v=20260728-redesign-v2";
+import { initializeAdministrationPages, prepareAdministrationShell } from "./modules/administration.js?v=20260728-redesign-v2";
+import { initializeCouncilPages, prepareCouncilAdminShell } from "./modules/council.js?v=20260728-redesign-v2";
 
 const initializePlatform = async () => {
 	prepareAdministrationShell();

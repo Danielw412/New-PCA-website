@@ -2848,18 +2848,22 @@ body::before {
 	.site-nav {
 		position: fixed;
 		inset: var(--pca-header-height) 0 0;
+		height: calc(100vh - var(--pca-header-height));
+		height: calc(100dvh - var(--pca-header-height));
 		z-index: -1;
 		margin: 0;
 		background: rgba(34, 27, 28, 0.45);
 		opacity: 0;
 		overflow: hidden;
+		pointer-events: none;
 		visibility: hidden;
-		transition: opacity 220ms ease, visibility 220ms;
+		transition: opacity 220ms ease;
 	}
 
 	body.is-menu-open .site-nav {
 		z-index: 999;
 		opacity: 1;
+		pointer-events: auto;
 		visibility: visible;
 	}
 
