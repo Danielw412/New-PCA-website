@@ -1,6 +1,5 @@
-const ASSET_VERSION = "20260711-guest-registration-v2";
+const ASSET_VERSION = "20260728-redesign-v1";
 const MOBILE_NAV_QUERY = window.matchMedia("(max-width: 980px)");
-const REDUCED_MOTION_QUERY = window.matchMedia("(prefers-reduced-motion: reduce)");
 
 const body = document.body;
 const header = document.querySelector(".site-header");
@@ -181,7 +180,7 @@ const setupScrollReveals = () => {
 		"#main:not(.home-main) > .pca-band",
 	].join(",")));
 
-	if (!candidates.length || REDUCED_MOTION_QUERY.matches) {
+	if (!candidates.length) {
 		candidates.forEach((element) => element.classList.add("is-visible"));
 		return;
 	}
@@ -215,6 +214,63 @@ const setupScrollReveals = () => {
 
 setupScrollReveals();
 
+const enhancePastEventArchive = () => {
+	const archive = document.querySelector("[data-past-events-archive]");
+	if (!archive) return;
+
+	let currentYear = null;
+	[...archive.children].forEach((element) => {
+		if (element.matches("h2")) {
+			currentYear = document.createElement("section");
+			currentYear.className = "pca-archive-year";
+			element.before(currentYear);
+			currentYear.appendChild(element);
+			return;
+		}
+
+		if (!currentYear || !element.matches(".pca-event")) {
+			currentYear?.appendChild(element);
+			return;
+		}
+
+		const heading = element.querySelector(":scope > h3");
+		if (!heading) {
+			currentYear.appendChild(element);
+			return;
+		}
+
+		element.className = "pca-archive-entry";
+		const button = document.createElement("button");
+		button.className = "pca-archive-entry__toggle";
+		button.type = "button";
+		button.setAttribute("aria-expanded", "false");
+		const label = document.createElement("span");
+		label.textContent = heading.textContent;
+		const icon = document.createElement("span");
+		icon.className = "icon solid fa-plus";
+		icon.setAttribute("aria-hidden", "true");
+		button.append(label, icon);
+
+		const body = document.createElement("div");
+		body.className = "pca-archive-entry__body";
+		body.hidden = true;
+		[...element.children].forEach((child) => {
+			if (child !== heading) body.appendChild(child);
+		});
+		heading.remove();
+		element.replaceChildren(button, body);
+		currentYear.appendChild(element);
+
+		button.addEventListener("click", () => {
+			const open = button.getAttribute("aria-expanded") !== "true";
+			button.setAttribute("aria-expanded", String(open));
+			body.hidden = !open;
+		});
+	});
+};
+
+enhancePastEventArchive();
+
 const loadPcaBackend = () => {
 	if (document.querySelector("script[data-pca-backend-script]")) return;
 
@@ -224,11 +280,25 @@ const loadPcaBackend = () => {
 	backendScript.defer = true;
 	document.body.appendChild(backendScript);
 
-	const platformScript = document.createElement("script");
-	platformScript.src = `assets/js/pca-platform.js?v=${ASSET_VERSION}`;
-	platformScript.type = "module";
-	platformScript.dataset.pcaPlatformScript = "true";
-	document.body.appendChild(platformScript);
+	const needsPlatform = document.querySelector([
+		"[data-platform-registration]",
+		"[data-blog-feed]",
+		"[data-blog-post]",
+		"[data-blog-editor]",
+		"[data-platform-admin]",
+		"[data-teen-application-page]",
+		"[data-teen-dashboard]",
+		"[data-household-dashboard]",
+		"[data-profile-contact-form]",
+		"[data-council-roster]",
+	].join(","));
+	if (needsPlatform) {
+		const platformScript = document.createElement("script");
+		platformScript.src = `assets/js/pca-platform.js?v=${ASSET_VERSION}`;
+		platformScript.type = "module";
+		platformScript.dataset.pcaPlatformScript = "true";
+		document.body.appendChild(platformScript);
+	}
 };
 
 loadPcaBackend();

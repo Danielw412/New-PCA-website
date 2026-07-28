@@ -88,21 +88,6 @@ export const requirePermanentAccount = async (destination = window.location.href
 	return { session, context };
 };
 
-export const syncPlatformNavigation = async () => {
-	const session = await getSession();
-	if (!session) return;
-	const context = await getAccountContext();
-	if (context.is_anonymous || !context.profile) return;
-	const destination = context.profile?.account_type === "teen_member"
-		? "teen-member-dashboard.html"
-		: "dashboard.html";
-	document.querySelectorAll("[data-pca-account-link]").forEach((link) => {
-		link.href = destination;
-		link.textContent = "Account";
-	});
-	window.PCA.accountContext = context;
-};
-
 export const friendlyError = (error, fallback = "Something went wrong. Please try again.") => {
 	const message = String(error?.message || "").trim();
 	if (!message) return fallback;

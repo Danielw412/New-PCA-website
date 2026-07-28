@@ -741,27 +741,33 @@
 	};
 
 	const createEventCard = (event, session) => {
-		const card = createElement("article", "pca-card pca-event-card");
-		card.appendChild(createElement("h3", "", event.title));
-
-		const details = createElement("div", "pca-event-details");
-		details.append(
-			makeEventDetail("Date & Time", formatEventRange(event)),
-			makeEventDetail("Location", event.location)
+		const card = createElement("article", "pca-card pca-event-card pca-event-agenda");
+		const start = new Date(event.starts_at);
+		const date = createElement("time", "pca-event-agenda__date");
+		date.dateTime = event.starts_at;
+		date.append(
+			createElement("span", "pca-event-agenda__month", start.toLocaleDateString("en-US", { month: "short", timeZone: "America/New_York" })),
+			createElement("span", "pca-event-agenda__day", start.toLocaleDateString("en-US", { day: "numeric", timeZone: "America/New_York" })),
+			createElement("span", "pca-event-agenda__year", start.toLocaleDateString("en-US", { year: "numeric", timeZone: "America/New_York" }))
 		);
-		card.appendChild(details);
+		const body = createElement("div", "pca-event-agenda__body");
+		body.appendChild(createElement("p", "pca-event-agenda__kicker", event.lifecycle === "in_progress" ? "Happening now" : "Next PCA event"));
+		body.appendChild(createElement("h2", "", event.title));
+		body.appendChild(createElement("p", "pca-event-agenda__meta", `${formatEventRange(event)} · ${event.location}`));
 
 		if (event.description) {
-			card.appendChild(createElement("p", "", event.description));
+			body.appendChild(createElement("p", "", event.description));
 		}
 
 		const registrationMeta = createElement("p", "pca-event-registration-meta");
 		const eventStarted = new Date(event.starts_at) <= new Date();
-		const canRegister = event.registration_open && !eventStarted;
+		const canRegister = typeof event.registration_available === "boolean"
+			? event.registration_available
+			: event.registration_open && !eventStarted;
 		registrationMeta.textContent = canRegister
 			? `Registration open · Up to ${event.max_participants_per_registration} attendee${event.max_participants_per_registration === 1 ? "" : "s"} per household`
 			: "Registration closed";
-		card.appendChild(registrationMeta);
+		body.appendChild(registrationMeta);
 
 		const actions = createElement("ul", "actions");
 		const actionItem = createElement("li");
@@ -782,8 +788,38 @@
 		}
 
 		actions.appendChild(actionItem);
-		card.appendChild(actions);
+		const actionPanel = createElement("div", "pca-event-agenda__actions");
+		actionPanel.appendChild(actions);
+		card.append(date, body, actionPanel);
 		return card;
+	};
+
+	const loadPublicEvents = async (lifecycle) => {
+		let query = state.client
+			.from("event_catalog")
+			.select("id,title,description,location,starts_at,ends_at,capacity,max_participants_per_registration,registration_open,published,lifecycle,registration_available");
+		query = lifecycle === "past"
+			? query.eq("lifecycle", "past").order("ends_at", { ascending: false })
+			: query.in("lifecycle", ["upcoming", "in_progress"]).order("starts_at", { ascending: true });
+		const result = await query;
+		if (!result.error) return result;
+		if (!/event_catalog|schema cache|relation/i.test(result.error.message || "")) return result;
+
+		let fallback = state.client
+			.from("events")
+			.select("id,title,description,location,starts_at,ends_at,capacity,max_participants_per_registration,registration_open,published");
+		fallback = lifecycle === "past"
+			? fallback.lt("ends_at", new Date().toISOString()).order("ends_at", { ascending: false })
+			: fallback.gte("ends_at", new Date().toISOString()).order("starts_at", { ascending: true });
+		const fallbackResult = await fallback;
+		return {
+			...fallbackResult,
+			data: (fallbackResult.data || []).map((event) => ({
+				...event,
+				lifecycle: new Date(event.starts_at) <= new Date() ? "in_progress" : lifecycle,
+				registration_available: event.registration_open && new Date(event.starts_at) > new Date(),
+			})),
+		};
 	};
 
 	const initializeUpcomingEventsPage = async () => {
@@ -796,11 +832,7 @@
 		const status = document.querySelector("[data-events-status]");
 		setStatus(status, "Loading upcoming events...", "info");
 
-		const { data: events, error } = await state.client
-			.from("events")
-			.select("id,title,description,location,starts_at,ends_at,capacity,max_participants_per_registration,registration_open,published")
-			.gte("ends_at", new Date().toISOString())
-			.order("starts_at", { ascending: true });
+		const { data: events, error } = await loadPublicEvents("upcoming");
 
 		if (error) {
 			setStatus(status, "Upcoming events could not be loaded. Please try again later.", "error");
@@ -816,6 +848,40 @@
 		}
 
 		events.forEach((event) => eventList.appendChild(createEventCard(event, state.session)));
+	};
+
+	const createPastEventCard = (event) => {
+		const card = createElement("article", "pca-past-event-card");
+		const date = createElement("time", "pca-event-agenda__kicker", new Date(event.starts_at).toLocaleDateString("en-US", {
+			month: "long",
+			day: "numeric",
+			year: "numeric",
+			timeZone: "America/New_York",
+		}));
+		date.dateTime = event.starts_at;
+		const body = createElement("div");
+		body.append(
+			createElement("h3", "", event.title),
+			createElement("p", "pca-event-agenda__meta", `${formatEventRange(event)} · ${event.location}`)
+		);
+		if (event.description) body.appendChild(createElement("p", "", event.description));
+		card.append(date, body);
+		return card;
+	};
+
+	const initializePastEventsPage = async () => {
+		const eventList = document.querySelector("[data-past-events-list]");
+		if (!eventList) return;
+		const status = document.querySelector("[data-past-events-status]");
+		setStatus(status, "Loading recently completed events...", "info");
+		const { data: events, error } = await loadPublicEvents("past");
+		if (error) {
+			setStatus(status, "Recent events could not be loaded. The complete archive is still available below.", "error");
+			return;
+		}
+		eventList.replaceChildren();
+		(events || []).forEach((event) => eventList.appendChild(createPastEventCard(event)));
+		setStatus(status, events?.length ? "" : "No database events have completed yet.", "info");
 	};
 
 	const createParticipantRow = (position, removable) => {
@@ -2565,6 +2631,7 @@
 			initializeLoginPage(),
 			initializePasswordRecoveryPage(),
 			initializeUpcomingEventsPage(),
+			initializePastEventsPage(),
 			initializeRegistrationPage(),
 			initializeVolunteerApplicationPage(),
 			initializeVolunteerDashboard(),

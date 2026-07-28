@@ -9,7 +9,7 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260711-guest-registration-v2";
+} from "./core-auth.js?v=20260728-redesign-v1";
 
 const referralLabels = {
 	friend_recommendation: "Friend recommendation",
@@ -220,7 +220,21 @@ const initializeRegistrationPage = async () => {
 	const attendeeList = page.querySelector("[data-platform-attendees]");
 	const savedMembers = page.querySelector("[data-saved-member-picker]");
 	const success = page.querySelector("[data-registration-success]");
+	const stages = [...page.querySelectorAll("[data-registration-stage]")];
+	const stepItems = [...page.querySelectorAll("[data-registration-step]")];
 	const { supabase } = await platformReady();
+
+	const showRegistrationStage = (name) => {
+		stages.forEach((stage) => { stage.hidden = stage.dataset.registrationStage !== name; });
+		const order = ["path", "attendees", "contact"];
+		const activeIndex = order.indexOf(name);
+		stepItems.forEach((step) => {
+			const index = order.indexOf(step.dataset.registrationStep);
+			step.toggleAttribute("aria-current", index === activeIndex);
+			if (index === activeIndex) step.setAttribute("aria-current", "step");
+			step.classList.toggle("is-complete", index < activeIndex);
+		});
+	};
 
 	if (!eventId) {
 		setStatus(status, "Choose an event before opening registration.", "error");
@@ -263,6 +277,7 @@ const initializeRegistrationPage = async () => {
 	const showForm = async () => {
 		chooser.hidden = true;
 		form.hidden = false;
+		showRegistrationStage("attendees");
 		guestMode = Boolean(context.is_anonymous);
 		const contactFields = form.querySelector("[data-registration-contact-fields]");
 		contactFields.hidden = false;
@@ -365,6 +380,28 @@ const initializeRegistrationPage = async () => {
 		attendeeList.appendChild(createAttendeeRow(attendeeList.children.length));
 	});
 
+	page.querySelector("[data-registration-next]").addEventListener("click", () => {
+		const controls = [...page.querySelectorAll('[data-registration-stage="attendees"] input, [data-registration-stage="attendees"] select, [data-registration-stage="attendees"] textarea')]
+			.filter((control) => !control.disabled);
+		const invalid = controls.find((control) => !control.checkValidity());
+		if (invalid) {
+			invalid.reportValidity();
+			return;
+		}
+		if (!attendeeList.children.length) {
+			setStatus(status, "Add at least one attendee.", "error");
+			return;
+		}
+		setStatus(status);
+		showRegistrationStage("contact");
+		page.querySelector(".pca-registration-workflow")?.scrollIntoView({ behavior: "smooth", block: "start" });
+	});
+
+	page.querySelector("[data-registration-back]").addEventListener("click", () => {
+		showRegistrationStage("attendees");
+		page.querySelector(".pca-registration-workflow")?.scrollIntoView({ behavior: "smooth", block: "start" });
+	});
+
 	const referral = form.elements.referral_source;
 	const referralOtherField = form.querySelector("[data-referral-other-field]");
 	const syncReferral = () => {
@@ -430,6 +467,10 @@ const initializeRegistrationPage = async () => {
 		}
 		form.hidden = true;
 		success.hidden = false;
+		stepItems.forEach((step) => {
+			step.removeAttribute("aria-current");
+			step.classList.add("is-complete");
+		});
 		const saved = Array.isArray(result.data) ? result.data[0] : result.data;
 		const resultStatus = saved?.status || "updated";
 		success.querySelector("[data-registration-result]").textContent = registrationId

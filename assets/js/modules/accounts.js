@@ -9,7 +9,7 @@ import {
 	requirePermanentAccount,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260711-guest-registration-v2";
+} from "./core-auth.js?v=20260728-redesign-v1";
 
 const roleLabels = {
 	student_council: "Student Council",
@@ -161,21 +161,61 @@ const initializeTeenDashboard = async () => {
 
 		const hoursForm = page.querySelector("[data-teen-hours-form]");
 		const assignmentSelect = hoursForm.elements.assignment_id;
-		(assignmentsResult.data || []).filter((assignment) => assignment.status !== "cancelled").forEach((assignment) => {
+		const activeAssignments = (assignmentsResult.data || []).filter((assignment) => assignment.status !== "cancelled");
+		const assignmentById = new Map(activeAssignments.map((assignment) => [assignment.id, assignment]));
+		activeAssignments.forEach((assignment) => {
 			const option = createElement("option", "", assignment.role_title);
 			option.value = assignment.id;
 			assignmentSelect.appendChild(option);
 		});
+		if (activeAssignments.length === 1) assignmentSelect.value = activeAssignments[0].id;
 		const hoursBody = page.querySelector("[data-teen-hours-body]");
+		const hoursTable = hoursBody.closest(".table-wrapper");
+		const summary = createElement("div", "pca-volunteer-hours-summary");
+		const summaryValues = {};
+		[["submitted", "Submitted"], ["pending", "Awaiting review"], ["approved", "Approved"]].forEach(([key, label]) => {
+			const item = createElement("div");
+			const value = createElement("strong", "", "0");
+			value.dataset.hoursSummary = key;
+			summaryValues[key] = value;
+			item.append(value, createElement("span", "", label));
+			summary.appendChild(item);
+		});
+		hoursTable?.before(summary);
 		const loadHours = async () => {
 			const { data: hours, error } = await supabase.from("volunteer_service_hours").select("*").eq("teen_member_user_id", account.session.user.id).order("service_date", { ascending: false });
 			if (error) throw error;
+			const submittedTotal = (hours || []).reduce((total, entry) => total + Number(entry.submitted_hours || 0), 0);
+			const pendingTotal = (hours || []).filter((entry) => entry.status === "submitted").reduce((total, entry) => total + Number(entry.submitted_hours || 0), 0);
+			const approvedTotal = (hours || []).filter((entry) => entry.status === "approved").reduce((total, entry) => total + Number(entry.approved_hours || 0), 0);
+			summaryValues.submitted.textContent = submittedTotal.toFixed(2).replace(/\.00$/, "");
+			summaryValues.pending.textContent = pendingTotal.toFixed(2).replace(/\.00$/, "");
+			summaryValues.approved.textContent = approvedTotal.toFixed(2).replace(/\.00$/, "");
 			hoursBody.replaceChildren();
 			(hours || []).forEach((entry) => {
 				const row = createElement("tr");
-				[formatShortDate(`${entry.service_date}T12:00:00`), entry.submitted_hours, entry.approved_hours ?? "—", entry.status, entry.description].forEach((value) => row.appendChild(createElement("td", "", String(value))));
+				const assignment = assignmentById.get(entry.assignment_id);
+				const values = [
+					["Date", formatShortDate(`${entry.service_date}T12:00:00`)],
+					["Submitted", entry.submitted_hours],
+					["Approved", entry.approved_hours ?? "—"],
+					["Status", entry.status],
+					["Description", assignment ? `${assignment.role_title}: ${entry.description}` : entry.description],
+				];
+				values.forEach(([label, value]) => {
+					const cell = createElement("td", "", String(value));
+					cell.dataset.label = label;
+					row.appendChild(cell);
+				});
 				hoursBody.appendChild(row);
 			});
+			if (!hours?.length) {
+				const row = createElement("tr");
+				const cell = createElement("td", "pca-admin-empty", "No service hours have been submitted yet.");
+				cell.colSpan = 5;
+				row.appendChild(cell);
+				hoursBody.appendChild(row);
+			}
 		};
 		hoursForm.addEventListener("submit", async (event) => {
 			event.preventDefault();
@@ -189,7 +229,11 @@ const initializeTeenDashboard = async () => {
 			});
 			setFormBusy(hoursForm, false);
 			setStatus(page.querySelector("[data-teen-hours-status]"), error ? friendlyError(error, "Hours could not be submitted.") : "Service hours submitted for review.", error ? "error" : "success");
-			if (!error) { hoursForm.reset(); await loadHours(); }
+			if (!error) {
+				hoursForm.reset();
+				if (activeAssignments.length === 1) assignmentSelect.value = activeAssignments[0].id;
+				await loadHours();
+			}
 		});
 		await loadHours();
 	}

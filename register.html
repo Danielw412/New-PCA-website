@@ -8,7 +8,7 @@
 		<meta name="pca-turnstile-site-key" content="0x4AAAAAADz91_NfxkfejK0C" />
 		<meta name="description" content="Register every household attendee for a PCA Youth Center event." />
 		<link rel="stylesheet" href="assets/css/fontawesome-all.min.css" />
-		<link rel="stylesheet" href="styles.css?v=20260711-spacing-rhythm" />
+		<link rel="stylesheet" href="styles.css?v=20260728-redesign-v1" />
 	</head>
 		<body>
 		<a class="skip-link" href="#main">Skip to content</a>
@@ -69,6 +69,8 @@
 					<p class="pca-backend-status" data-platform-registration-status data-platform-status aria-live="polite">Loading event details...</p>
 
 					<div data-platform-registration-content hidden>
+						<div class="pca-registration-shell">
+							<aside class="pca-registration-sidebar" aria-label="Registration progress">
 						<article class="pca-card pca-register-event-summary">
 							<h2 data-registration-event-title></h2>
 							<div class="pca-event-details">
@@ -77,6 +79,13 @@
 							</div>
 							<p>You may register up to <strong data-registration-event-limit></strong> attendees. The entire group is confirmed or waitlisted together.</p>
 						</article>
+								<ol class="pca-registration-steps">
+									<li data-registration-step="path" aria-current="step">Choose a path</li>
+									<li data-registration-step="attendees">Add attendees</li>
+									<li data-registration-step="contact">Contact &amp; confirm</li>
+								</ol>
+							</aside>
+							<div class="pca-registration-workflow">
 
 						<section class="pca-registration-paths" data-registration-paths hidden aria-labelledby="registration-path-title">
 							<h2 id="registration-path-title">Choose how to register</h2>
@@ -90,14 +99,20 @@
 						</section>
 
 						<form class="pca-registration-form" data-platform-registration-form hidden>
-							<fieldset class="pca-paper-panel" data-registration-contact-fields><legend>Primary Contact</legend><div class="fields"><div class="field"><label for="registration-contact-name">Full Name</label><input id="registration-contact-name" name="contact_name" type="text" maxlength="120" autocomplete="name" required /></div><div class="field half"><label for="registration-contact-email">Email</label><input id="registration-contact-email" name="contact_email" type="email" maxlength="320" autocomplete="email" required /></div><div class="field half"><label for="registration-contact-phone">Phone</label><input id="registration-contact-phone" name="contact_phone" type="tel" maxlength="40" autocomplete="tel" required /></div></div></fieldset>
-							<div class="pca-attendee-notice" role="note"><strong>Who should be listed?</strong> Add every person who will be present, including each attending parent or guardian. Anyone not listed will not have a reserved event seat.</div>
-							<div class="pca-saved-member-picker" data-saved-member-picker hidden><strong>Saved household members</strong><p>Choose a person to add them in one click.</p></div>
-							<div class="pca-participant-list" data-platform-attendees></div>
-							<ul class="actions">
-								<li><button type="button" class="button" data-add-attendee>Add Attendee</button></li>
-							</ul>
-							<div class="pca-registration-details fields">
+							<section class="pca-registration-stage" data-registration-stage="attendees">
+								<p class="eyebrow">Step 1 of 2</p>
+								<h2>Who is attending?</h2>
+								<div class="pca-attendee-notice" role="note"><strong>Who should be listed?</strong> Add every person who will be present, including each attending parent or guardian. Anyone not listed will not have a reserved event seat.</div>
+								<div class="pca-saved-member-picker" data-saved-member-picker hidden><strong>Saved household members</strong><p>Choose a person to add them in one click.</p></div>
+								<div class="pca-participant-list" data-platform-attendees></div>
+								<ul class="actions"><li><button type="button" class="button" data-add-attendee>Add Another Attendee</button></li></ul>
+								<div class="pca-registration-stage__actions"><span></span><button type="button" class="button primary" data-registration-next>Continue to Contact</button></div>
+							</section>
+							<section class="pca-registration-stage" data-registration-stage="contact" hidden>
+								<p class="eyebrow">Step 2 of 2</p>
+								<h2>Contact &amp; confirm</h2>
+								<fieldset class="pca-paper-panel" data-registration-contact-fields><legend>Primary Contact</legend><div class="fields"><div class="field"><label for="registration-contact-name">Full Name</label><input id="registration-contact-name" name="contact_name" type="text" maxlength="120" autocomplete="name" required /></div><div class="field half"><label for="registration-contact-email">Email</label><input id="registration-contact-email" name="contact_email" type="email" maxlength="320" autocomplete="email" required /></div><div class="field half"><label for="registration-contact-phone">Phone</label><input id="registration-contact-phone" name="contact_phone" type="tel" maxlength="40" autocomplete="tel" required /></div></div></fieldset>
+								<div class="pca-registration-details fields">
 								<div class="field">
 									<label for="registration-referral-source">Where did you find out about this event?</label>
 									<select id="registration-referral-source" name="referral_source" data-referral-source required>
@@ -117,10 +132,13 @@
 									<label for="registration-referral-other">Please describe where you heard about the event</label>
 									<input id="registration-referral-other" name="referral_source_other" type="text" maxlength="240" data-referral-other disabled />
 								</div>
-							</div>
-							<ul class="actions special"><li><button type="submit" class="button primary">Complete Registration</button></li></ul>
+								</div>
+								<div class="pca-registration-stage__actions"><button type="button" class="button" data-registration-back>Back to Attendees</button><button type="submit" class="button primary">Complete Registration</button></div>
+							</section>
 						</form>
 						<section class="pca-paper-panel pca-registration-success" data-registration-success hidden><h2>Registration Complete</h2><p data-registration-result></p><p>Keep a copy of the confirmation sent to your contact email.</p><div data-guest-account-offer hidden><hr /><h3>Make future registration faster</h3><ul class="pca-benefit-list"><li>Faster future registration</li><li>Saved household members</li><li>View registered events</li><li>Easy cancellation or changes</li><li>Registration history</li></ul><form data-guest-conversion-form><div class="fields"><div class="field"><label for="conversion-name">Account Holder Full Name</label><input id="conversion-name" name="full_name" type="text" maxlength="120" required /></div><div class="field half"><label for="conversion-email">Email</label><input id="conversion-email" data-conversion-email name="email" type="email" maxlength="320" required /></div><div class="field half"><label for="conversion-phone">Phone</label><input id="conversion-phone" name="phone" type="tel" maxlength="40" required /></div><div class="field half"><label for="conversion-password">Password</label><input id="conversion-password" name="password" type="password" minlength="8" required /></div><div class="field half"><label for="conversion-confirmation">Confirm Password</label><input id="conversion-confirmation" name="password_confirmation" type="password" minlength="8" required /></div></div><button type="submit" class="button primary">Create Household Account</button><p class="pca-backend-status" data-guest-conversion-status aria-live="polite"></p></form></div><ul class="actions"><li><a href="upcoming-events.html" class="button">View More Events</a></li><li><a href="dashboard.html" class="button">Household Dashboard</a></li></ul></section>
+							</div>
+						</div>
 					</div>
 					<ul class="actions special pca-page-bottom-actions"><li><a href="upcoming-events.html" class="button">Back to Upcoming Events</a></li></ul>
 				</section>
@@ -151,6 +169,6 @@
 				</div>
 				<div class="site-footer__bottom"><span>&copy; 2018-2026 PCA Youth Center</span><span>Design adapted from <a href="https://html5up.net">HTML5 UP</a></span></div>
 			</footer>
-		</div><script src="script.js?v=20260711-guest-registration-v2"></script>
+		</div><script src="script.js?v=20260728-redesign-v1"></script>
 	</body>
 </html>

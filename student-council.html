@@ -7,7 +7,7 @@
 		<meta name="theme-color" content="#fffaf7" />
 		<meta name="description" content="Meet the PCA Youth Center Student Council." />
 		<link rel="stylesheet" href="assets/css/fontawesome-all.min.css" />
-		<link rel="stylesheet" href="styles.css?v=20260711-spacing-rhythm" />
+		<link rel="stylesheet" href="styles.css?v=20260728-redesign-v1" />
 	</head>
 		<body>
 		<a class="skip-link" href="#main">Skip to content</a>
@@ -63,14 +63,17 @@
 		</header>
 		<div id="wrapper">
 			<main id="main">
-				<section class="post">
+				<section class="post" data-council-roster>
 					<header class="major">
 						<span class="date">Meet the Team</span>
 						<h1>Student Council</h1>
 						<p>Student Council relies on everyone, and you can contact any member with questions.</p>
 					</header>
 					<picture class="image main"><source type="image/webp" srcset="images/optimized/orientation-day-2025-960.webp 960w, images/optimized/orientation-day-2025-1600.webp 1600w" sizes="(max-width: 760px) 100vw, 70vw" /><img src="images/student-council/orientation-day-2025.jpg" width="4032" height="3024" alt="PCA Youth Center Student Council members at 2025 orientation day" loading="lazy" decoding="async" /></picture>
+					<p class="pca-backend-status" data-council-status data-platform-status aria-live="polite">Loading the current council roster...</p>
+					<div class="pca-council-roster" data-council-dynamic hidden></div>
 
+					<div data-council-static>
 					<h2>Advisory Board</h2>
 					<div class="pca-card-grid">
 						<section class="pca-card"><h3>Ava Liu</h3><p><strong>Advisor.</strong> Ava Liu joined PCA Youth Center Student Council in 2021. She likes listening to music, sleeping in, questioning reality, and reading.</p></section>
@@ -114,6 +117,7 @@
 						<div class="pca-member">Yuantao Tang</div>
 						<div class="pca-member">Zhaolin Lu</div>
 					</div>
+					</div>
 
 					<h2>Interested?</h2>
 					<p>Apply today. PCA welcomes anyone from any background and looks forward to seeing new faces.</p>
@@ -154,6 +158,6 @@
 				</div>
 				<div class="site-footer__bottom"><span>&copy; 2018-2026 PCA Youth Center</span><span>Design adapted from <a href="https://html5up.net">HTML5 UP</a></span></div>
 			</footer>
-		</div><script src="script.js?v=20260711-guest-registration-v2"></script>
+		</div><script src="script.js?v=20260728-redesign-v1"></script>
 	</body>
 </html>

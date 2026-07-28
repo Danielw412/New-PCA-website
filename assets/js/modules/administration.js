@@ -7,7 +7,7 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260711-guest-registration-v2";
+} from "./core-auth.js?v=20260728-redesign-v1";
 
 const timeZonePartsFormatter = new Intl.DateTimeFormat("en-CA", {
 	timeZone: "America/New_York",
@@ -41,6 +41,54 @@ const easternDateTimeToIso = (value) => {
 };
 
 const tableCell = (text) => createElement("td", "", text == null || text === "" ? "—" : String(text));
+
+const eventStateLabel = (event) => {
+	if (!event.published) return "Draft";
+	const now = new Date();
+	if (new Date(event.ends_at) < now) return "Past";
+	if (new Date(event.starts_at) <= now) return "In progress";
+	return "Upcoming";
+};
+
+export const prepareAdministrationShell = () => {
+	const page = document.querySelector("[data-platform-admin]");
+	if (!page || page.querySelector('[data-admin-tab="volunteers"]')) return;
+	const tabs = page.querySelector(".pca-admin-workspace-tabs");
+	const publishingGroup = [...page.querySelectorAll(".pca-admin-tab-group")].find((group) => group.textContent.trim() === "Publishing");
+	const teenPanel = page.querySelector('[data-admin-panel="teen-members"]');
+	const volunteerForm = teenPanel?.querySelector("[data-admin-volunteer-assignment-form]");
+	const firstVolunteerNode = volunteerForm?.closest("details");
+	if (!tabs || !publishingGroup || !teenPanel || !firstVolunteerNode) return;
+
+	const tab = createElement("button", "button small", "Volunteers");
+	tab.id = "admin-tab-volunteers";
+	tab.type = "button";
+	tab.setAttribute("role", "tab");
+	tab.setAttribute("aria-selected", "false");
+	tab.setAttribute("aria-controls", "admin-panel-volunteers");
+	tab.tabIndex = -1;
+	tab.dataset.adminTab = "volunteers";
+	tabs.insertBefore(tab, publishingGroup);
+
+	const panel = createElement("section", "pca-admin-workspace-panel");
+	panel.id = "admin-panel-volunteers";
+	panel.setAttribute("role", "tabpanel");
+	panel.setAttribute("aria-labelledby", tab.id);
+	panel.dataset.adminPanel = "volunteers";
+	panel.hidden = true;
+	panel.append(
+		createElement("h2", "", "Volunteer Operations"),
+		createElement("p", "", "Create event assignments, update volunteer status, and review submitted service hours in one focused queue.")
+	);
+	let node = firstVolunteerNode;
+	while (node) {
+		const next = node.nextElementSibling;
+		panel.appendChild(node);
+		node = next;
+	}
+	const content = page.querySelector(".pca-admin-workspace-content");
+	content.insertBefore(panel, page.querySelector('[data-admin-panel="blog"]'));
+};
 
 const initializeWorkspaceTabs = (page) => {
 	const tabs = [...page.querySelectorAll("[data-admin-tab]")];
@@ -128,7 +176,7 @@ const loadEvents = async (page, supabase) => {
 			});
 			actions.appendChild(remove);
 		}
-		row.append(tableCell(event.title), tableCell(formatShortDate(event.starts_at)), tableCell(event.location), tableCell(event.published ? "Published" : "Draft"), actions);
+		row.append(tableCell(event.title), tableCell(formatShortDate(event.starts_at)), tableCell(event.location), tableCell(eventStateLabel(event)), actions);
 		table.appendChild(row);
 	});
 };
@@ -424,27 +472,52 @@ const loadVolunteerManagement = async (page, supabase) => {
 		const row = createElement("tr");
 		const review = createElement("td");
 		if (entry.status === "submitted") {
+			const reviewForm = createElement("form", "pca-admin-hours-review");
+			const hoursLabel = createElement("label", "", "Approved hours");
+			const approvedHours = createElement("input");
+			approvedHours.type = "number";
+			approvedHours.min = "0";
+			approvedHours.max = "24";
+			approvedHours.step = "0.25";
+			approvedHours.value = String(entry.submitted_hours);
+			approvedHours.required = true;
+			hoursLabel.appendChild(approvedHours);
+			const notesLabel = createElement("label", "", "Notes");
+			const notes = createElement("input");
+			notes.type = "text";
+			notes.maxLength = 2000;
+			notes.placeholder = "Optional for approval";
+			notesLabel.appendChild(notes);
+			const buttonRow = createElement("div", "pca-admin-hours-review__actions");
 			const approve = createElement("button", "button small", "Approve");
-			approve.type = "button";
-			approve.addEventListener("click", async () => {
-				const approved = Number(window.prompt("Approved hours", String(entry.submitted_hours)));
+			approve.type = "submit";
+			reviewForm.addEventListener("submit", async (event) => {
+				event.preventDefault();
+				const approved = Number(approvedHours.value);
 				if (!Number.isFinite(approved)) return;
-				const notes = window.prompt("Administrator notes (optional)", "");
-				if (notes === null) return;
-				const { error } = await supabase.from("volunteer_service_hours").update({ status: "approved", approved_hours: approved, admin_notes: notes }).eq("id", entry.id);
+				setFormBusy(reviewForm, true, "Approving...");
+				const { error } = await supabase.from("volunteer_service_hours").update({ status: "approved", approved_hours: approved, admin_notes: notes.value.trim() || null }).eq("id", entry.id);
+				setFormBusy(reviewForm, false);
 				if (error) window.alert(friendlyError(error));
 				else await loadVolunteerManagement(page, supabase);
 			});
 			const reject = createElement("button", "button small", "Reject");
 			reject.type = "button";
 			reject.addEventListener("click", async () => {
-				const notes = window.prompt("Reason for rejection", "");
-				if (notes === null) return;
-				const { error } = await supabase.from("volunteer_service_hours").update({ status: "rejected", approved_hours: null, admin_notes: notes }).eq("id", entry.id);
+				if (!notes.value.trim()) {
+					notes.required = true;
+					notes.reportValidity();
+					return;
+				}
+				reject.disabled = true;
+				const { error } = await supabase.from("volunteer_service_hours").update({ status: "rejected", approved_hours: null, admin_notes: notes.value.trim() }).eq("id", entry.id);
 				if (error) window.alert(friendlyError(error));
 				else await loadVolunteerManagement(page, supabase);
+				reject.disabled = false;
 			});
-			review.append(approve, reject);
+			buttonRow.append(approve, reject);
+			reviewForm.append(hoursLabel, notesLabel, buttonRow);
+			review.appendChild(reviewForm);
 		}
 		const assignment = assignments.get(entry.assignment_id);
 		row.append(tableCell(profiles.get(entry.teen_member_user_id)?.full_name), tableCell(formatShortDate(`${entry.service_date}T12:00:00`)), tableCell(entry.submitted_hours), tableCell(entry.description), tableCell(entry.status), review);
