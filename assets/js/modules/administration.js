@@ -7,7 +7,7 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260728-content-layout-v3";
+} from "./core-auth.js?v=20260729-full-bleed-volunteer-v1";
 
 const timeZonePartsFormatter = new Intl.DateTimeFormat("en-CA", {
 	timeZone: "America/New_York",
@@ -41,6 +41,14 @@ const easternDateTimeToIso = (value) => {
 };
 
 const tableCell = (text) => createElement("td", "", text == null || text === "" ? "—" : String(text));
+
+const requestTransactionalEmail = async (supabase, kind, resourceId) => {
+	if (!resourceId) return;
+	const { error } = await supabase.functions.invoke("pca-transactional-email", {
+		body: { kind, resource_id: resourceId },
+	});
+	if (error) console.warn(`The ${kind} email could not be dispatched immediately.`, error);
+};
 
 const eventStateLabel = (event) => {
 	if (!event.published) return "Draft";
@@ -124,10 +132,11 @@ const initializeWorkspaceTabs = (page) => {
 
 const loadOverview = async (page, supabase) => {
 	const resources = [
-		["events", "events"],
+		["events", "events", (query) => query.is("deleted_at", null)],
 		["event_registrations", "registrations"],
 		["account_profiles", "households", (query) => query.eq("account_type", "household")],
-		["teen_member_applications", "teen-applications", (query) => query.eq("status", "pending")],
+		["volunteer_applications", "volunteer-applications", (query) => query.eq("status", "pending")],
+		["event_volunteer_requests", "volunteer-requests", (query) => query.eq("status", "pending")],
 		["blog_posts", "blog-posts"],
 	];
 	await Promise.all(resources.map(async ([table, hook, refine]) => {
@@ -141,7 +150,7 @@ const loadOverview = async (page, supabase) => {
 
 const loadEvents = async (page, supabase) => {
 	const table = page.querySelector("[data-admin-events-body]");
-	const { data: events, error } = await supabase.from("events").select("*").order("starts_at", { ascending: false });
+	const { data: events, error } = await supabase.from("events").select("*").is("deleted_at", null).order("starts_at", { ascending: false });
 	if (error) throw error;
 	table.replaceChildren();
 	(events || []).forEach((event) => {
@@ -165,17 +174,18 @@ const loadEvents = async (page, supabase) => {
 			form.scrollIntoView({ behavior: "smooth", block: "start" });
 		});
 		actions.appendChild(edit);
-		if (!event.published) {
-			const remove = createElement("button", "button small", "Delete Draft");
-			remove.type = "button";
-			remove.addEventListener("click", async () => {
-				if (!window.confirm(`Delete the unused draft “${event.title}”?`)) return;
-				const { error: deleteError } = await supabase.rpc("delete_event_draft", { p_event_id: event.id });
-				if (deleteError) window.alert(friendlyError(deleteError));
-				else await loadEvents(page, supabase);
-			});
-			actions.appendChild(remove);
-		}
+		const remove = createElement("button", "button small pca-button-danger", "Delete Event");
+		remove.type = "button";
+		remove.addEventListener("click", async () => {
+			if (!window.confirm(`Delete “${event.title}” from the website? Existing registrations and volunteer records will be retained.`)) return;
+			remove.disabled = true;
+			const { error: deleteError } = await supabase.rpc("delete_event", { p_event_id: event.id });
+			if (deleteError) {
+				remove.disabled = false;
+				window.alert(friendlyError(deleteError));
+			} else await Promise.all([loadEvents(page, supabase), loadOverview(page, supabase)]);
+		});
+		actions.appendChild(remove);
 		row.append(tableCell(event.title), tableCell(formatShortDate(event.starts_at)), tableCell(event.location), tableCell(eventStateLabel(event)), actions);
 		table.appendChild(row);
 	});
@@ -343,9 +353,9 @@ const loadHouseholds = async (page, supabase) => {
 	render();
 };
 
-const loadTeenMembers = async (page, supabase) => {
+const loadVolunteerAccounts = async (page, supabase) => {
 	const [applicationsResult, profilesResult, rolesResult] = await Promise.all([
-		supabase.from("teen_member_applications").select("*").order("submitted_at", { ascending: false }),
+		supabase.from("volunteer_applications").select("id,user_id,age,status,admin_notes,submitted_at,reviewed_at").order("submitted_at", { ascending: false }),
 		supabase.from("account_profiles").select("id,full_name,email"),
 		supabase.from("teen_member_role_assignments").select("user_id,role,revoked_at").is("revoked_at", null),
 	]);
@@ -376,9 +386,12 @@ const loadTeenMembers = async (page, supabase) => {
 				button.addEventListener("click", async () => {
 					const notes = window.prompt("Administrator notes (optional)", application.admin_notes || "");
 					if (notes === null) return;
-					const { error } = await supabase.rpc("review_teen_member_application", { p_application_id: application.id, p_decision: decision, p_admin_notes: notes });
+					const { error } = await supabase.rpc("review_volunteer_account_application", { p_application_id: application.id, p_decision: decision, p_admin_notes: notes });
 					if (error) window.alert(friendlyError(error));
-					else await loadTeenMembers(page, supabase);
+					else {
+						if (decision === "approved") await requestTransactionalEmail(supabase, "volunteer_account_approved", application.id);
+						await loadVolunteerAccounts(page, supabase);
+					}
 				});
 				actions.appendChild(button);
 			});
@@ -392,16 +405,83 @@ const loadTeenMembers = async (page, supabase) => {
 			});
 			actions.appendChild(saveRoles);
 		}
-		row.append(tableCell(profile?.full_name), tableCell(profile?.email), tableCell(application.age), tableCell(application.guardian_name), tableCell(application.status), roles, actions);
+		row.append(tableCell(profile?.full_name), tableCell(profile?.email), tableCell(application.age), tableCell(application.status), roles, actions);
 		body.appendChild(row);
 	});
+};
+
+const loadVolunteerRequests = async (page, supabase) => {
+	const body = page.querySelector("[data-admin-volunteer-requests-body]");
+	if (!body) return;
+	const [requestsResult, eventsResult] = await Promise.all([
+		supabase.from("event_volunteer_requests").select("*").order("submitted_at", { ascending: false }),
+		supabase.from("events").select("id,title,starts_at"),
+	]);
+	if (requestsResult.error) throw requestsResult.error;
+	if (eventsResult.error) throw eventsResult.error;
+	const events = new Map((eventsResult.data || []).map((event) => [event.id, event]));
+	body.replaceChildren();
+	(requestsResult.data || []).forEach((request) => {
+		const row = createElement("tr");
+		const event = events.get(request.event_id);
+		const details = createElement("td", "pca-admin-volunteer-request-details");
+		details.appendChild(createElement("strong", "", request.full_name));
+		details.appendChild(createElement("span", "", request.email));
+		if (request.phone) details.appendChild(createElement("span", "", request.phone));
+		if (request.school_name) details.appendChild(createElement("span", "", request.school_name));
+		const interests = createElement("td");
+		interests.appendChild(createElement("p", "", request.interests || "No interests provided."));
+		if (request.availability) interests.appendChild(createElement("small", "", `Availability: ${request.availability}`));
+		const actions = createElement("td", "pca-admin-request-actions");
+		if (request.status === "pending") {
+			["approved", "rejected"].forEach((decision) => {
+				const button = createElement("button", `button small${decision === "approved" ? " primary" : ""}`, decision === "approved" ? "Approve" : "Reject");
+				button.type = "button";
+				button.addEventListener("click", async () => {
+					const notes = window.prompt(decision === "approved" ? "Approval message or instructions (optional)" : "Reason or notes (optional)", request.admin_notes || "");
+					if (notes === null) return;
+					button.disabled = true;
+					const { error } = await supabase.rpc("review_event_volunteer_request", {
+						p_request_id: request.id,
+						p_decision: decision,
+						p_admin_notes: notes,
+					});
+					if (error) {
+						button.disabled = false;
+						window.alert(friendlyError(error));
+						return;
+					}
+					if (decision === "approved") await requestTransactionalEmail(supabase, "volunteer_request_approved", request.id);
+					await Promise.all([loadVolunteerRequests(page, supabase), loadOverview(page, supabase)]);
+				});
+				actions.appendChild(button);
+			});
+		}
+		row.append(
+			details,
+			tableCell(request.age),
+			tableCell(event ? `${event.title} · ${formatShortDate(event.starts_at)}` : "Archived event"),
+			interests,
+			tableCell(request.future_event_emails ? "Yes" : "No"),
+			tableCell(request.status),
+			actions
+		);
+		body.appendChild(row);
+	});
+	if (!requestsResult.data?.length) {
+		const row = createElement("tr");
+		const empty = createElement("td", "pca-admin-empty", "No event volunteer requests yet.");
+		empty.colSpan = 7;
+		row.appendChild(empty);
+		body.appendChild(row);
+	}
 };
 
 const loadVolunteerManagement = async (page, supabase) => {
 	const [profilesResult, rolesResult, eventsResult, assignmentsResult, hoursResult] = await Promise.all([
 		supabase.from("account_profiles").select("id,full_name,email"),
 		supabase.from("teen_member_role_assignments").select("user_id,role,revoked_at").eq("role", "volunteer").is("revoked_at", null),
-		supabase.from("events").select("id,title,starts_at").order("starts_at", { ascending: false }),
+		supabase.from("events").select("id,title,starts_at").is("deleted_at", null).order("starts_at", { ascending: false }),
 		supabase.from("event_volunteer_assignments").select("*").order("created_at", { ascending: false }),
 		supabase.from("volunteer_service_hours").select("*").order("submitted_at", { ascending: false }),
 	]);
@@ -604,10 +684,13 @@ const initializeAdminWorkspace = async () => {
 		loadEvents(page, supabase),
 		loadRegistrations(page, supabase),
 		loadHouseholds(page, supabase),
-		loadTeenMembers(page, supabase),
+		loadVolunteerAccounts(page, supabase),
+		loadVolunteerRequests(page, supabase),
 		loadVolunteerManagement(page, supabase),
 		loadAccess(page, supabase, context),
 	]);
+	void supabase.functions.invoke("pca-transactional-email", { body: { retry_queued: true } })
+		.then(({ error }) => { if (error) console.debug("Queued email retry is not configured yet.", error); });
 	setStatus(status);
 };
 

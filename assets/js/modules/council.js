@@ -6,7 +6,7 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260728-content-layout-v3";
+} from "./core-auth.js?v=20260729-full-bleed-volunteer-v1";
 
 const bucketName = "council-headshots";
 
@@ -193,7 +193,17 @@ export const prepareCouncilAdminShell = () => {
 	const imageInput = createInput("file");
 	imageInput.accept = "image/jpeg,image/png,image/webp";
 	const imageField = createField("Headshot (JPG, PNG, or WebP up to 5 MB)", "headshot", imageInput);
+	const imageActions = createElement("div", "pca-council-photo-actions");
+	const cropImage = createElement("button", "button small", "Crop Selected Photo");
+	cropImage.type = "button";
+	cropImage.dataset.councilCrop = "true";
+	cropImage.disabled = true;
+	const deleteImage = createElement("button", "button small pca-button-danger", "Delete Photo");
+	deleteImage.type = "button";
+	deleteImage.dataset.councilPhotoDelete = "true";
+	imageActions.append(cropImage, deleteImage);
 	const removeWrap = createElement("div", "field");
+	removeWrap.hidden = true;
 	const removeImage = createInput("checkbox");
 	removeImage.id = "council-remove-headshot";
 	removeImage.name = "remove_headshot";
@@ -242,6 +252,7 @@ export const prepareCouncilAdminShell = () => {
 		currentPath,
 		preview,
 		imageField,
+		imageActions,
 		removeWrap,
 		createField("Full name", "full_name", name),
 		createField("Role shown beneath name", "role_title", role),
@@ -274,8 +285,98 @@ const initializeAdminCouncil = async () => {
 	const form = panel.querySelector("[data-council-form]");
 	const status = panel.querySelector("[data-council-admin-status]");
 	const preview = panel.querySelector("[data-council-preview]");
+	const cropButton = panel.querySelector("[data-council-crop]");
+	const photoDeleteButton = panel.querySelector("[data-council-photo-delete]");
 	let members = [];
 	let previewObjectUrl = "";
+	let croppedHeadshot = null;
+	let cropSourceUrl = "";
+
+	const cropDialog = createElement("dialog", "pca-image-crop-dialog");
+	const cropFrame = createElement("div", "pca-image-crop-dialog__frame");
+	const cropHeading = createElement("h3", "", "Crop council photo");
+	cropHeading.id = "pca-council-crop-title";
+	const cropHelp = createElement("p", "", "Adjust the zoom and position. The saved headshot uses a consistent 4:5 portrait crop.");
+	cropHelp.id = "pca-council-crop-help";
+	cropDialog.setAttribute("aria-labelledby", cropHeading.id);
+	cropDialog.setAttribute("aria-describedby", cropHelp.id);
+	const cropCanvas = createElement("canvas");
+	cropCanvas.width = 800;
+	cropCanvas.height = 1000;
+	cropCanvas.setAttribute("role", "img");
+	cropCanvas.setAttribute("aria-label", "Cropped headshot preview");
+	const cropControls = createElement("div", "pca-image-crop-controls");
+	const makeRange = (labelText, min, max, value, step = "1") => {
+		const label = createElement("label", "", labelText);
+		const input = createElement("input");
+		input.type = "range";
+		input.min = String(min);
+		input.max = String(max);
+		input.value = String(value);
+		input.step = step;
+		label.appendChild(input);
+		cropControls.appendChild(label);
+		return input;
+	};
+	const cropZoom = makeRange("Zoom", 1, 3, 1, "0.01");
+	const cropX = makeRange("Move left or right", -100, 100, 0);
+	const cropY = makeRange("Move up or down", -100, 100, 0);
+	const cropActions = createElement("div", "pca-registration-stage__actions");
+	const cropCancel = createElement("button", "button", "Cancel");
+	cropCancel.type = "button";
+	const cropUse = createElement("button", "button primary", "Use Cropped Photo");
+	cropUse.type = "button";
+	cropActions.append(cropCancel, cropUse);
+	cropFrame.append(cropHeading, cropHelp, cropCanvas, cropControls, cropActions);
+	cropDialog.appendChild(cropFrame);
+	document.body.appendChild(cropDialog);
+	let cropImageElement = null;
+
+	const clearCropSource = () => {
+		if (cropSourceUrl) URL.revokeObjectURL(cropSourceUrl);
+		cropSourceUrl = "";
+		cropImageElement = null;
+	};
+
+	const drawCrop = () => {
+		if (!cropImageElement) return;
+		const context2d = cropCanvas.getContext("2d");
+		const baseScale = Math.max(cropCanvas.width / cropImageElement.naturalWidth, cropCanvas.height / cropImageElement.naturalHeight);
+		const scale = baseScale * Number(cropZoom.value);
+		const width = cropImageElement.naturalWidth * scale;
+		const height = cropImageElement.naturalHeight * scale;
+		const maxX = Math.max(0, (width - cropCanvas.width) / 2);
+		const maxY = Math.max(0, (height - cropCanvas.height) / 2);
+		const x = (cropCanvas.width - width) / 2 + (Number(cropX.value) / 100) * maxX;
+		const y = (cropCanvas.height - height) / 2 + (Number(cropY.value) / 100) * maxY;
+		context2d.clearRect(0, 0, cropCanvas.width, cropCanvas.height);
+		context2d.drawImage(cropImageElement, x, y, width, height);
+	};
+
+	const openCropper = (file) => {
+		clearCropSource();
+		cropSourceUrl = URL.createObjectURL(file);
+		cropImageElement = new Image();
+		cropImageElement.onload = () => {
+			cropZoom.value = "1";
+			cropX.value = "0";
+			cropY.value = "0";
+			drawCrop();
+			cropDialog.showModal();
+		};
+		cropImageElement.src = cropSourceUrl;
+	};
+	[cropZoom, cropX, cropY].forEach((control) => control.addEventListener("input", drawCrop));
+	cropCancel.addEventListener("click", () => cropDialog.close());
+	cropDialog.addEventListener("close", clearCropSource);
+	cropUse.addEventListener("click", () => {
+		cropCanvas.toBlob((blob) => {
+			if (!blob) return;
+			croppedHeadshot = blob;
+			showPreview({ full_name: form.elements.full_name.value || "PCA" }, blob);
+			cropDialog.close();
+		}, "image/jpeg", 0.9);
+	});
 
 	const clearPreviewObjectUrl = () => {
 		if (previewObjectUrl) URL.revokeObjectURL(previewObjectUrl);
@@ -298,6 +399,8 @@ const initializeAdminCouncil = async () => {
 
 	const closeEditor = () => {
 		clearPreviewObjectUrl();
+		clearCropSource();
+		croppedHeadshot = null;
 		editor.hidden = true;
 		form.reset();
 	};
@@ -314,6 +417,9 @@ const initializeAdminCouncil = async () => {
 		form.elements.display_order.value = member?.display_order ?? fallbackOrder;
 		form.elements.published.checked = member?.published ?? true;
 		form.elements.remove_headshot.checked = false;
+		croppedHeadshot = null;
+		cropButton.disabled = true;
+		photoDeleteButton.hidden = !member?.headshot_path;
 		panel.querySelector("[data-council-editor-title]").textContent = member ? `Edit ${member.full_name}` : "Add council member";
 		showPreview(member || { full_name: "PCA", headshot_path: null });
 		editor.hidden = false;
@@ -342,10 +448,31 @@ const initializeAdminCouncil = async () => {
 				createElement("strong", "", member.full_name),
 				createElement("p", "", `${member.role_title} · ${member.member_group} · order ${member.display_order}${member.published ? "" : " · hidden"}`)
 			);
+			const rowActions = createElement("div", "pca-council-admin-row__actions");
 			const edit = createElement("button", "button small", "Edit");
 			edit.type = "button";
 			edit.addEventListener("click", () => openEditor(member));
-			row.append(image, copy, edit);
+			rowActions.appendChild(edit);
+			if (member.headshot_path) {
+				const removePhoto = createElement("button", "button small pca-button-danger", "Delete Photo");
+				removePhoto.type = "button";
+				removePhoto.addEventListener("click", async () => {
+					if (!window.confirm(`Delete ${member.full_name}'s photo? The roster entry will be kept.`)) return;
+					removePhoto.disabled = true;
+					const { error: updateError } = await supabase.from("student_council_members").update({ headshot_path: null }).eq("id", member.id);
+					if (updateError) {
+						removePhoto.disabled = false;
+						window.alert(friendlyError(updateError));
+						return;
+					}
+					const { error: storageError } = await supabase.storage.from(bucketName).remove([member.headshot_path]);
+					if (storageError) console.warn("The council photo file could not be deleted.", storageError);
+					await load();
+					setStatus(status, "Council photo deleted.", "success");
+				});
+				rowActions.appendChild(removePhoto);
+			}
+			row.append(image, copy, rowActions);
 			list.appendChild(row);
 		});
 		if (!members.length) list.appendChild(createElement("p", "pca-empty-state", "No council members have been added yet."));
@@ -356,7 +483,25 @@ const initializeAdminCouncil = async () => {
 	panel.querySelector("[data-council-cancel]").addEventListener("click", closeEditor);
 	form.elements.headshot.addEventListener("change", () => {
 		const file = form.elements.headshot.files?.[0];
-		if (file) showPreview({ full_name: form.elements.full_name.value || "PCA" }, file);
+		croppedHeadshot = null;
+		cropButton.disabled = !file;
+		if (file) {
+			form.elements.remove_headshot.checked = false;
+			photoDeleteButton.hidden = false;
+			showPreview({ full_name: form.elements.full_name.value || "PCA" }, file);
+		}
+	});
+	cropButton.addEventListener("click", () => {
+		const file = form.elements.headshot.files?.[0];
+		if (file) openCropper(file);
+	});
+	photoDeleteButton.addEventListener("click", () => {
+		form.elements.headshot.value = "";
+		form.elements.remove_headshot.checked = true;
+		croppedHeadshot = null;
+		cropButton.disabled = true;
+		photoDeleteButton.hidden = true;
+		showPreview({ full_name: form.elements.full_name.value || "PCA", headshot_path: null });
 	});
 	form.elements.full_name.addEventListener("input", () => {
 		if (!form.elements.headshot.files?.length && !form.elements.current_headshot_path.value) {
@@ -373,7 +518,8 @@ const initializeAdminCouncil = async () => {
 		event.preventDefault();
 		setStatus(status);
 		const values = new FormData(form);
-		const file = form.elements.headshot.files?.[0];
+		const originalFile = form.elements.headshot.files?.[0];
+		const file = croppedHeadshot || originalFile;
 		if (file && (!/^image\/(jpeg|png|webp)$/.test(file.type) || file.size > 5 * 1024 * 1024)) {
 			setStatus(status, "Use a JPG, PNG, or WebP headshot no larger than 5 MB.", "error");
 			return;
@@ -384,7 +530,9 @@ const initializeAdminCouncil = async () => {
 		let nextPath = values.has("remove_headshot") ? null : (oldPath || null);
 		setFormBusy(form, true, "Saving...");
 		if (file) {
-			const safeName = file.name.toLowerCase().replace(/[^a-z0-9._-]+/g, "-");
+			const safeName = (croppedHeadshot ? "cropped-headshot.jpg" : (originalFile?.name || "headshot"))
+				.toLowerCase()
+				.replace(/[^a-z0-9._-]+/g, "-");
 			uploadedPath = `${id}/${crypto.randomUUID()}-${safeName}`;
 			const { error: uploadError } = await supabase.storage.from(bucketName).upload(uploadedPath, file, {
 				contentType: file.type,

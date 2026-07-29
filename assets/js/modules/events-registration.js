@@ -9,7 +9,7 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260728-content-layout-v3";
+} from "./core-auth.js?v=20260729-full-bleed-volunteer-v1";
 
 const referralLabels = {
 	friend_recommendation: "Friend recommendation",
@@ -124,6 +124,15 @@ const createTurnstileChallenge = async (container) => {
 			});
 		},
 	};
+};
+
+const requestTransactionalEmail = async (supabase, kind, resourceId) => {
+	if (!resourceId) return null;
+	const { data, error } = await supabase.functions.invoke("pca-transactional-email", {
+		body: { kind, resource_id: resourceId },
+	});
+	if (error) console.warn(`The ${kind} email could not be dispatched immediately.`, error);
+	return error ? null : data;
 };
 
 const createAttendeeRow = (index, attendee = {}) => {
@@ -429,6 +438,7 @@ const initializeRegistrationPage = async () => {
 		form.elements.contact_phone.value = registration.contact_phone || "";
 		referral.value = registration.referral_source || "";
 		form.elements.referral_source_other.value = registration.referral_source_other || "";
+		if (form.elements.future_event_emails) form.elements.future_event_emails.checked = Boolean(registration.future_event_emails);
 		syncReferral();
 		form.querySelector('[type="submit"]').textContent = "Save Changes";
 	}
@@ -459,6 +469,7 @@ const initializeRegistrationPage = async () => {
 				p_attendees: attendees,
 				p_referral_source: referral.value,
 				p_referral_source_other: form.elements.referral_source_other.value.trim() || null,
+				p_future_event_emails: Boolean(form.elements.future_event_emails?.checked),
 			});
 		setFormBusy(form, false);
 		if (result.error) {
@@ -481,7 +492,10 @@ const initializeRegistrationPage = async () => {
 			success.querySelector("[data-guest-account-offer]").hidden = false;
 			success.querySelector("[data-conversion-email]").value = contact.email;
 		}
-		setStatus(status, "Registration saved.", "success");
+		if (!registrationId) {
+			await requestTransactionalEmail(supabase, "event_registration_confirmation", saved?.registration_id);
+		}
+		setStatus(status, registrationId ? "Registration changes saved." : "Registration saved. A confirmation email is queued for your contact email.", "success");
 	});
 
 	const conversionForm = page.querySelector("[data-guest-conversion-form]");
@@ -524,8 +538,108 @@ const initializeRegistrationPage = async () => {
 	});
 };
 
+const initializeVolunteerRequestPage = async () => {
+	const page = document.querySelector("[data-volunteer-request-page]");
+	if (!page) return;
+	const status = page.querySelector("[data-volunteer-request-status]");
+	const form = page.querySelector("[data-volunteer-request-form]");
+	const success = page.querySelector("[data-volunteer-request-success]");
+	const eventId = currentEventId();
+	const { supabase } = await platformReady();
+
+	if (!eventId) {
+		setStatus(status, "Choose an upcoming event before requesting a volunteer spot.", "error");
+		form.hidden = true;
+		return;
+	}
+
+	const { data: event, error: eventError } = await supabase
+		.from("events")
+		.select("id,title,starts_at,ends_at,location,published")
+		.eq("id", eventId)
+		.single();
+	if (eventError || !event || !event.published || new Date(event.starts_at) <= new Date()) {
+		setStatus(status, "This event is not accepting volunteer requests.", "error");
+		form.hidden = true;
+		return;
+	}
+
+	page.querySelector("[data-volunteer-event-title]").textContent = event.title;
+	page.querySelector("[data-volunteer-event-date]").textContent = formatEventRange(event);
+	page.querySelector("[data-volunteer-event-location]").textContent = event.location;
+	setStatus(status);
+
+	let session = await getSession();
+	let context = session ? await getAccountContext() : {};
+	if (context.profile) {
+		form.elements.full_name.value = context.profile.full_name || "";
+		form.elements.email.value = context.profile.contact_email || context.profile.email || "";
+		form.elements.phone.value = context.profile.contact_phone || "";
+	}
+
+	let challengePromise = null;
+	const ensureSession = async () => {
+		session = await getSession();
+		if (session?.user) return session;
+		if (!challengePromise) challengePromise = createTurnstileChallenge(page.querySelector("[data-turnstile-container]"));
+		const challenge = await challengePromise;
+		const captchaToken = await challenge.execute();
+		challengePromise = null;
+		const { data, error } = await supabase.auth.signInAnonymously({ options: { captchaToken } });
+		if (error) throw error;
+		session = data.session;
+		return session;
+	};
+	if (!session?.user) {
+		challengePromise = createTurnstileChallenge(page.querySelector("[data-turnstile-container]"))
+			.catch((error) => {
+				challengePromise = null;
+				throw error;
+			});
+		void challengePromise.catch(() => {});
+	}
+
+	form.addEventListener("submit", async (submitEvent) => {
+		submitEvent.preventDefault();
+		if (!form.reportValidity()) return;
+		setStatus(status);
+		setFormBusy(form, true, "Sending request...");
+		try {
+			await ensureSession();
+			const values = new FormData(form);
+			const { data, error } = await supabase.rpc("submit_event_volunteer_request", {
+				p_event_id: eventId,
+				p_request: {
+					full_name: String(values.get("full_name") || "").trim(),
+					email: String(values.get("email") || "").trim(),
+					age: Number(values.get("age")),
+					phone: String(values.get("phone") || "").trim(),
+					school_name: String(values.get("school_name") || "").trim(),
+					interests: String(values.get("interests") || "").trim(),
+					availability: String(values.get("availability") || "").trim(),
+					future_event_emails: values.has("future_event_emails"),
+				},
+			});
+			if (error) throw error;
+			const saved = Array.isArray(data) ? data[0] : data;
+			await requestTransactionalEmail(supabase, "volunteer_request_received", saved?.request_id);
+			form.hidden = true;
+			success.hidden = false;
+			setStatus(status, "Volunteer request sent. PCA will review it and contact you by email.", "success");
+		} catch (error) {
+			challengePromise = null;
+			setStatus(status, friendlyError(error, "Your volunteer request could not be sent."), "error");
+		} finally {
+			setFormBusy(form, false);
+		}
+	});
+};
+
 export const initializeRegistrationPages = async () => {
-	await initializeRegistrationPage();
+	await Promise.all([
+		initializeRegistrationPage(),
+		initializeVolunteerRequestPage(),
+	]);
 };
 
 export { referralLabels };

@@ -1,4 +1,4 @@
-const ASSET_VERSION = "20260728-content-layout-v3";
+const ASSET_VERSION = "20260729-full-bleed-volunteer-v1";
 const MOBILE_NAV_QUERY = window.matchMedia("(max-width: 980px)");
 
 const body = document.body;
@@ -282,6 +282,7 @@ const loadPcaBackend = () => {
 
 	const needsPlatform = document.querySelector([
 		"[data-platform-registration]",
+		"[data-volunteer-request-page]",
 		"[data-blog-feed]",
 		"[data-blog-post]",
 		"[data-blog-editor]",

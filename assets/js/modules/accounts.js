@@ -9,7 +9,7 @@ import {
 	requirePermanentAccount,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260728-content-layout-v3";
+} from "./core-auth.js?v=20260729-full-bleed-volunteer-v1";
 
 const roleLabels = {
 	student_council: "Student Council",
@@ -22,24 +22,24 @@ const initializeTeenApplication = async () => {
 	if (!page) return;
 	const form = page.querySelector("[data-teen-application-form]");
 	const status = page.querySelector("[data-teen-application-status]");
-	const account = await requirePermanentAccount("teen-member-apply.html");
+	const account = await requirePermanentAccount("volunteer-account-apply.html");
 	if (!account) return;
 	if (account.context.profile.account_type !== "teen_member") {
-		setStatus(status, "This application requires a Teen Member Account. Sign out and create a Teen Member Account to continue.", "error");
+		setStatus(status, "This application requires a Volunteer Account. Sign out and create a Volunteer Account to continue.", "error");
 		form.hidden = true;
 		return;
 	}
 
 	const { supabase } = await platformReady();
 	const { data: existing, error: loadError } = await supabase
-		.from("teen_member_applications")
+		.from("volunteer_applications")
 		.select("id,status,submitted_at")
 		.eq("user_id", account.session.user.id)
 		.maybeSingle();
 	if (loadError) throw loadError;
 	if (existing) {
 		form.hidden = true;
-		setStatus(status, `Your application is ${existing.status}. You can follow its progress from the Teen Member dashboard.`, "info");
+		setStatus(status, `Your application is ${existing.status}. You can follow its progress from the Volunteer dashboard.`, "info");
 		return;
 	}
 
@@ -48,13 +48,9 @@ const initializeTeenApplication = async () => {
 		setStatus(status);
 		const values = new FormData(form);
 		setFormBusy(form, true, "Submitting...");
-		const { error } = await supabase.from("teen_member_applications").insert({
+		const { error } = await supabase.from("volunteer_applications").insert({
 			user_id: account.session.user.id,
 			age: Number(values.get("age")),
-			guardian_name: String(values.get("guardian_name") || "").trim(),
-			guardian_email: String(values.get("guardian_email") || "").trim(),
-			guardian_phone: String(values.get("guardian_phone") || "").trim(),
-			guardian_consent: values.has("guardian_consent"),
 		});
 		setFormBusy(form, false);
 		if (error) {
@@ -91,7 +87,7 @@ const initializeTeenDashboard = async () => {
 	const page = document.querySelector("[data-teen-dashboard]");
 	if (!page) return;
 	const status = page.querySelector("[data-teen-dashboard-status]");
-	const account = await requirePermanentAccount("teen-member-dashboard.html");
+	const account = await requirePermanentAccount("volunteer-dashboard.html");
 	if (!account) return;
 	if (account.context.profile.account_type !== "teen_member") {
 		window.location.replace("dashboard.html");
@@ -99,7 +95,7 @@ const initializeTeenDashboard = async () => {
 	}
 	const { supabase } = await platformReady();
 	const [applicationResult, rolesResult, assignmentsResult] = await Promise.all([
-		supabase.from("teen_member_applications").select("id,status,admin_notes,submitted_at,reviewed_at").eq("user_id", account.session.user.id).maybeSingle(),
+		supabase.from("volunteer_applications").select("id,status,admin_notes,submitted_at,reviewed_at").eq("user_id", account.session.user.id).maybeSingle(),
 		supabase.from("teen_member_role_assignments").select("role,assigned_at").eq("user_id", account.session.user.id).is("revoked_at", null),
 		supabase.from("event_volunteer_assignments").select("id,event_id,role_title,instructions,status,created_at").eq("teen_member_user_id", account.session.user.id).order("created_at", { ascending: false }),
 	]);
@@ -109,9 +105,9 @@ const initializeTeenDashboard = async () => {
 	const application = applicationResult.data;
 	const applicationCard = page.querySelector("[data-teen-application-summary]");
 	if (!application) {
-		applicationCard.appendChild(createElement("p", "", "Your Teen Member application has not been submitted."));
+		applicationCard.appendChild(createElement("p", "", "Your Volunteer Account application has not been submitted."));
 		const action = createElement("a", "button primary", "Start Application");
-		action.href = "teen-member-apply.html";
+		action.href = "volunteer-account-apply.html";
 		applicationCard.appendChild(action);
 	} else {
 		applicationCard.append(createElement("span", `pca-status-badge is-${application.status}`, application.status), createElement("p", "", `Submitted ${formatShortDate(application.submitted_at)}.`));
@@ -284,7 +280,7 @@ const initializeHouseholdDashboard = async () => {
 	const account = await requirePermanentAccount("dashboard.html");
 	if (!account) return;
 	if (account.context.profile.account_type !== "household") {
-		window.location.replace("teen-member-dashboard.html");
+		window.location.replace("volunteer-dashboard.html");
 		return;
 	}
 	const { supabase } = await platformReady();

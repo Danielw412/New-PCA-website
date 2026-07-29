@@ -391,18 +391,6 @@ summary:focus-visible {
 }
 
 @media (hover: hover) and (min-width: 981px) {
-	.nav-item--dropdown:hover > .nav-submenu,
-	.nav-item--dropdown:focus-within > .nav-submenu {
-		opacity: 1;
-		visibility: visible;
-		transform: translateY(0);
-	}
-
-	.nav-item--dropdown:hover .fa-chevron-down,
-	.nav-item--dropdown:focus-within .fa-chevron-down {
-		transform: rotate(180deg);
-	}
-
 	.nav-item--dropdown::after {
 		position: absolute;
 		top: 100%;
@@ -3470,5 +3458,657 @@ body.pca-motion-ready [data-reveal].is-visible {
 	.pca-council-admin-row .button {
 		grid-column: 1 / -1;
 		width: 100%;
+	}
+}
+
+/* 2026-07-29 full-bleed workspace and volunteer experience */
+
+:root {
+	--pca-page-gutter: clamp(1.25rem, 4vw, 4.5rem);
+	--pca-content-gutter: clamp(1.25rem, 3.2vw, 3.5rem);
+}
+
+body {
+	background: var(--pca-surface);
+	overflow-x: clip;
+}
+
+.site-header__inner,
+.pca-home-hero__content,
+.home-section__inner,
+.home-cta__inner,
+.site-footer__inner,
+.site-footer__bottom {
+	width: 100%;
+	max-width: none;
+	padding-right: var(--pca-page-gutter);
+	padding-left: var(--pca-page-gutter);
+}
+
+.nav-account:not(.has-account-actions) > .nav-submenu {
+	display: none !important;
+}
+
+#wrapper,
+#main {
+	width: 100%;
+	max-width: none;
+	margin: 0;
+}
+
+#main {
+	padding: clamp(2.5rem, 5vw, 5rem) 0 0;
+}
+
+#main > .post,
+#main > .posts,
+#main > .pca-band {
+	width: 100%;
+	max-width: none;
+	border: 0;
+	border-radius: 0;
+	box-shadow: none;
+}
+
+#main > .post {
+	padding: 0 var(--pca-page-gutter) clamp(4rem, 7vw, 7rem);
+}
+
+header.major {
+	max-width: 78rem;
+	margin-right: 0;
+	margin-left: 0;
+	text-align: left;
+}
+
+header.major::after {
+	margin-left: 0;
+}
+
+.pca-events-grid,
+.pca-blog-toolbar,
+.pca-blog-featured,
+.pca-blog-grid,
+.pca-registration-shell,
+.pca-editor-layout,
+[data-volunteer-tools],
+.pca-dashboard-page > .pca-dashboard-grid,
+.pca-dashboard-page > .pca-paper-panel {
+	width: 100%;
+	max-width: none;
+}
+
+.pca-events-grid {
+	gap: 0;
+	border-top: 1px solid var(--pca-line);
+}
+
+.pca-event-card.pca-event-agenda {
+	border: 0;
+	border-bottom: 1px solid var(--pca-line);
+	border-radius: 0;
+	background: transparent;
+	box-shadow: none;
+}
+
+.pca-event-card.pca-event-agenda:hover {
+	box-shadow: none;
+	transform: none;
+}
+
+.pca-event-agenda__actions .actions {
+	align-items: stretch;
+	flex-direction: column;
+	gap: 0.6rem;
+}
+
+.pca-event-agenda__actions .button {
+	width: 100%;
+}
+
+.pca-blog-featured {
+	margin-bottom: clamp(2.5rem, 5vw, 4rem);
+}
+
+.pca-blog-featured .pca-blog-card,
+.pca-blog-featured .pca-blog-card:not(.has-cover),
+.pca-blog-grid .pca-blog-card {
+	overflow: hidden;
+	border: 1px solid var(--pca-line);
+	border-radius: var(--pca-radius-md);
+	background: var(--pca-surface);
+}
+
+.pca-blog-featured .pca-blog-card:not(.has-cover) {
+	padding: clamp(1.5rem, 3vw, 2.5rem);
+}
+
+.pca-blog-grid {
+	gap: clamp(1.5rem, 3vw, 2.5rem);
+	background: transparent;
+}
+
+.pca-blog-grid .pca-blog-card {
+	height: 100%;
+}
+
+.pca-button-danger {
+	border-color: color-mix(in srgb, var(--pca-danger) 45%, var(--pca-line));
+	color: var(--pca-danger);
+}
+
+.pca-button-danger:hover {
+	border-color: var(--pca-danger);
+	background: #fff5f5;
+	color: var(--pca-danger);
+}
+
+/* Full-width administration workspace */
+
+#main:has(.pca-admin-dashboard-page) {
+	padding: 0;
+}
+
+#main > .post.pca-admin-dashboard-page {
+	padding: 0;
+	overflow: visible;
+}
+
+.pca-admin-dashboard-page > header.major {
+	max-width: none;
+	padding: clamp(2rem, 4vw, 3.5rem) var(--pca-page-gutter);
+	margin: 0;
+	border-bottom: 1px solid var(--pca-line);
+}
+
+.pca-admin-dashboard-page > header.major::after {
+	display: none;
+}
+
+.pca-admin-dashboard-page > [data-platform-admin-status] {
+	max-width: none !important;
+	padding-right: var(--pca-page-gutter);
+	padding-left: var(--pca-page-gutter);
+}
+
+.pca-admin-dashboard-layout {
+	display: grid;
+	grid-template-columns: 15rem minmax(0, 1fr);
+	align-items: stretch;
+	gap: 0;
+	min-height: calc(100dvh - var(--pca-header-height));
+}
+
+.pca-admin-workspace-nav {
+	position: sticky;
+	top: var(--pca-header-height);
+	height: calc(100dvh - var(--pca-header-height));
+	padding: 1.25rem 0.9rem 2rem;
+	overflow-y: auto;
+	border-right: 1px solid var(--pca-line);
+	background: #f7f2ef;
+}
+
+.pca-admin-workspace-tabs {
+	border-top: 0;
+}
+
+.pca-admin-workspace-tabs .button {
+	border: 1px solid transparent;
+	border-radius: var(--pca-radius-sm);
+}
+
+.pca-admin-workspace-tabs .button.primary,
+.pca-admin-workspace-tabs .button.is-selected {
+	border-color: var(--pca-red);
+	background: var(--pca-surface);
+	box-shadow: none;
+}
+
+.pca-admin-workspace-content {
+	min-width: 0;
+	padding: clamp(2rem, 3.5vw, 3.75rem) var(--pca-content-gutter) 5rem;
+}
+
+.pca-admin-workspace-panel {
+	width: 100%;
+	min-width: 0;
+	padding: 0;
+	border: 0;
+	background: transparent;
+}
+
+.pca-admin-workspace-panel > h2,
+.pca-admin-workspace-panel > .pca-admin-panel-heading {
+	margin-top: 0;
+}
+
+.pca-admin-panel-heading {
+	display: flex;
+	align-items: end;
+	justify-content: space-between;
+	gap: 1.5rem;
+	margin-bottom: 1.75rem;
+}
+
+.pca-admin-panel-heading h2,
+.pca-admin-panel-heading p {
+	margin-bottom: 0;
+}
+
+.pca-admin-metric-grid {
+	grid-template-columns: repeat(3, minmax(9rem, 1fr));
+	gap: 1px;
+	border-top: 1px solid var(--pca-line);
+	border-bottom: 1px solid var(--pca-line);
+	background: var(--pca-line);
+}
+
+.pca-admin-metric-grid .pca-card {
+	padding: clamp(1.25rem, 2.5vw, 2rem);
+}
+
+.pca-admin-create-panel,
+.pca-admin-workspace-panel .pca-paper-panel {
+	border-width: 1px 0;
+	border-radius: 0;
+}
+
+.pca-admin-workspace-panel .table-wrapper,
+.pca-admin-workspace-panel .pca-admin-table-wrapper {
+	width: 100%;
+	max-width: none !important;
+	margin-right: 0;
+	margin-left: 0;
+	overflow-x: auto;
+	border-width: 1px 0;
+}
+
+.pca-admin-workspace-panel table {
+	width: 100%;
+	min-width: max-content;
+}
+
+.pca-admin-workspace-panel th,
+.pca-admin-workspace-panel td {
+	padding-right: clamp(0.75rem, 1.5vw, 1.35rem);
+	padding-left: clamp(0.75rem, 1.5vw, 1.35rem);
+	vertical-align: top;
+}
+
+.pca-admin-volunteer-request-details {
+	min-width: 13rem;
+}
+
+.pca-admin-volunteer-request-details > * {
+	display: block;
+}
+
+.pca-admin-volunteer-request-details span,
+.pca-admin-workspace-panel td small {
+	color: var(--pca-muted);
+	font-size: 0.84rem;
+}
+
+.pca-admin-request-actions {
+	min-width: 9rem;
+}
+
+.pca-admin-request-actions .button + .button,
+.pca-admin-workspace-panel td .button + .button {
+	margin-top: 0.45rem;
+}
+
+/* Get involved and account-free volunteer request */
+
+.pca-involvement-paths {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	margin: 0 calc(-1 * var(--pca-page-gutter));
+	border-top: 1px solid var(--pca-line);
+	border-bottom: 1px solid var(--pca-line);
+}
+
+.pca-involvement-card {
+	position: relative;
+	display: flex;
+	min-height: 25rem;
+	padding: clamp(2rem, 4vw, 4rem) var(--pca-page-gutter);
+	flex-direction: column;
+	border-right: 1px solid var(--pca-line);
+	background: var(--pca-surface);
+	color: var(--pca-ink);
+	text-decoration: none;
+	transition: background-color 180ms ease, color 180ms ease;
+}
+
+.pca-involvement-card:last-child {
+	border-right: 0;
+}
+
+.pca-involvement-card.is-featured,
+.pca-involvement-card:hover {
+	background: var(--pca-red-800);
+	color: #fff;
+}
+
+.pca-involvement-card > .icon {
+	margin-bottom: auto;
+	font-size: 2rem;
+}
+
+.pca-involvement-card .eyebrow,
+.pca-involvement-card p {
+	color: inherit;
+}
+
+.pca-involvement-card h2 {
+	margin: 1rem 0 0.75rem;
+	font-size: clamp(1.75rem, 3vw, 2.5rem);
+}
+
+.pca-involvement-card strong {
+	margin-top: 1rem;
+}
+
+.pca-process-band {
+	display: grid;
+	grid-template-columns: minmax(16rem, 0.75fr) minmax(22rem, 1fr);
+	gap: clamp(2rem, 6vw, 6rem);
+	padding: clamp(3rem, 7vw, 7rem) 0 0;
+}
+
+.pca-process-band .actions {
+	grid-column: 1 / -1;
+}
+
+.pca-volunteer-request-layout,
+.pca-account-application-layout {
+	display: grid;
+	grid-template-columns: minmax(16rem, 0.65fr) minmax(0, 1.35fr);
+	gap: clamp(2rem, 6vw, 6rem);
+	align-items: start;
+}
+
+.pca-volunteer-event-summary,
+.pca-account-application-layout > aside {
+	position: sticky;
+	top: calc(var(--pca-header-height) + 2rem);
+	padding: 0 0 2rem;
+	border-bottom: 1px solid var(--pca-line);
+}
+
+.pca-volunteer-event-summary dl {
+	margin: 2rem 0;
+}
+
+.pca-volunteer-event-summary dl div {
+	padding: 0.9rem 0;
+	border-top: 1px solid var(--pca-line);
+}
+
+.pca-volunteer-event-summary dt {
+	color: var(--pca-muted);
+	font-size: 0.72rem;
+	font-weight: 800;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+}
+
+.pca-volunteer-event-summary dd {
+	margin: 0.25rem 0 0;
+}
+
+.pca-volunteer-request-workflow {
+	max-width: 58rem;
+}
+
+.pca-email-consent {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr);
+	gap: 0.75rem;
+	padding: 1.1rem 0;
+	margin: 1rem 0 1.5rem;
+	border-top: 1px solid var(--pca-line);
+	border-bottom: 1px solid var(--pca-line);
+}
+
+.pca-email-consent input {
+	margin-top: 0.2rem;
+}
+
+.pca-email-consent label,
+.pca-email-consent label span {
+	display: block;
+}
+
+.pca-email-consent label span {
+	color: var(--pca-muted);
+	font-size: 0.88rem;
+}
+
+.pca-volunteer-success {
+	padding: clamp(2rem, 5vw, 4rem) 0;
+	border-top: 1px solid var(--pca-line);
+}
+
+.pca-volunteer-success > .icon {
+	color: var(--pca-success);
+	font-size: 2.5rem;
+}
+
+.pca-account-application-layout > div {
+	max-width: 42rem;
+}
+
+/* Independently scrolling council editor and accessible crop dialog */
+
+.pca-council-editor {
+	max-height: calc(100dvh - var(--pca-header-height) - 2rem);
+	padding-right: 1rem;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	scrollbar-gutter: stable;
+}
+
+.pca-council-photo-actions,
+.pca-council-admin-row__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	margin-bottom: 1rem;
+}
+
+.pca-council-admin-row__actions {
+	justify-content: flex-end;
+	margin: 0;
+}
+
+.pca-image-crop-dialog {
+	width: min(94vw, 54rem);
+	max-height: 94dvh;
+	padding: 0;
+	border: 0;
+	border-radius: var(--pca-radius-md);
+	background: var(--pca-surface);
+	box-shadow: var(--pca-shadow-md);
+}
+
+.pca-image-crop-dialog::backdrop {
+	background: rgba(25, 21, 22, 0.72);
+}
+
+.pca-image-crop-dialog__frame {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(13rem, 0.45fr);
+	gap: 1.5rem;
+	padding: clamp(1.25rem, 3vw, 2.5rem);
+}
+
+.pca-image-crop-dialog__frame > h3,
+.pca-image-crop-dialog__frame > p,
+.pca-image-crop-dialog__frame > .pca-registration-stage__actions {
+	grid-column: 1 / -1;
+	margin: 0;
+}
+
+.pca-image-crop-dialog canvas {
+	width: min(100%, 28rem);
+	max-height: 58dvh;
+	aspect-ratio: 4 / 5;
+	background: var(--pca-soft);
+	object-fit: contain;
+}
+
+.pca-image-crop-controls {
+	display: grid;
+	align-content: start;
+	gap: 1.25rem;
+}
+
+.pca-image-crop-controls label,
+.pca-image-crop-controls input {
+	display: block;
+	width: 100%;
+}
+
+@media screen and (max-width: 980px) {
+	.site-header__inner {
+		padding-right: 1.25rem;
+		padding-left: 1.25rem;
+	}
+
+	.pca-admin-dashboard-layout {
+		grid-template-columns: minmax(0, 1fr);
+		min-height: 0;
+	}
+
+	.pca-admin-workspace-nav {
+		position: sticky;
+		top: var(--pca-header-height);
+		z-index: 5;
+		height: auto;
+		padding: 0 1rem;
+		overflow: hidden;
+		border-right: 0;
+		border-bottom: 1px solid var(--pca-line);
+	}
+
+	.pca-admin-workspace-tabs {
+		padding: 0.6rem 0;
+	}
+
+	.pca-admin-workspace-tabs .button.primary,
+	.pca-admin-workspace-tabs .button.is-selected {
+		box-shadow: inset 0 -2px var(--pca-red);
+	}
+
+	.pca-admin-workspace-content {
+		padding: 2rem var(--pca-page-gutter) 4rem;
+	}
+
+	.pca-involvement-paths {
+		grid-template-columns: 1fr;
+	}
+
+	.pca-involvement-card {
+		min-height: 20rem;
+		border-right: 0;
+		border-bottom: 1px solid var(--pca-line);
+	}
+
+	.pca-involvement-card:last-child {
+		border-bottom: 0;
+	}
+
+	.pca-process-band,
+	.pca-volunteer-request-layout,
+	.pca-account-application-layout {
+		grid-template-columns: 1fr;
+	}
+
+	.pca-volunteer-event-summary,
+	.pca-account-application-layout > aside,
+	.pca-council-editor {
+		position: static;
+		max-height: none;
+		overflow: visible;
+	}
+}
+
+@media screen and (max-width: 760px) {
+	:root {
+		--pca-page-gutter: 1.15rem;
+		--pca-content-gutter: 1.15rem;
+	}
+
+	#main {
+		width: 100%;
+		padding: 1.75rem 0 0;
+	}
+
+	#main > .post {
+		padding: 0 var(--pca-page-gutter) 4rem;
+		border-radius: 0;
+	}
+
+	.pca-admin-dashboard-page > header.major {
+		padding: 1.75rem var(--pca-page-gutter);
+	}
+
+	.pca-admin-metric-grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.pca-admin-panel-heading {
+		align-items: flex-start;
+		flex-direction: column;
+	}
+
+	.pca-event-card.pca-event-agenda {
+		grid-template-columns: 4.75rem minmax(0, 1fr);
+	}
+
+	.pca-event-agenda__actions {
+		padding: 0 0 1.25rem;
+	}
+
+	.pca-image-crop-dialog__frame {
+		grid-template-columns: 1fr;
+	}
+
+	.pca-image-crop-dialog canvas,
+	.pca-image-crop-controls {
+		grid-column: 1;
+	}
+
+	.pca-image-crop-dialog canvas {
+		max-height: 48dvh;
+	}
+
+	.pca-council-admin-row__actions {
+		grid-column: 1 / -1;
+		justify-content: stretch;
+	}
+
+	.pca-council-admin-row__actions .button {
+		flex: 1 1 auto;
+	}
+}
+
+@media screen and (max-width: 480px) {
+	.site-header__inner,
+	.pca-home-hero__content,
+	.home-section__inner,
+	.home-cta__inner,
+	.site-footer__inner,
+	.site-footer__bottom {
+		width: 100%;
+		padding-right: 1rem;
+		padding-left: 1rem;
+	}
+
+	.pca-admin-metric-grid {
+		grid-template-columns: 1fr;
 	}
 }

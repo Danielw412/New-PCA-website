@@ -308,7 +308,7 @@
 	};
 
 	const accountDashboardDestination = () => state.accountUse === "volunteer"
-		? "teen-member-dashboard.html"
+		? "volunteer-dashboard.html"
 		: "dashboard.html";
 
 	const checkAdmin = async (session = state.session) => {
@@ -347,8 +347,10 @@
 				"dashboard.html",
 				"profile.html",
 				"admin-dashboard.html",
-				"teen-member-apply.html",
-				"teen-member-dashboard.html",
+				"volunteer-account-apply.html",
+				"volunteer-dashboard.html",
+				"volunteer-account-apply.html",
+				"volunteer-dashboard.html",
 			]);
 
 			accountMenus.forEach((menu) => {
@@ -388,6 +390,7 @@
 
 				if (toggle) {
 					toggle.hidden = actions.childElementCount === 0;
+					menu.classList.toggle("has-account-actions", actions.childElementCount > 0);
 					if (toggle.hidden) {
 						toggle.setAttribute("aria-expanded", "false");
 						menu.classList.remove("is-open");
@@ -494,8 +497,8 @@
 		const hasRequestedNext = loginQuery.has("next");
 		const requestedAccountUse = ["teen_member", "volunteer"].includes(loginQuery.get("account")) ? "teen_member" : "household";
 		const destinationFor = (accountUse = state.accountUse) => hasRequestedNext
-			? safeNextDestination(["teen_member", "volunteer"].includes(accountUse) ? "teen-member-dashboard.html" : "dashboard.html")
-			: ["teen_member", "volunteer"].includes(accountUse) ? "teen-member-dashboard.html" : "dashboard.html";
+			? safeNextDestination(["teen_member", "volunteer"].includes(accountUse) ? "volunteer-dashboard.html" : "dashboard.html")
+			: ["teen_member", "volunteer"].includes(accountUse) ? "volunteer-dashboard.html" : "dashboard.html";
 
 		if (loginQuery.get("accountDeleted") === "1") {
 			loginNotice.hidden = false;
@@ -788,6 +791,13 @@
 		}
 
 		actions.appendChild(actionItem);
+		if (!eventStarted) {
+			const volunteerItem = createElement("li");
+			const volunteerLink = createElement("a", "button", "Volunteer");
+			volunteerLink.href = `volunteer-apply.html?event=${encodeURIComponent(event.id)}`;
+			volunteerItem.appendChild(volunteerLink);
+			actions.appendChild(volunteerItem);
+		}
 		const actionPanel = createElement("div", "pca-event-agenda__actions");
 		actionPanel.appendChild(actions);
 		card.append(date, body, actionPanel);
@@ -1022,7 +1032,7 @@
 		const content = document.querySelector("[data-registration-content]");
 
 		if (state.accountUse !== "household") {
-			setStatus(loading, "Event attendee registration requires a household account. Teen volunteer accounts remain separate.", "error");
+			setStatus(loading, "Event attendee registration requires a household account. Volunteer Accounts remain separate.", "error");
 			return;
 		}
 
@@ -1202,7 +1212,7 @@
 
 		page.querySelector("[data-volunteer-signout]")?.addEventListener("click", async () => {
 			await state.client.auth.signOut();
-			window.location.assign("login.html?mode=signup&account=volunteer&next=volunteer-apply.html");
+			window.location.assign("login.html?mode=signup&account=volunteer&next=volunteer-account-apply.html");
 		});
 
 		if (state.accountUse !== "volunteer") {
@@ -1243,16 +1253,6 @@
 				.from("volunteer_applications")
 				.insert({
 					age: Number(formData.get("age")),
-					grade_level: String(formData.get("grade_level") || ""),
-					school_name: String(formData.get("school_name") || "").trim(),
-					phone: String(formData.get("phone") || "").trim(),
-					parent_guardian_name: String(formData.get("parent_guardian_name") || "").trim(),
-					parent_guardian_email: String(formData.get("parent_guardian_email") || "").trim(),
-					parent_guardian_phone: String(formData.get("parent_guardian_phone") || "").trim(),
-					interests: String(formData.get("interests") || "").trim(),
-					experience: String(formData.get("experience") || "").trim(),
-					availability: String(formData.get("availability") || "").trim(),
-					parent_guardian_consent: formData.has("parent_guardian_consent"),
 				})
 				.select("id,status")
 				.single();
@@ -1706,7 +1706,7 @@
 			summaryName.textContent = profile.full_name;
 			summaryEmail.textContent = profile.email;
 			createdAt.textContent = accountDateFormatter.format(new Date(profile.created_at));
-			accountUse.textContent = profile.account_use === "volunteer" ? "Teen volunteer" : "Household";
+			accountUse.textContent = profile.account_use === "volunteer" ? "Volunteer Account" : "Household";
 			dashboardLink.href = profile.account_use === "volunteer" ? "volunteer-dashboard.html" : "dashboard.html";
 			dashboardLink.textContent = profile.account_use === "volunteer" ? "Volunteer Dashboard" : "Household Dashboard";
 			nameInput.value = profile.full_name;
@@ -2162,8 +2162,6 @@
 				header.append(identity, makeVolunteerStatusBadge(application.status));
 
 				const details = createElement("div", "pca-admin-volunteer-details");
-				const guardian = createElement("p");
-				guardian.append(createElement("strong", "", "Parent / guardian: "), document.createTextNode(`${application.parent_guardian_name} · `), makeMailLink(application.parent_guardian_email), document.createTextNode(` · ${application.parent_guardian_phone}`));
 				[
 					["Applicant", `Age ${application.age}, grade ${application.grade_level} · ${application.school_name} · ${application.phone}`],
 					["Interests", application.interests],
@@ -2174,7 +2172,6 @@
 					detail.append(createElement("strong", "", `${label}: `), document.createTextNode(value));
 					details.appendChild(detail);
 				});
-				details.appendChild(guardian);
 
 				const review = makeReviewControls({
 					statusValue: application.status,
@@ -2324,7 +2321,7 @@
 			state.client
 				.from("volunteer_applications")
 				.select(`
-					id,user_id,age,grade_level,school_name,phone,parent_guardian_name,parent_guardian_email,parent_guardian_phone,
+					id,user_id,age,grade_level,school_name,phone,
 					interests,experience,availability,status,admin_notes,submitted_at,reviewed_at,
 					profile:profiles!volunteer_applications_user_id_fkey(full_name,email)
 				`)
