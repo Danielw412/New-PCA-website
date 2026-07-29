@@ -851,7 +851,15 @@
 	};
 
 	const createPastEventCard = (event) => {
-		const card = createElement("article", "pca-past-event-card");
+		const card = createElement("article", "pca-archive-entry");
+		const toggle = createElement("button", "pca-archive-entry__toggle");
+		toggle.type = "button";
+		toggle.setAttribute("aria-expanded", "false");
+		const icon = createElement("span", "icon solid fa-plus");
+		icon.setAttribute("aria-hidden", "true");
+		toggle.append(createElement("span", "", event.title), icon);
+		const body = createElement("div", "pca-archive-entry__body");
+		body.hidden = true;
 		const date = createElement("time", "pca-event-agenda__kicker", new Date(event.starts_at).toLocaleDateString("en-US", {
 			month: "long",
 			day: "numeric",
@@ -859,13 +867,17 @@
 			timeZone: "America/New_York",
 		}));
 		date.dateTime = event.starts_at;
-		const body = createElement("div");
 		body.append(
-			createElement("h3", "", event.title),
+			date,
 			createElement("p", "pca-event-agenda__meta", `${formatEventRange(event)} · ${event.location}`)
 		);
 		if (event.description) body.appendChild(createElement("p", "", event.description));
-		card.append(date, body);
+		card.append(toggle, body);
+		toggle.addEventListener("click", () => {
+			const open = toggle.getAttribute("aria-expanded") !== "true";
+			toggle.setAttribute("aria-expanded", String(open));
+			body.hidden = !open;
+		});
 		return card;
 	};
 
@@ -873,10 +885,10 @@
 		const eventList = document.querySelector("[data-past-events-list]");
 		if (!eventList) return;
 		const status = document.querySelector("[data-past-events-status]");
-		setStatus(status, "Loading recently completed events...", "info");
+		setStatus(status, "Loading completed events...", "info");
 		const { data: events, error } = await loadPublicEvents("past");
 		if (error) {
-			setStatus(status, "Recent events could not be loaded. The complete archive is still available below.", "error");
+			setStatus(status, "Completed events could not be loaded. The historical archive is still available below.", "error");
 			return;
 		}
 		eventList.replaceChildren();

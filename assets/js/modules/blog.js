@@ -7,8 +7,8 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260728-redesign-v2";
-import { importedPosts } from "./blog-seed.js?v=20260728-redesign-v2";
+} from "./core-auth.js?v=20260728-content-layout-v3";
+import { importedPosts } from "./blog-seed.js?v=20260728-content-layout-v3";
 
 const imageUrl = (supabase, source, path) => {
 	if (!source || !path) return "";
@@ -27,8 +27,8 @@ const fetchPublishedPosts = async (supabase) => {
 	throw error;
 };
 
-const renderPostCard = (post, supabase, { featured = false } = {}) => {
-	const card = createElement("article", `pca-card pca-blog-card${featured ? " is-featured" : ""}`);
+const renderPostCard = (post, supabase) => {
+	const card = createElement("article", "pca-card pca-blog-card");
 	const coverUrl = imageUrl(supabase, post.cover_image_source, post.cover_image_path);
 	if (coverUrl) {
 		card.classList.add("has-cover");
@@ -42,7 +42,7 @@ const renderPostCard = (post, supabase, { featured = false } = {}) => {
 		card.appendChild(link);
 	}
 	const meta = createElement("p", "pca-blog-meta", `${post.author_display_name} · ${formatShortDate(post.published_at)}`);
-	const title = createElement(featured ? "h2" : "h3");
+	const title = createElement("h3");
 	const titleLink = createElement("a", "", post.title);
 	titleLink.href = `post.html?slug=${encodeURIComponent(post.slug)}`;
 	title.appendChild(titleLink);
@@ -84,7 +84,6 @@ const initializeBlogFeed = async () => {
 	const { supabase } = await platformReady();
 	const status = page.querySelector("[data-blog-status]");
 	const list = page.querySelector("[data-blog-list]");
-	const featured = page.querySelector("[data-blog-featured]");
 	const search = page.querySelector("[data-blog-search]");
 	const count = page.querySelector("[data-blog-count]");
 	const empty = page.querySelector("[data-blog-empty]");
@@ -97,10 +96,8 @@ const initializeBlogFeed = async () => {
 			const matches = query
 				? posts.filter((post) => [post.title, post.excerpt, post.author_display_name].some((value) => String(value || "").toLocaleLowerCase().includes(query)))
 				: posts;
-			featured?.replaceChildren();
 			list.replaceChildren();
-			if (matches.length && featured) featured.appendChild(renderPostCard(matches[0], supabase, { featured: true }));
-			matches.slice(featured ? 1 : 0, visibleCount).forEach((post) => list.appendChild(renderPostCard(post, supabase)));
+			matches.slice(0, visibleCount).forEach((post) => list.appendChild(renderPostCard(post, supabase)));
 			const shown = Math.min(matches.length, visibleCount);
 			if (count) count.textContent = matches.length > shown
 				? `${matches.length} stories · showing ${shown}`

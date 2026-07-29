@@ -7,7 +7,7 @@
 		<meta name="theme-color" content="#fffaf7" />
 		<meta name="description" content="PCA Youth Center past events and school-year programs." />
 		<link rel="stylesheet" href="assets/css/fontawesome-all.min.css" />
-		<link rel="stylesheet" href="styles.css?v=20260728-redesign-v2" />
+		<link rel="stylesheet" href="styles.css?v=20260728-content-layout-v3" />
 	</head>
 		<body>
 		<a class="skip-link" href="#main">Skip to content</a>
@@ -69,15 +69,17 @@
 						<h1>Past Events</h1>
 						<p>Programs, workshops, cultural events, and service projects from previous PCA Youth Center school years.</p>
 					</header>
-					<section class="pca-past-events-intro" aria-labelledby="recent-events-title">
-						<p class="eyebrow">Automatically updated</p>
-						<h2 id="recent-events-title">Recently completed events</h2>
-						<p>Published events move here automatically after their scheduled end time. The full historical archive remains available below.</p>
-						<p class="pca-backend-status" data-past-events-status data-backend-status aria-live="polite">Loading recently completed events...</p>
-						<div class="pca-past-event-list" data-past-events-list></div>
-					</section>
-
 					<div data-past-events-archive>
+					<!--
+						To add a school year, add an h2 followed by its events. To add an event,
+						copy one .pca-event block below and edit its h3 and paragraphs. The page
+						automatically groups school years and turns every event into an accordion.
+					-->
+					<h2>2025-2026 School Year</h2>
+					<p>Completed events published through the PCA event system appear here automatically.</p>
+					<p class="pca-backend-status" data-past-events-status data-backend-status aria-live="polite">Loading completed events...</p>
+					<div class="pca-past-event-list" data-past-events-list></div>
+
 					<h2>2023-2024 School Year</h2>
 					<p><strong>Student Council Members:</strong> Aaron Jiang, Aaron Peng, Allison Guan, Andrew Li, Angelina Li, Angie Sun, Ava Liu, Bella Liu, Betsey Yang, Colin Liang, Darren Wang, Edward Mei, Elena Xiao, Ellen Liu, Emily Wei, Eric Chen, Grace Huang, Hanna Qian, Henry Tang, Iris Xia, Jack Xu, Jason Ma, Joanna Bi, Lydia Tang, Lynsey Zhao, Matthew Tan, Randy Bai, Rebecca Zhao, Shirley Deng, Sienna Li, Sophia Liao, Zoey Guo.</p>
 
@@ -134,6 +136,6 @@
 				</div>
 				<div class="site-footer__bottom"><span>&copy; 2018-2026 PCA Youth Center</span><span>Design adapted from <a href="https://html5up.net">HTML5 UP</a></span></div>
 			</footer>
-		</div><script src="script.js?v=20260728-redesign-v2"></script>
+		</div><script src="script.js?v=20260728-content-layout-v3"></script>
 	</body>
 </html>

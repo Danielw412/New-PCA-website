@@ -6,7 +6,7 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260728-redesign-v2";
+} from "./core-auth.js?v=20260728-content-layout-v3";
 
 const bucketName = "council-headshots";
 
@@ -38,15 +38,20 @@ const renderPortrait = (container, member, supabase, { eager = false } = {}) => 
 
 const createPersonCard = (member, supabase) => {
 	const card = createElement("article", "pca-council-person");
-	const portrait = createElement("div", "pca-council-person__portrait");
-	renderPortrait(portrait, member, supabase);
 	const body = createElement("div", "pca-council-person__body");
 	body.append(
 		createElement("h3", "", member.full_name),
 		createElement("p", "pca-council-person__role", member.role_title)
 	);
 	if (member.bio) body.appendChild(createElement("p", "pca-council-person__bio", member.bio));
-	card.append(portrait, body);
+	if (member.headshot_path) {
+		const portrait = createElement("div", "pca-council-person__portrait");
+		renderPortrait(portrait, member, supabase);
+		card.classList.add("has-portrait");
+		card.append(portrait, body);
+	} else {
+		card.appendChild(body);
+	}
 	return card;
 };
 

@@ -1,4 +1,4 @@
-const ASSET_VERSION = "20260728-redesign-v2";
+const ASSET_VERSION = "20260728-content-layout-v3";
 const MOBILE_NAV_QUERY = window.matchMedia("(max-width: 980px)");
 
 const body = document.body;
