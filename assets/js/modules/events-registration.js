@@ -9,7 +9,7 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260729-full-bleed-volunteer-v1";
+} from "./core-auth.js?v=20260730-account-ux-v1";
 
 const referralLabels = {
 	friend_recommendation: "Friend recommendation",
@@ -26,6 +26,12 @@ const referralLabels = {
 const turnstileScriptId = "pca-turnstile-script";
 const turnstileOnloadCallback = "pcaTurnstileOnload";
 let turnstileReadinessPromise = null;
+
+const passwordValidationMessage = (password) => (
+	password.length < 8 || !/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/\d/.test(password)
+		? "Your password needs at least 8 characters, with one uppercase letter, one lowercase letter, and one number."
+		: ""
+);
 
 const loadTurnstile = () => {
 	if (turnstileReadinessPromise) return turnstileReadinessPromise;
@@ -504,15 +510,26 @@ const initializeRegistrationPage = async () => {
 		const conversionStatus = page.querySelector("[data-guest-conversion-status]");
 		const values = new FormData(conversionForm);
 		const password = String(values.get("password") || "");
+		const passwordMessage = passwordValidationMessage(password);
+		if (passwordMessage) {
+			setStatus(conversionStatus, passwordMessage, "error");
+			return;
+		}
 		if (password !== String(values.get("password_confirmation") || "")) {
 			setStatus(conversionStatus, "The passwords do not match.", "error");
 			return;
 		}
 		setFormBusy(conversionForm, true, "Creating Account...");
-		const { error } = await supabase.auth.updateUser({
+		const phone = String(values.get("phone") || "").trim();
+		const { data: updatedAccount, error } = await supabase.auth.updateUser({
 			email: String(values.get("email") || "").trim(),
 			password,
-			data: { full_name: String(values.get("full_name") || "").trim(), account_type: "household" },
+			data: {
+				full_name: String(values.get("full_name") || "").trim(),
+				account_type: "household",
+				account_use: "household",
+				contact_phone: phone,
+			},
 		});
 		if (error) {
 			setFormBusy(conversionForm, false);
@@ -526,10 +543,10 @@ const initializeRegistrationPage = async () => {
 		}
 		const completion = await supabase.rpc("complete_household_account", {
 			p_full_name: String(values.get("full_name") || "").trim(),
-			p_contact_phone: String(values.get("phone") || "").trim(),
+			p_contact_phone: phone,
 		});
 		setFormBusy(conversionForm, false);
-		if (completion.error) {
+		if (completion.error || updatedAccount.user?.is_anonymous) {
 			setStatus(conversionStatus, "Check your email to verify the new account, then sign in to finish attaching this registration.", "info");
 			return;
 		}

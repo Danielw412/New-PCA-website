@@ -1,8 +1,8 @@
-import { initializeAccountPages } from "./modules/accounts.js?v=20260729-full-bleed-volunteer-v1";
-import { initializeRegistrationPages } from "./modules/events-registration.js?v=20260729-full-bleed-volunteer-v1";
-import { initializeBlogPages } from "./modules/blog.js?v=20260729-full-bleed-volunteer-v1";
-import { initializeAdministrationPages, prepareAdministrationShell } from "./modules/administration.js?v=20260729-full-bleed-volunteer-v1";
-import { initializeCouncilPages, prepareCouncilAdminShell } from "./modules/council.js?v=20260729-full-bleed-volunteer-v1";
+import { initializeAccountPages } from "./modules/accounts.js?v=20260730-account-ux-v1";
+import { initializeRegistrationPages } from "./modules/events-registration.js?v=20260730-account-ux-v1";
+import { initializeBlogPages } from "./modules/blog.js?v=20260730-account-ux-v1";
+import { initializeAdministrationPages, prepareAdministrationShell } from "./modules/administration.js?v=20260730-account-ux-v1";
+import { initializeCouncilPages, prepareCouncilAdminShell } from "./modules/council.js?v=20260730-account-ux-v1";
 
 const initializePlatform = async () => {
 	prepareAdministrationShell();

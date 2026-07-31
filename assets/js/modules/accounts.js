@@ -9,12 +9,20 @@ import {
 	requirePermanentAccount,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260729-full-bleed-volunteer-v1";
+} from "./core-auth.js?v=20260730-account-ux-v1";
 
 const roleLabels = {
 	student_council: "Student Council",
 	editor: "Blog Editor",
 	volunteer: "Volunteer",
+};
+
+const requestVolunteerSubmissionEmails = async (supabase, applicationId) => {
+	if (!applicationId) return;
+	const { error } = await supabase.functions.invoke("pca-transactional-email", {
+		body: { kind: "volunteer_account_submitted", resource_id: applicationId },
+	});
+	if (error) console.debug("Volunteer application email delivery remains queued.", error);
 };
 
 const initializeTeenApplication = async () => {
@@ -48,17 +56,19 @@ const initializeTeenApplication = async () => {
 		setStatus(status);
 		const values = new FormData(form);
 		setFormBusy(form, true, "Submitting...");
-		const { error } = await supabase.from("volunteer_applications").insert({
-			user_id: account.session.user.id,
-			age: Number(values.get("age")),
+		const { data: applicationId, error } = await supabase.rpc("submit_volunteer_account_application", {
+			p_age: Number(values.get("age")),
+			p_phone: String(values.get("phone") || "").trim(),
+			p_school_name: String(values.get("school_name") || "").trim(),
 		});
 		setFormBusy(form, false);
 		if (error) {
 			setStatus(status, friendlyError(error, "Your application could not be submitted."), "error");
 			return;
 		}
+		void requestVolunteerSubmissionEmails(supabase, applicationId);
 		form.hidden = true;
-		setStatus(status, "Application submitted. An administrator will review it before roles are assigned.", "success");
+		setStatus(status, "Application received. PCA and your email address have been notified. An administrator must approve the account before assignments and hour tracking are available.", "success");
 	});
 };
 
@@ -95,7 +105,7 @@ const initializeTeenDashboard = async () => {
 	}
 	const { supabase } = await platformReady();
 	const [applicationResult, rolesResult, assignmentsResult] = await Promise.all([
-		supabase.from("volunteer_applications").select("id,status,admin_notes,submitted_at,reviewed_at").eq("user_id", account.session.user.id).maybeSingle(),
+		supabase.from("volunteer_applications").select("id,status,admin_notes,submitted_at,reviewed_at,age,phone,school_name").eq("user_id", account.session.user.id).maybeSingle(),
 		supabase.from("teen_member_role_assignments").select("role,assigned_at").eq("user_id", account.session.user.id).is("revoked_at", null),
 		supabase.from("event_volunteer_assignments").select("id,event_id,role_title,instructions,status,created_at").eq("teen_member_user_id", account.session.user.id).order("created_at", { ascending: false }),
 	]);
@@ -111,6 +121,8 @@ const initializeTeenDashboard = async () => {
 		applicationCard.appendChild(action);
 	} else {
 		applicationCard.append(createElement("span", `pca-status-badge is-${application.status}`, application.status), createElement("p", "", `Submitted ${formatShortDate(application.submitted_at)}.`));
+		if (application.status === "pending") applicationCard.appendChild(createElement("p", "", "PCA is reviewing your account. Assignments and service-hour tracking will unlock after approval."));
+		applicationCard.appendChild(createElement("p", "pca-account-detail-line", `${application.school_name} · ${application.phone} · Age ${application.age}`));
 		if (application.admin_notes) applicationCard.appendChild(createElement("p", "", application.admin_notes));
 	}
 
@@ -133,6 +145,8 @@ const initializeTeenDashboard = async () => {
 		if (volunteerProfile) {
 			["grade_level", "school_name", "phone", "interests", "experience", "availability"].forEach((name) => { profileForm.elements[name].value = volunteerProfile[name] || ""; });
 		}
+		if (!profileForm.elements.school_name.value) profileForm.elements.school_name.value = application?.school_name || "";
+		if (!profileForm.elements.phone.value) profileForm.elements.phone.value = application?.phone || "";
 		profileForm.addEventListener("submit", async (event) => {
 			event.preventDefault();
 			const values = new FormData(profileForm);
@@ -246,8 +260,13 @@ const renderHouseholdRegistration = (registration, event, attendees, supabase, r
 	const card = createElement("article", "pca-card pca-registration-card");
 	const label = registrationGroupLabel(registration, event);
 	card.dataset.registrationGroup = label.toLowerCase();
-	card.append(createElement("span", `pca-status-badge is-${registration.status}`, label), createElement("h3", "", event.title));
-	card.appendChild(createElement("p", "", `${formatEventRange(event)} · ${event.location}`));
+	const heading = createElement("div", "pca-registration-card__heading");
+	heading.append(createElement("h3", "", event.title), createElement("span", `pca-status-badge is-${registration.status}`, label));
+	card.appendChild(heading);
+	const meta = createElement("p", "pca-registration-card__meta");
+	meta.append(createElement("span", "", formatEventRange(event)), createElement("span", "", event.location));
+	card.appendChild(meta);
+	card.appendChild(createElement("h4", "", `Registered Attendees (${attendees.length})`));
 	const list = createElement("ul", "pca-compact-list");
 	attendees.forEach((attendee) => list.appendChild(createElement("li", "", attendee.full_name)));
 	card.appendChild(list);
@@ -340,6 +359,14 @@ const initializeHouseholdDashboard = async () => {
 			const attendees = (attendeesResult.data || []).filter((attendee) => attendee.registration_id === registration.id);
 			container.appendChild(renderHouseholdRegistration(registration, event, attendees, supabase, loadRegistrations));
 		});
+		const counts = { all: registrations.length, upcoming: 0, past: 0, waitlisted: 0, cancelled: 0 };
+		container.querySelectorAll("[data-registration-group]").forEach((card) => {
+			if (Object.hasOwn(counts, card.dataset.registrationGroup)) counts[card.dataset.registrationGroup] += 1;
+		});
+		Object.entries(counts).forEach(([group, count]) => {
+			const countElement = page.querySelector(`[data-registration-filter-count="${group}"]`);
+			if (countElement) countElement.textContent = String(count);
+		});
 		syncRegistrationFilter();
 		setStatus(status);
 	};
@@ -357,7 +384,14 @@ const initializeHouseholdDashboard = async () => {
 
 	const memberList = page.querySelector("[data-household-member-list]");
 	const memberForm = page.querySelector("[data-household-member-form]");
+	const memberEditor = page.querySelector("[data-household-member-editor]");
 	const memberStatus = page.querySelector("[data-household-member-status]");
+	const openMemberEditor = () => {
+		memberEditor.open = true;
+		memberEditor.scrollIntoView({ behavior: "smooth", block: "center" });
+		window.setTimeout(() => memberForm.elements.full_name.focus(), 250);
+	};
+	page.querySelector("[data-household-add-member]")?.addEventListener("click", openMemberEditor);
 	const syncMemberType = () => {
 		const child = memberForm.elements.attendee_type.value === "child";
 		memberForm.querySelectorAll("[data-household-child-field]").forEach((field) => { field.hidden = !child; });
@@ -388,7 +422,7 @@ const initializeHouseholdDashboard = async () => {
 				memberForm.elements.age.value = member.age ?? "";
 				memberForm.elements.school_district.value = member.school_district || "";
 				syncMemberType();
-				memberForm.scrollIntoView({ behavior: "smooth", block: "center" });
+				openMemberEditor();
 			});
 			const remove = createElement("button", "button small", "Remove");
 			remove.type = "button";
@@ -436,37 +470,10 @@ const initializeHouseholdDashboard = async () => {
 	await Promise.all([loadRegistrations(), loadMembers()]);
 };
 
-const initializeProfileContact = async () => {
-	const form = document.querySelector("[data-profile-contact-form]");
-	if (!form) return;
-	const session = await getSession();
-	if (!session) return;
-	const context = await getAccountContext();
-	if (!context.profile) return;
-	const { supabase } = await platformReady();
-	const status = form.querySelector("[data-profile-contact-status]");
-	form.elements.contact_email.value = context.profile.contact_email || context.profile.email || "";
-	form.elements.contact_phone.value = context.profile.contact_phone || "";
-	form.addEventListener("submit", async (event) => {
-		event.preventDefault();
-		setFormBusy(form, true, "Saving...");
-		const values = new FormData(form);
-		const { error } = await supabase.rpc("save_account_profile", {
-			p_user_id: session.user.id,
-			p_full_name: context.profile.full_name,
-			p_contact_email: String(values.get("contact_email") || "").trim(),
-			p_contact_phone: String(values.get("contact_phone") || "").trim(),
-		});
-		setFormBusy(form, false);
-		setStatus(status, error ? friendlyError(error, "Contact details could not be saved.") : "Registration contact saved.", error ? "error" : "success");
-	});
-};
-
 export const initializeAccountPages = async () => {
 	await Promise.all([
 		initializeTeenApplication(),
 		initializeTeenDashboard(),
 		initializeHouseholdDashboard(),
-		initializeProfileContact(),
 	]);
 };

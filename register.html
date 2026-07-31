@@ -8,7 +8,7 @@
 		<meta name="pca-turnstile-site-key" content="0x4AAAAAADz91_NfxkfejK0C" />
 		<meta name="description" content="Register every household attendee for a PCA Youth Center event." />
 		<link rel="stylesheet" href="assets/css/fontawesome-all.min.css" />
-		<link rel="stylesheet" href="styles.css?v=20260729-wide-screen-scale-v2" />
+		<link rel="stylesheet" href="styles.css?v=20260730-account-ux-v1" />
 	</head>
 		<body>
 		<a class="skip-link" href="#main">Skip to content</a>
@@ -28,10 +28,10 @@
 							<li class="nav-item nav-home"><a href="index.html">Home</a></li>
 							<li class="nav-item"><a href="about.html">About</a></li>
 							<li class="nav-item nav-item--dropdown" data-nav-dropdown>
-								<button type="button" aria-expanded="false" aria-controls="pca-nav-involved">Get Involved <span class="icon solid fa-chevron-down" aria-hidden="true"></span></button>
+								<div class="nav-item__row"><a href="volunteer.html">Get Involved</a><button type="button" aria-expanded="false" aria-controls="pca-nav-involved" aria-label="Open Get Involved menu"><span class="icon solid fa-chevron-down" aria-hidden="true"></span></button></div>
 								<ul class="nav-submenu" id="pca-nav-involved">
 									<li><a href="student-council.html">Student Council</a></li>
-									<li><a href="upcoming-events.html#volunteer">Volunteer</a></li>
+									<li><a href="volunteer.html">Volunteer</a></li>
 									<li><a href="membership.html">Membership</a></li>
 								</ul>
 							</li>
@@ -134,14 +134,13 @@
 								</div>
 								</div>
 								<div class="pca-email-consent"><input id="registration-future-emails" name="future_event_emails" type="checkbox" checked /><label for="registration-future-emails"><strong>Keep me updated about future PCA events</strong><span>You can uncheck this and still complete your registration.</span></label></div>
-								<div class="pca-registration-stage__actions"><button type="button" class="button" data-registration-back>Back to Attendees</button><button type="submit" class="button primary">Complete Registration</button></div>
+								<div class="pca-registration-stage__actions"><div class="pca-registration-stage__secondary-actions"><button type="button" class="button" data-registration-back>Back to Attendees</button><a href="upcoming-events.html" class="button">Back to Events</a></div><button type="submit" class="button primary">Complete Registration</button></div>
 							</section>
 						</form>
-						<section class="pca-paper-panel pca-registration-success" data-registration-success hidden><h2>Registration Complete</h2><p data-registration-result></p><p>Keep a copy of the confirmation sent to your contact email.</p><div data-guest-account-offer hidden><hr /><h3>Make future registration faster</h3><ul class="pca-benefit-list"><li>Faster future registration</li><li>Saved household members</li><li>View registered events</li><li>Easy cancellation or changes</li><li>Registration history</li></ul><form data-guest-conversion-form><div class="fields"><div class="field"><label for="conversion-name">Account Holder Full Name</label><input id="conversion-name" name="full_name" type="text" maxlength="120" required /></div><div class="field half"><label for="conversion-email">Email</label><input id="conversion-email" data-conversion-email name="email" type="email" maxlength="320" required /></div><div class="field half"><label for="conversion-phone">Phone</label><input id="conversion-phone" name="phone" type="tel" maxlength="40" required /></div><div class="field half"><label for="conversion-password">Password</label><input id="conversion-password" name="password" type="password" minlength="8" required /></div><div class="field half"><label for="conversion-confirmation">Confirm Password</label><input id="conversion-confirmation" name="password_confirmation" type="password" minlength="8" required /></div></div><button type="submit" class="button primary">Create Household Account</button><p class="pca-backend-status" data-guest-conversion-status aria-live="polite"></p></form></div><ul class="actions"><li><a href="upcoming-events.html" class="button">View More Events</a></li><li><a href="dashboard.html" class="button">Household Dashboard</a></li></ul></section>
+						<section class="pca-paper-panel pca-registration-success" data-registration-success hidden><h2>Registration Complete</h2><p data-registration-result></p><p>Keep a copy of the confirmation sent to your contact email.</p><div data-guest-account-offer hidden><hr /><h3>Make future registration faster</h3><ul class="pca-benefit-list"><li>Faster future registration</li><li>Saved household members</li><li>View registered events</li><li>Easy cancellation or changes</li><li>Registration history</li></ul><form class="pca-guest-conversion-form" data-guest-conversion-form><div class="fields"><div class="field"><label for="conversion-name">Account Holder Full Name</label><input id="conversion-name" name="full_name" type="text" maxlength="120" required /></div><div class="field half"><label for="conversion-email">Email</label><input id="conversion-email" data-conversion-email name="email" type="email" maxlength="320" required /></div><div class="field half"><label for="conversion-phone">Phone</label><input id="conversion-phone" name="phone" type="tel" minlength="7" maxlength="40" required /></div><div class="field half"><label for="conversion-password">Password</label><input id="conversion-password" name="password" type="password" minlength="8" required /></div><div class="field half"><label for="conversion-confirmation">Confirm Password</label><input id="conversion-confirmation" name="password_confirmation" type="password" minlength="8" required /></div></div><div class="pca-form-submit-actions"><button type="submit" class="button primary">Create Household Account</button></div><p class="pca-backend-status" data-guest-conversion-status aria-live="polite"></p></form></div><ul class="actions"><li><a href="upcoming-events.html" class="button">View More Events</a></li><li><a href="dashboard.html" class="button">Household Dashboard</a></li></ul></section>
 							</div>
 						</div>
 					</div>
-					<ul class="actions special pca-page-bottom-actions"><li><a href="upcoming-events.html" class="button">Back to Upcoming Events</a></li></ul>
 				</section>
 			</main>
 			<footer id="footer" class="site-footer">
@@ -156,7 +155,7 @@
 					</section>
 					<nav class="site-footer__links" aria-label="Footer navigation">
 						<div><h2>Explore</h2><a href="about.html">About</a><a href="events.html">Events</a><a href="blog.html">Stories</a></div>
-						<div><h2>Get Involved</h2><a href="student-council.html">Student Council</a><a href="upcoming-events.html#volunteer">Volunteer</a><a href="membership.html">Membership</a></div>
+						<div><h2>Get Involved</h2><a href="student-council.html">Student Council</a><a href="volunteer.html">Volunteer</a><a href="membership.html">Membership</a></div>
 						<div><h2>Organization</h2><a href="support-us.html">Support Us</a><a href="bylaws.html">Bylaws</a><a href="aapi-statement.html">AAPI Statement</a></div>
 					</nav>
 					<section class="site-footer__connect">
@@ -170,6 +169,6 @@
 				</div>
 				<div class="site-footer__bottom"><span>&copy; 2018-2026 PCA Youth Center</span><span>Design adapted from <a href="https://html5up.net">HTML5 UP</a></span></div>
 			</footer>
-		</div><script src="script.js?v=20260729-full-bleed-volunteer-v1"></script>
+		</div><script src="script.js?v=20260730-account-ux-v1"></script>
 	</body>
 </html>

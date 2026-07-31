@@ -7,7 +7,7 @@
 		<meta name="theme-color" content="#fffaf7" />
 		<meta name="description" content="View your PCA Youth Center event registrations." />
 		<link rel="stylesheet" href="assets/css/fontawesome-all.min.css" />
-		<link rel="stylesheet" href="styles.css?v=20260729-wide-screen-scale-v2" />
+		<link rel="stylesheet" href="styles.css?v=20260730-account-ux-v1" />
 	</head>
 		<body>
 		<a class="skip-link" href="#main">Skip to content</a>
@@ -27,10 +27,10 @@
 							<li class="nav-item nav-home"><a href="index.html">Home</a></li>
 							<li class="nav-item"><a href="about.html">About</a></li>
 							<li class="nav-item nav-item--dropdown" data-nav-dropdown>
-								<button type="button" aria-expanded="false" aria-controls="pca-nav-involved">Get Involved <span class="icon solid fa-chevron-down" aria-hidden="true"></span></button>
+								<div class="nav-item__row"><a href="volunteer.html">Get Involved</a><button type="button" aria-expanded="false" aria-controls="pca-nav-involved" aria-label="Open Get Involved menu"><span class="icon solid fa-chevron-down" aria-hidden="true"></span></button></div>
 								<ul class="nav-submenu" id="pca-nav-involved">
 									<li><a href="student-council.html">Student Council</a></li>
-									<li><a href="upcoming-events.html#volunteer">Volunteer</a></li>
+									<li><a href="volunteer.html">Volunteer</a></li>
 									<li><a href="membership.html">Membership</a></li>
 								</ul>
 							</li>
@@ -63,13 +63,24 @@
 		</header>
 		<div id="wrapper">
 			<main id="main">
-				<section class="post pca-dashboard-page" data-household-dashboard>
-					<header class="major"><span class="date">Household Account</span><h1>Welcome, <span data-household-name>household contact</span></h1><p>Review upcoming, past, waitlisted, and cancelled registrations. Future registrations are faster with saved contact and household information.</p></header>
+				<section class="post pca-dashboard-page pca-household-dashboard" data-household-dashboard>
+					<header class="pca-dashboard-hero">
+						<div><span class="eyebrow">Household account</span><h1>Household Dashboard</h1><h2>Welcome, <span data-household-name>household contact</span></h2><p>Review registrations and keep reusable attendee information in one place.</p></div>
+						<nav class="pca-dashboard-quick-actions" aria-label="Household shortcuts"><a href="upcoming-events.html" class="button primary"><span class="icon regular fa-calendar-alt" aria-hidden="true"></span> Register for an Event</a><button type="button" class="button" data-household-add-member><span class="icon solid fa-user-plus" aria-hidden="true"></span> Add Household Member</button><a href="profile.html" class="button"><span class="icon solid fa-cog" aria-hidden="true"></span> Account Settings</a></nav>
+					</header>
 					<p class="pca-backend-status" data-household-dashboard-status data-platform-status aria-live="polite">Loading registration history...</p>
-					<div class="pca-dashboard-toolbar" role="toolbar" aria-label="Filter registration history"><button type="button" class="button small primary is-selected" aria-pressed="true" data-registration-filter="all">All</button><button type="button" class="button small" aria-pressed="false" data-registration-filter="upcoming">Upcoming</button><button type="button" class="button small" aria-pressed="false" data-registration-filter="past">Past</button><button type="button" class="button small" aria-pressed="false" data-registration-filter="waitlisted">Waitlisted</button><button type="button" class="button small" aria-pressed="false" data-registration-filter="cancelled">Cancelled</button></div>
-					<div class="pca-dashboard-grid" data-household-registrations></div>
-					<section class="pca-paper-panel"><header><span>Faster Signups</span><h2>Saved Household Members</h2></header><p>Add people you regularly register. They can be selected in one click during future event registration.</p><div class="pca-saved-member-grid" data-household-member-list></div><details class="pca-admin-create-panel"><summary><span>Add or Edit a Household Member</span><small>Reusable attendee details</small></summary><form data-household-member-form><input type="hidden" name="member_id" /><div class="fields"><div class="field"><label for="member-name">Full Name</label><input id="member-name" name="full_name" type="text" maxlength="120" required /></div><div class="field half"><label for="member-type">Attendee Type</label><select id="member-type" name="attendee_type" required><option value="child">Child / Youth</option><option value="adult">Adult</option></select></div><div class="field half" data-household-child-field><label for="member-age">Age</label><input id="member-age" name="age" type="number" min="0" max="25" /></div><div class="field" data-household-child-field><label for="member-school">School / District</label><input id="member-school" name="school_district" type="text" maxlength="160" /></div></div><ul class="actions"><li><button type="submit" class="button primary">Save Member</button></li><li><button type="button" class="button" data-household-member-clear>Clear</button></li></ul><p class="pca-backend-status" data-household-member-status aria-live="polite"></p></form></details></section>
-					<ul class="actions special pca-page-bottom-actions"><li><a href="upcoming-events.html" class="button primary">Register for an Event</a></li><li><a href="profile.html" class="button">Manage Account</a></li></ul>
+					<div class="pca-household-dashboard-layout">
+						<section class="pca-dashboard-panel pca-dashboard-registrations" aria-labelledby="household-registrations-title">
+							<header class="pca-dashboard-panel__heading"><span class="icon regular fa-calendar-alt" aria-hidden="true"></span><div><h2 id="household-registrations-title">Your Registrations</h2><p>Upcoming and previous PCA events for your household.</p></div></header>
+							<div class="pca-dashboard-toolbar" role="toolbar" aria-label="Filter registration history"><button type="button" class="button small primary is-selected" aria-pressed="true" data-registration-filter="all">All <span data-registration-filter-count="all">0</span></button><button type="button" class="button small" aria-pressed="false" data-registration-filter="upcoming">Upcoming <span data-registration-filter-count="upcoming">0</span></button><button type="button" class="button small" aria-pressed="false" data-registration-filter="past">Past <span data-registration-filter-count="past">0</span></button><button type="button" class="button small" aria-pressed="false" data-registration-filter="waitlisted">Waitlisted <span data-registration-filter-count="waitlisted">0</span></button><button type="button" class="button small" aria-pressed="false" data-registration-filter="cancelled">Cancelled <span data-registration-filter-count="cancelled">0</span></button></div>
+							<div class="pca-dashboard-grid" data-household-registrations></div>
+						</section>
+						<aside class="pca-dashboard-panel pca-dashboard-members" aria-labelledby="household-members-title">
+							<header class="pca-dashboard-panel__heading"><span class="icon solid fa-users" aria-hidden="true"></span><div><h2 id="household-members-title">Household Members</h2><p>Save people you register often for faster event signups.</p></div></header>
+							<div class="pca-saved-member-grid" data-household-member-list></div>
+							<details class="pca-admin-create-panel pca-member-editor" data-household-member-editor><summary><span>Add or Edit a Household Member</span><small>Reusable attendee details</small></summary><form data-household-member-form><input type="hidden" name="member_id" /><div class="fields"><div class="field"><label for="member-name">Full Name</label><input id="member-name" name="full_name" type="text" maxlength="120" required /></div><div class="field half"><label for="member-type">Attendee Type</label><select id="member-type" name="attendee_type" required><option value="child">Child / Youth</option><option value="adult">Adult</option></select></div><div class="field half" data-household-child-field><label for="member-age">Age</label><input id="member-age" name="age" type="number" min="0" max="25" /></div><div class="field" data-household-child-field><label for="member-school">School / District</label><input id="member-school" name="school_district" type="text" maxlength="160" /></div></div><ul class="actions"><li><button type="submit" class="button primary">Save Member</button></li><li><button type="button" class="button" data-household-member-clear>Clear</button></li></ul><p class="pca-backend-status" data-household-member-status aria-live="polite"></p></form></details>
+						</aside>
+					</div>
 				</section>
 			</main>
 			<footer id="footer" class="site-footer">
@@ -84,7 +95,7 @@
 					</section>
 					<nav class="site-footer__links" aria-label="Footer navigation">
 						<div><h2>Explore</h2><a href="about.html">About</a><a href="events.html">Events</a><a href="blog.html">Stories</a></div>
-						<div><h2>Get Involved</h2><a href="student-council.html">Student Council</a><a href="upcoming-events.html#volunteer">Volunteer</a><a href="membership.html">Membership</a></div>
+						<div><h2>Get Involved</h2><a href="student-council.html">Student Council</a><a href="volunteer.html">Volunteer</a><a href="membership.html">Membership</a></div>
 						<div><h2>Organization</h2><a href="support-us.html">Support Us</a><a href="bylaws.html">Bylaws</a><a href="aapi-statement.html">AAPI Statement</a></div>
 					</nav>
 					<section class="site-footer__connect">
@@ -98,6 +109,6 @@
 				</div>
 				<div class="site-footer__bottom"><span>&copy; 2018-2026 PCA Youth Center</span><span>Design adapted from <a href="https://html5up.net">HTML5 UP</a></span></div>
 			</footer>
-		</div><script src="script.js?v=20260729-full-bleed-volunteer-v1"></script>
+		</div><script src="script.js?v=20260730-account-ux-v1"></script>
 	</body>
 </html>

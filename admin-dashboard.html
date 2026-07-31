@@ -7,7 +7,7 @@
 		<meta name="theme-color" content="#fffaf7" />
 		<meta name="description" content="PCA Youth Center administrator dashboard for registrations and volunteer management." />
 		<link rel="stylesheet" href="assets/css/fontawesome-all.min.css" />
-		<link rel="stylesheet" href="styles.css?v=20260729-wide-screen-scale-v2" />
+		<link rel="stylesheet" href="styles.css?v=20260730-account-ux-v1" />
 	</head>
 		<body>
 		<a class="skip-link" href="#main">Skip to content</a>
@@ -27,10 +27,10 @@
 							<li class="nav-item nav-home"><a href="index.html">Home</a></li>
 							<li class="nav-item"><a href="about.html">About</a></li>
 							<li class="nav-item nav-item--dropdown" data-nav-dropdown>
-								<button type="button" aria-expanded="false" aria-controls="pca-nav-involved">Get Involved <span class="icon solid fa-chevron-down" aria-hidden="true"></span></button>
+								<div class="nav-item__row"><a href="volunteer.html">Get Involved</a><button type="button" aria-expanded="false" aria-controls="pca-nav-involved" aria-label="Open Get Involved menu"><span class="icon solid fa-chevron-down" aria-hidden="true"></span></button></div>
 								<ul class="nav-submenu" id="pca-nav-involved">
 									<li><a href="student-council.html">Student Council</a></li>
-									<li><a href="upcoming-events.html#volunteer">Volunteer</a></li>
+									<li><a href="volunteer.html">Volunteer</a></li>
 									<li><a href="membership.html">Membership</a></li>
 								</ul>
 							</li>
@@ -111,9 +111,9 @@
 
 					<section id="admin-panel-volunteer-requests" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-volunteer-requests" data-admin-panel="volunteer-requests" hidden><div class="pca-admin-panel-heading"><div><span class="eyebrow">Event help</span><h2>Volunteer Requests</h2><p>Approve account-free requests. Approval sends the volunteer an email; an account is only needed for hour tracking.</p></div><a class="button" href="upcoming-events.html">View Public Events</a></div><div class="table-wrapper pca-admin-table-fluid"><table><thead><tr><th>Volunteer</th><th>Age</th><th>Event</th><th>Interests &amp; Availability</th><th>Future Emails</th><th>Status</th><th>Actions</th></tr></thead><tbody data-admin-volunteer-requests-body></tbody></table></div></section>
 
-					<section id="admin-panel-households" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-households" data-admin-panel="households" hidden><h2>Household Accounts</h2><div class="field"><label for="admin-household-search">Search households</label><input id="admin-household-search" type="search" data-admin-household-search placeholder="Name or email" /></div><p class="pca-form-help">Administrators can edit contact information, saved members, and request password-reset emails. Household accounts cannot be deleted or suspended here.</p><div class="table-wrapper"><table><thead><tr><th>Name</th><th>Contact Email</th><th>Phone</th><th>Actions</th></tr></thead><tbody data-admin-households-body></tbody></table></div><div class="pca-paper-panel" data-admin-household-members hidden></div></section>
+					<section id="admin-panel-households" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-households" data-admin-panel="households" hidden><h2>Household Accounts</h2><div class="field"><label for="admin-household-search">Search households</label><input id="admin-household-search" type="search" data-admin-household-search placeholder="Name or email" /></div><p class="pca-form-help">Edit contact information, manage saved members, send password-reset emails, or permanently delete a non-administrator household account.</p><div class="table-wrapper"><table><thead><tr><th>Name</th><th>Contact Email</th><th>Phone</th><th>Actions</th></tr></thead><tbody data-admin-households-body></tbody></table></div><div class="pca-paper-panel" data-admin-household-members hidden></div></section>
 
-					<section id="admin-panel-teen-members" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-teen-members" data-admin-panel="teen-members" hidden><h2>Volunteer Accounts</h2><p>Approve optional hour-tracking accounts and assign any combination of Student Council, Blog Editor, and Volunteer roles.</p><div class="table-wrapper"><table><thead><tr><th>Volunteer</th><th>Email</th><th>Age</th><th>Status</th><th>Roles</th><th>Actions</th></tr></thead><tbody data-admin-teens-body></tbody></table></div><details class="pca-admin-create-panel"><summary><span>Create Volunteer Assignment</span><small>Assign an approved volunteer to an event</small></summary><form data-admin-volunteer-assignment-form><div class="fields"><div class="field half"><label for="admin-volunteer-user">Volunteer Account</label><select id="admin-volunteer-user" name="teen_member_user_id" required><option value="">Choose a volunteer</option></select></div><div class="field half"><label for="admin-volunteer-event">Event</label><select id="admin-volunteer-event" name="event_id" required><option value="">Choose an event</option></select></div><div class="field"><label for="admin-volunteer-role">Assignment Role</label><input id="admin-volunteer-role" name="role_title" type="text" maxlength="160" required /></div><div class="field"><label for="admin-volunteer-instructions">Instructions</label><textarea id="admin-volunteer-instructions" name="instructions" rows="3" maxlength="4000"></textarea></div></div><button type="submit" class="button primary">Create Assignment</button><p class="pca-backend-status" data-admin-volunteer-assignment-status aria-live="polite"></p></form></details><h3>Volunteer Assignments</h3><div class="table-wrapper"><table><thead><tr><th>Volunteer</th><th>Event</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead><tbody data-admin-volunteer-assignments-body></tbody></table></div><h3>Submitted Service Hours</h3><div class="table-wrapper"><table><thead><tr><th>Volunteer</th><th>Date</th><th>Submitted</th><th>Description</th><th>Status</th><th>Review</th></tr></thead><tbody data-admin-volunteer-hours-body></tbody></table></div></section>
+					<section id="admin-panel-teen-members" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-teen-members" data-admin-panel="teen-members" hidden><h2>Volunteer Accounts</h2><p>Review the required application details. Approval automatically grants Volunteer access; Student Council and Blog Editor roles remain optional.</p><div class="table-wrapper"><table><thead><tr><th>Volunteer</th><th>Email</th><th>Age</th><th>School</th><th>Student Phone</th><th>Status</th><th>Roles</th><th>Actions</th></tr></thead><tbody data-admin-teens-body></tbody></table></div><details class="pca-admin-create-panel"><summary><span>Create Volunteer Assignment</span><small>Assign an approved volunteer to an event</small></summary><form data-admin-volunteer-assignment-form><div class="fields"><div class="field half"><label for="admin-volunteer-user">Volunteer Account</label><select id="admin-volunteer-user" name="teen_member_user_id" required><option value="">Choose a volunteer</option></select></div><div class="field half"><label for="admin-volunteer-event">Event</label><select id="admin-volunteer-event" name="event_id" required><option value="">Choose an event</option></select></div><div class="field"><label for="admin-volunteer-role">Assignment Role</label><input id="admin-volunteer-role" name="role_title" type="text" maxlength="160" required /></div><div class="field"><label for="admin-volunteer-instructions">Instructions</label><textarea id="admin-volunteer-instructions" name="instructions" rows="3" maxlength="4000"></textarea></div></div><button type="submit" class="button primary">Create Assignment</button><p class="pca-backend-status" data-admin-volunteer-assignment-status aria-live="polite"></p></form></details><h3>Volunteer Assignments</h3><div class="table-wrapper"><table><thead><tr><th>Volunteer</th><th>Event</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead><tbody data-admin-volunteer-assignments-body></tbody></table></div><h3>Submitted Service Hours</h3><div class="table-wrapper"><table><thead><tr><th>Volunteer</th><th>Date</th><th>Submitted</th><th>Description</th><th>Status</th><th>Review</th></tr></thead><tbody data-admin-volunteer-hours-body></tbody></table></div></section>
 
 					<section id="admin-panel-blog" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-blog" data-admin-panel="blog" hidden><h2>Blog</h2><p>Administrators can create and manage every post, including posts authored by approved volunteer editors.</p><ul class="actions"><li><a href="blog-editor.html" class="button primary">Open Blog Editor</a></li><li><a href="blog.html" class="button">View Public Blog</a></li></ul></section>
 
@@ -134,7 +134,7 @@
 					</section>
 					<nav class="site-footer__links" aria-label="Footer navigation">
 						<div><h2>Explore</h2><a href="about.html">About</a><a href="events.html">Events</a><a href="blog.html">Stories</a></div>
-						<div><h2>Get Involved</h2><a href="student-council.html">Student Council</a><a href="upcoming-events.html#volunteer">Volunteer</a><a href="membership.html">Membership</a></div>
+						<div><h2>Get Involved</h2><a href="student-council.html">Student Council</a><a href="volunteer.html">Volunteer</a><a href="membership.html">Membership</a></div>
 						<div><h2>Organization</h2><a href="support-us.html">Support Us</a><a href="bylaws.html">Bylaws</a><a href="aapi-statement.html">AAPI Statement</a></div>
 					</nav>
 					<section class="site-footer__connect">
@@ -148,6 +148,6 @@
 				</div>
 				<div class="site-footer__bottom"><span>&copy; 2018-2026 PCA Youth Center</span><span>Design adapted from <a href="https://html5up.net">HTML5 UP</a></span></div>
 			</footer>
-		</div><script src="script.js?v=20260729-full-bleed-volunteer-v1"></script>
+		</div><script src="script.js?v=20260730-account-ux-v1"></script>
 	</body>
 </html>

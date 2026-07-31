@@ -7,8 +7,8 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260729-full-bleed-volunteer-v1";
-import { importedPosts } from "./blog-seed.js?v=20260729-full-bleed-volunteer-v1";
+} from "./core-auth.js?v=20260730-account-ux-v1";
+import { importedPosts } from "./blog-seed.js?v=20260730-account-ux-v1";
 
 const imageUrl = (supabase, source, path) => {
 	if (!source || !path) return "";

@@ -22,6 +22,7 @@
 		session: null,
 		isAdmin: false,
 		accountUse: null,
+		volunteerSubmissionNotified: false,
 		passwordRecovery: new URLSearchParams(window.location.hash.slice(1)).get("type") === "recovery",
 		authCallbackError: new URLSearchParams(window.location.hash.slice(1)).get("error_description") || "",
 	};
@@ -217,7 +218,7 @@
 		const message = String(error?.message || "").toLowerCase();
 
 		if (message.includes("invalid login credentials")) {
-			return "The email or password is incorrect.";
+			return "We couldn't sign you in. Check your email and password, or use Forgot your password? to reset it.";
 		}
 
 		if (message.includes("user already registered")) {
@@ -225,7 +226,7 @@
 		}
 
 		if (message.includes("password")) {
-			return error.message;
+			return "Choose a password with at least 8 characters, including an uppercase letter, a lowercase letter, and a number.";
 		}
 
 		if (message.includes("rate limit") || message.includes("too many")) {
@@ -237,7 +238,7 @@
 
 	const passwordValidationMessage = (password) => {
 		if (password.length < 8 || !/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/\d/.test(password)) {
-			return "Use at least 8 characters with uppercase and lowercase letters and a number.";
+			return "Your password needs at least 8 characters, with one uppercase letter, one lowercase letter, and one number.";
 		}
 
 		return "";
@@ -293,18 +294,42 @@
 			return null;
 		}
 
-		const { data, error } = await state.client
-			.from("profiles")
-			.select("account_use")
-			.eq("id", session.user.id)
-			.maybeSingle();
+		const { data, error } = await state.client.rpc("get_account_context");
 
 		if (error) {
 			throw error;
 		}
 
-		state.accountUse = data?.account_use || null;
+		state.accountUse = data?.profile?.account_type === "teen_member"
+			? "volunteer"
+			: data?.profile?.account_type || null;
 		return state.accountUse;
+	};
+
+	const notifyVolunteerApplication = async (session = state.session) => {
+		if (!session?.user || state.accountUse !== "volunteer" || state.volunteerSubmissionNotified) return;
+		state.volunteerSubmissionNotified = true;
+
+		const { data: application, error } = await state.client
+			.from("volunteer_applications")
+			.select("id")
+			.eq("user_id", session.user.id)
+			.eq("status", "pending")
+			.maybeSingle();
+
+		if (error || !application?.id) {
+			state.volunteerSubmissionNotified = false;
+			return;
+		}
+
+		const { error: notificationError } = await state.client.functions.invoke("pca-transactional-email", {
+			body: { kind: "volunteer_account_submitted", resource_id: application.id },
+		});
+
+		if (notificationError) {
+			state.volunteerSubmissionNotified = false;
+			console.debug("Volunteer application email delivery remains queued.", notificationError);
+		}
 	};
 
 	const accountDashboardDestination = () => state.accountUse === "volunteer"
@@ -545,6 +570,21 @@
 			requestedAccountOption.checked = true;
 		}
 
+		const volunteerFields = signUpForm.querySelector("[data-volunteer-signup-fields]");
+		const syncVolunteerFields = () => {
+			const volunteerSelected = signUpForm.elements.account_use?.value === "teen_member";
+			if (!volunteerFields) return;
+			volunteerFields.hidden = !volunteerSelected;
+			volunteerFields.querySelectorAll("input").forEach((input) => {
+				input.disabled = !volunteerSelected;
+				input.required = volunteerSelected;
+			});
+		};
+		signUpForm.querySelectorAll('input[name="account_use"]').forEach((option) => {
+			option.addEventListener("change", syncVolunteerFields);
+		});
+		syncVolunteerFields();
+
 		if (isPermanentSession(state.session)) {
 			authForms.hidden = true;
 			authenticatedPanel.hidden = false;
@@ -590,6 +630,12 @@
 			const formData = new FormData(signUpForm);
 			const password = String(formData.get("password") || "");
 			const passwordConfirmation = String(formData.get("password_confirmation") || "");
+			const validationMessage = passwordValidationMessage(password);
+
+			if (validationMessage) {
+				setStatus(signUpStatus, validationMessage, "error");
+				return;
+			}
 
 			if (password !== passwordConfirmation) {
 				setStatus(signUpStatus, "The passwords do not match.", "error");
@@ -607,6 +653,12 @@
 						full_name: String(formData.get("full_name") || "").trim(),
 						account_type: accountUse,
 						account_use: accountUse === "teen_member" ? "volunteer" : "household",
+						...(accountUse === "teen_member" ? {
+							age: Number(formData.get("age")),
+							contact_phone: String(formData.get("phone") || "").trim(),
+							phone: String(formData.get("phone") || "").trim(),
+							school_name: String(formData.get("school_name") || "").trim(),
+						} : {}),
 					},
 					emailRedirectTo: new URL(nextDestination, window.location.href).href,
 				},
@@ -620,8 +672,9 @@
 
 			if (data.session) {
 				state.session = data.session;
-				state.accountUse = accountUse;
-				setStatus(signUpStatus, "Account created. Taking you to the next step...", "success");
+				await loadAccountUse(data.session);
+				void notifyVolunteerApplication(data.session);
+				setStatus(signUpStatus, accountUse === "teen_member" ? "Application received. Taking you to your Volunteer dashboard..." : "Account created. Taking you to your dashboard...", "success");
 				window.setTimeout(() => window.location.assign(nextDestination), 450);
 				return;
 			}
@@ -2609,6 +2662,7 @@
 
 		state.client.auth.onAuthStateChange((authEvent, session) => {
 			state.session = session;
+			if (!session) state.volunteerSubmissionNotified = false;
 
 			if (authEvent === "PASSWORD_RECOVERY") {
 				state.passwordRecovery = true;
@@ -2618,6 +2672,7 @@
 			window.setTimeout(async () => {
 				try {
 					await loadAccountUse(session);
+					void notifyVolunteerApplication(session);
 					await syncNavigation(session);
 				} catch (error) {
 					console.error("Account navigation could not be refreshed.", error);
@@ -2627,6 +2682,7 @@
 
 		await getSession();
 		await loadAccountUse(state.session);
+		void notifyVolunteerApplication(state.session);
 		await syncNavigation(state.session);
 
 		window.PCA = {
@@ -2634,6 +2690,11 @@
 			getSession,
 			checkAdmin,
 			getAccountUse: () => state.accountUse,
+			getAccountContext: async () => {
+				const { data, error } = await state.client.rpc("get_account_context");
+				if (error) throw error;
+				return data || {};
+			},
 		};
 
 		await Promise.all([
@@ -2641,12 +2702,7 @@
 			initializePasswordRecoveryPage(),
 			initializeUpcomingEventsPage(),
 			initializePastEventsPage(),
-			initializeRegistrationPage(),
-			initializeVolunteerApplicationPage(),
-			initializeVolunteerDashboard(),
-			initializeUserDashboard(),
 			initializeProfilePage(),
-			initializeAdminDashboard(),
 		]);
 
 		document.dispatchEvent(new CustomEvent("pca:backend-ready", {

@@ -1,4 +1,4 @@
-const ASSET_VERSION = "20260729-full-bleed-volunteer-v1";
+const ASSET_VERSION = "20260730-account-ux-v1";
 const MOBILE_NAV_QUERY = window.matchMedia("(max-width: 980px)");
 
 const body = document.body;
@@ -19,7 +19,7 @@ const getDropdownButton = (dropdown) => {
 	if (!dropdown) return null;
 	return dropdown.matches("[data-pca-account-menu]")
 		? dropdown.querySelector(".nav-account__row > button")
-		: dropdown.querySelector(":scope > button");
+		: dropdown.querySelector(":scope > .nav-item__row > button, :scope > button");
 };
 
 const closeDropdown = (dropdown, restoreFocus = false) => {
@@ -28,6 +28,7 @@ const closeDropdown = (dropdown, restoreFocus = false) => {
 	dropdown.classList.remove("is-open");
 	button?.setAttribute("aria-expanded", "false");
 	if (button && dropdown.matches("[data-pca-account-menu]")) button.setAttribute("aria-label", "Open account menu");
+	if (button?.getAttribute("aria-controls") === "pca-nav-involved") button.setAttribute("aria-label", "Open Get Involved menu");
 	if (restoreFocus) button?.focus();
 };
 
@@ -44,6 +45,7 @@ const openDropdown = (dropdown) => {
 	dropdown.classList.add("is-open");
 	button.setAttribute("aria-expanded", "true");
 	if (dropdown.matches("[data-pca-account-menu]")) button.setAttribute("aria-label", "Close account menu");
+	if (button.getAttribute("aria-controls") === "pca-nav-involved") button.setAttribute("aria-label", "Close Get Involved menu");
 };
 
 const toggleDropdown = (dropdown) => {
@@ -290,7 +292,6 @@ const loadPcaBackend = () => {
 		"[data-teen-application-page]",
 		"[data-teen-dashboard]",
 		"[data-household-dashboard]",
-		"[data-profile-contact-form]",
 		"[data-council-roster]",
 	].join(","));
 	if (needsPlatform) {

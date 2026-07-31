@@ -121,6 +121,34 @@ const messageFor = (delivery: Delivery, siteUrl: string): Message => {
         text: `Hi ${name},\n\nYour request to volunteer at ${eventTitle} has been approved.\n${date}\n${location}${notes ? `\n\nMessage from PCA: ${notes}` : ""}\n\nYou only need a Volunteer Account if you want PCA to track your service hours.`,
       };
     }
+    case "volunteer_account_submitted_admin": {
+      const applicantEmail = String(payload.email || "");
+      const details = [
+        `Name: ${name}`,
+        `Email: ${applicantEmail}`,
+        `Age: ${payload.age ?? "Not provided"}`,
+        `Student phone: ${payload.phone || "Not provided"}`,
+        `School: ${payload.school_name || "Not provided"}`,
+      ];
+      const body = `<p style="line-height:1.65;">A new Volunteer Account is ready for review.</p>
+        <p style="line-height:1.65;">${details.map((line) => escapeHtml(line)).join("<br>")}</p>`;
+      return {
+        subject: `Volunteer Account review: ${name}`,
+        html: pageShell("New Volunteer Account", name, body, { label: "Review account", url: `${siteUrl}admin-dashboard.html#teen-members` }),
+        text: `A new Volunteer Account is ready for review.\n\n${details.join("\n")}`,
+        replyTo: applicantEmail,
+      };
+    }
+    case "volunteer_account_submitted_volunteer": {
+      const body = `<p style="line-height:1.65;">Hi ${escapeHtml(name)},</p>
+        <p style="line-height:1.65;">We received your PCA Volunteer Account application. An administrator will review it before assignments and service-hour tracking become available.</p>
+        <p style="line-height:1.65;"><strong>Your application details</strong><br>Age: ${escapeHtml(payload.age)}<br>Student phone: ${escapeHtml(payload.phone)}<br>School: ${escapeHtml(payload.school_name)}</p>`;
+      return {
+        subject: "We received your PCA Volunteer Account application",
+        html: pageShell("Volunteer Account", "Application received", body, { label: "Check application status", url: `${siteUrl}volunteer-dashboard.html` }),
+        text: `Hi ${name},\n\nWe received your PCA Volunteer Account application. An administrator will review it before assignments and service-hour tracking become available.\n\nAge: ${payload.age}\nStudent phone: ${payload.phone}\nSchool: ${payload.school_name}`,
+      };
+    }
     case "volunteer_account_approved": {
       const notes = String(payload.admin_notes || "").trim();
       const body = `<p style="line-height:1.65;">Hi ${escapeHtml(name)},</p>
@@ -249,6 +277,20 @@ Deno.serve(async (request) => {
     }
 
     if (!body.kind || !body.resource_id) return jsonResponse({ error: "kind and resource_id are required." }, 400);
+
+    if (body.kind === "volunteer_account_submitted") {
+      const { data: deliveryIds, error: queueError } = await userClient.rpc("queue_volunteer_account_submission_emails", {
+        p_application_id: body.resource_id,
+      });
+      if (queueError || !Array.isArray(deliveryIds) || !deliveryIds.length) {
+        return jsonResponse({ error: queueError?.message || "Application emails could not be queued." }, 400);
+      }
+      const results = [];
+      for (const deliveryId of deliveryIds) results.push(await processDelivery(String(deliveryId)));
+      const queued = results.some((result) => result.status === "queued");
+      return jsonResponse({ processed: results.length, results }, queued ? 202 : 200);
+    }
+
     const { data: deliveryId, error: queueError } = await userClient.rpc("queue_transactional_email", {
       p_email_kind: body.kind,
       p_resource_id: body.resource_id,

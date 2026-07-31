@@ -7,7 +7,7 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260729-full-bleed-volunteer-v1";
+} from "./core-auth.js?v=20260730-account-ux-v1";
 
 const timeZonePartsFormatter = new Intl.DateTimeFormat("en-CA", {
 	timeZone: "America/New_York",
@@ -272,6 +272,18 @@ const loadRegistrations = async (page, supabase) => {
 	});
 };
 
+const deleteManagedAccount = async (supabase, profile, reload) => {
+	if (!profile?.id) return;
+	const confirmed = window.confirm(`Permanently delete ${profile.full_name}'s PCA account? This removes the login, profile, saved household or volunteer records, and cannot be undone.`);
+	if (!confirmed) return;
+	const { error } = await supabase.rpc("delete_account_as_admin", { p_target_user_id: profile.id });
+	if (error) {
+		window.alert(friendlyError(error, "The account could not be deleted."));
+		return;
+	}
+	await reload();
+};
+
 const loadHouseholds = async (page, supabase) => {
 	const { data: profiles, error } = await supabase.from("account_profiles").select("*").eq("account_type", "household").order("full_name");
 	if (error) throw error;
@@ -320,7 +332,7 @@ const loadHouseholds = async (page, supabase) => {
 		body.replaceChildren();
 		profiles.filter((profile) => !term || `${profile.full_name} ${profile.email} ${profile.contact_email || ""}`.toLowerCase().includes(term)).forEach((profile) => {
 			const row = createElement("tr");
-			const actions = createElement("td");
+			const actions = createElement("td", "pca-admin-row-actions");
 			const edit = createElement("button", "button small", "Edit Contact");
 			edit.type = "button";
 			edit.addEventListener("click", async () => {
@@ -344,7 +356,13 @@ const loadHouseholds = async (page, supabase) => {
 			const members = createElement("button", "button small", "Saved Members");
 			members.type = "button";
 			members.addEventListener("click", () => showMembers(profile));
-			actions.append(edit, members, reset);
+			const removeAccount = createElement("button", "button small pca-button-danger", "Delete Account");
+			removeAccount.type = "button";
+			removeAccount.addEventListener("click", () => deleteManagedAccount(supabase, profile, async () => {
+				memberPanel.hidden = true;
+				await loadHouseholds(page, supabase);
+			}));
+			actions.append(edit, members, reset, removeAccount);
 			row.append(tableCell(profile.full_name), tableCell(profile.contact_email || profile.email), tableCell(profile.contact_phone), actions);
 			body.appendChild(row);
 		});
@@ -355,17 +373,17 @@ const loadHouseholds = async (page, supabase) => {
 
 const loadVolunteerAccounts = async (page, supabase) => {
 	const [applicationsResult, profilesResult, rolesResult] = await Promise.all([
-		supabase.from("volunteer_applications").select("id,user_id,age,status,admin_notes,submitted_at,reviewed_at").order("submitted_at", { ascending: false }),
-		supabase.from("account_profiles").select("id,full_name,email"),
+		supabase.from("volunteer_applications").select("id,user_id,age,phone,school_name,status,admin_notes,submitted_at,reviewed_at").order("submitted_at", { ascending: false }),
+		supabase.from("account_profiles").select("id,full_name,email,account_type").eq("account_type", "teen_member").order("full_name"),
 		supabase.from("teen_member_role_assignments").select("user_id,role,revoked_at").is("revoked_at", null),
 	]);
 	for (const result of [applicationsResult, profilesResult, rolesResult]) if (result.error) throw result.error;
-	const profiles = new Map(profilesResult.data.map((profile) => [profile.id, profile]));
+	const applications = new Map(applicationsResult.data.map((application) => [application.user_id, application]));
 	const body = page.querySelector("[data-admin-teens-body]");
 	body.replaceChildren();
-	applicationsResult.data.forEach((application) => {
-		const profile = profiles.get(application.user_id);
-		const currentRoles = new Set(rolesResult.data.filter((role) => role.user_id === application.user_id).map((role) => role.role));
+	profilesResult.data.forEach((profile) => {
+		const application = applications.get(profile.id);
+		const currentRoles = new Set(rolesResult.data.filter((role) => role.user_id === profile.id).map((role) => role.role));
 		const row = createElement("tr");
 		const roles = createElement("td", "pca-role-cell");
 		["student_council", "editor", "volunteer"].forEach((role) => {
@@ -374,14 +392,14 @@ const loadVolunteerAccounts = async (page, supabase) => {
 			checkbox.type = "checkbox";
 			checkbox.value = role;
 			checkbox.checked = currentRoles.has(role);
-			checkbox.disabled = application.status !== "approved";
+			checkbox.disabled = application?.status !== "approved";
 			label.append(checkbox, document.createTextNode(` ${role.replace("_", " ")}`));
 			roles.appendChild(label);
 		});
-		const actions = createElement("td");
-		if (application.status === "pending") {
+		const actions = createElement("td", "pca-admin-row-actions");
+		if (application?.status === "pending") {
 			["approved", "rejected"].forEach((decision) => {
-				const button = createElement("button", "button small", decision === "approved" ? "Approve" : "Reject");
+				const button = createElement("button", `button small${decision === "approved" ? " primary" : ""}`, decision === "approved" ? "Approve" : "Reject");
 				button.type = "button";
 				button.addEventListener("click", async () => {
 					const notes = window.prompt("Administrator notes (optional)", application.admin_notes || "");
@@ -395,19 +413,39 @@ const loadVolunteerAccounts = async (page, supabase) => {
 				});
 				actions.appendChild(button);
 			});
-		} else if (application.status === "approved") {
+		} else if (application?.status === "approved") {
 			const saveRoles = createElement("button", "button small", "Save Roles");
 			saveRoles.type = "button";
 			saveRoles.addEventListener("click", async () => {
 				const selected = [...roles.querySelectorAll('input:checked')].map((input) => input.value);
-				const { error } = await supabase.rpc("replace_teen_member_roles", { p_user_id: application.user_id, p_roles: selected });
+				const { error } = await supabase.rpc("replace_teen_member_roles", { p_user_id: profile.id, p_roles: selected });
 				window.alert(error ? friendlyError(error) : "Roles saved.");
 			});
 			actions.appendChild(saveRoles);
 		}
-		row.append(tableCell(profile?.full_name), tableCell(profile?.email), tableCell(application.age), tableCell(application.status), roles, actions);
+		const removeAccount = createElement("button", "button small pca-button-danger", "Delete Account");
+		removeAccount.type = "button";
+		removeAccount.addEventListener("click", () => deleteManagedAccount(supabase, profile, () => loadVolunteerAccounts(page, supabase)));
+		actions.appendChild(removeAccount);
+		row.append(
+			tableCell(profile.full_name),
+			tableCell(profile.email),
+			tableCell(application?.age ?? "—"),
+			tableCell(application?.school_name || "—"),
+			tableCell(application?.phone || "—"),
+			tableCell(application?.status || "Application details needed"),
+			roles,
+			actions
+		);
 		body.appendChild(row);
 	});
+	if (!profilesResult.data.length) {
+		const row = createElement("tr");
+		const empty = createElement("td", "pca-admin-empty", "No Volunteer Accounts have been created yet.");
+		empty.colSpan = 8;
+		row.appendChild(empty);
+		body.appendChild(row);
+	}
 };
 
 const loadVolunteerRequests = async (page, supabase) => {

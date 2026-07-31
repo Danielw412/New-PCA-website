@@ -6,7 +6,7 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260729-full-bleed-volunteer-v1";
+} from "./core-auth.js?v=20260730-account-ux-v1";
 
 const bucketName = "council-headshots";
 
