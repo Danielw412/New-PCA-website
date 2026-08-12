@@ -2,27 +2,27 @@ const FEATURE_ROUTES = [
 	{
 		key: "accounts",
 		selector: "[data-teen-application-page], [data-teen-dashboard], [data-household-dashboard]",
-		load: () => import("./modules/accounts.js?v=20260812-production-revamp-v1"),
+		load: () => import("./modules/accounts.js?v=20260812-production-revamp-v2"),
 	},
 	{
 		key: "registration",
 		selector: "[data-platform-registration], [data-volunteer-request-page]",
-		load: () => import("./modules/events-registration.js?v=20260812-production-revamp-v1"),
+		load: () => import("./modules/events-registration.js?v=20260812-production-revamp-v2"),
 	},
 	{
 		key: "blog",
 		selector: "[data-blog-feed], [data-blog-post], [data-blog-editor]",
-		load: () => import("./modules/blog.js?v=20260812-production-revamp-v1"),
+		load: () => import("./modules/blog.js?v=20260812-production-revamp-v2"),
 	},
 	{
 		key: "administration",
 		selector: "[data-platform-admin]",
-		load: () => import("./modules/administration.js?v=20260812-production-revamp-v1"),
+		load: () => import("./modules/administration.js?v=20260812-production-revamp-v2"),
 	},
 	{
 		key: "council",
 		selector: "[data-council-roster], [data-platform-admin]",
-		load: () => import("./modules/council.js?v=20260812-production-revamp-v1"),
+		load: () => import("./modules/council.js?v=20260812-production-revamp-v2"),
 	},
 ];
 

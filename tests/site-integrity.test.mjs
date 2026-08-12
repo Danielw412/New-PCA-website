@@ -5,7 +5,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const assetVersion = "20260812-production-revamp-v1";
+const assetVersion = "20260812-production-revamp-v2";
 const redirectPages = new Set([
   "teen-member-apply.html",
   "teen-member-dashboard.html",
@@ -56,7 +56,7 @@ test("external new-tab links prevent opener access", () => {
 
 test("changed first-party assets share one cache version", () => {
   assert.match(read("script.js"), new RegExp(`ASSET_VERSION = "${assetVersion}"`));
-  assert.doesNotMatch(read("assets/js/pca-platform.js"), /\?v=(?!20260812-production-revamp-v1)/);
+  assert.doesNotMatch(read("assets/js/pca-platform.js"), /\?v=(?!20260812-production-revamp-v2)/);
   assert.match(read("assets/js/modules/blog.js"), new RegExp(`blog-seed\\.js\\?v=${assetVersion}`));
 
   for (const file of ["login.html", "profile.html", "reset-password.html"]) {

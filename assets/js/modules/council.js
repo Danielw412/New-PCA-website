@@ -6,7 +6,7 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260812-production-revamp-v1";
+} from "./core-auth.js?v=20260812-production-revamp-v2";
 
 const bucketName = "council-headshots";
 
