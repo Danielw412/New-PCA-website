@@ -1,4 +1,4 @@
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2.110.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -39,8 +39,9 @@ type Delivery = {
   resource_id: string;
   recipient: string;
   payload: Record<string, unknown>;
-  status: "queued" | "processing" | "sent" | "failed";
+  status: "processing";
   attempts: number;
+  processing_token: string;
 };
 
 type Message = {
@@ -86,6 +87,16 @@ const messageFor = (delivery: Delivery, siteUrl: string): Message => {
         subject: `${waitlisted ? "Waitlist confirmation" : "Registration confirmation"}: ${eventTitle}`,
         html: pageShell("Event registration", eventTitle, body, { label: "View upcoming events", url: `${siteUrl}upcoming-events.html` }),
         text: `Hi ${name},\n\n${statusLine}\n\n${eventTitle}\n${date}\n${location}\n${payload.participant_count} attendee(s)\n\nPCA Youth Center`,
+      };
+    }
+    case "event_waitlist_promoted": {
+      const body = `<p style="line-height:1.65;">Hi ${escapeHtml(name)},</p>
+        <p style="line-height:1.65;">Space is now available and your group has been moved from the waitlist to <strong>confirmed</strong>.</p>
+        <p style="line-height:1.65;"><strong>${escapeHtml(eventTitle)}</strong><br>${escapeHtml(date)}<br>${escapeHtml(location)}<br>${escapeHtml(payload.participant_count)} attendee${Number(payload.participant_count) === 1 ? "" : "s"}</p>`;
+      return {
+        subject: `You're confirmed: ${eventTitle}`,
+        html: pageShell("Waitlist update", "Your registration is confirmed", body, { label: "View your registration", url: `${siteUrl}dashboard.html` }),
+        text: `Hi ${name},\n\nSpace is now available and your group has been moved from the waitlist to confirmed.\n\n${eventTitle}\n${date}\n${location}\n${payload.participant_count} attendee(s)\n\nPCA Youth Center`,
       };
     }
     case "volunteer_request_received": {
@@ -187,7 +198,14 @@ Deno.serve(async (request) => {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  let body: { kind?: string; resource_id?: string; retry_queued?: boolean };
+  let body: {
+    kind?: string;
+    resource_id?: string;
+    retry_queued?: boolean;
+    retry_promotions?: boolean;
+    source_registration_id?: string;
+    event_id?: string;
+  };
   try {
     body = await request.json();
   } catch {
@@ -195,32 +213,67 @@ Deno.serve(async (request) => {
   }
 
   const processDelivery = async (deliveryId: string) => {
-    const { data, error } = await adminClient
+    const { data: currentState, error: stateError } = await adminClient
       .from("transactional_email_deliveries")
-      .select("id,email_kind,resource_id,recipient,payload,status,attempts")
+      .select("id,status,attempts,retry_not_after")
       .eq("id", deliveryId)
       .single();
-    if (error || !data) throw new Error(error?.message || "Queued email could not be found.");
-    const delivery = data as Delivery;
-    if (delivery.status === "sent") return { id: delivery.id, status: "sent", already_sent: true };
+    if (stateError || !currentState) {
+      throw new Error(stateError?.message || "Queued email could not be found.");
+    }
+    if (currentState.status === "sent") {
+      return { id: deliveryId, status: "sent", already_sent: true };
+    }
 
     const resendKey = Deno.env.get("RESEND_API_KEY");
     const emailFrom = Deno.env.get("PCA_EMAIL_FROM");
     if (!resendKey || !emailFrom) {
-      return { id: delivery.id, status: "queued", configured: false };
+      return { id: deliveryId, status: currentState.status, configured: false };
+    }
+
+    const { data: claimedRows, error: claimError } = await adminClient.rpc(
+      "claim_transactional_email_delivery",
+      { p_delivery_id: deliveryId },
+    );
+    if (claimError) throw new Error(claimError.message);
+
+    const delivery = (Array.isArray(claimedRows) ? claimedRows[0] : null) as Delivery | undefined;
+    if (!delivery) {
+      const { data: latestState, error: latestStateError } = await adminClient
+        .from("transactional_email_deliveries")
+        .select("id,status,attempts,retry_not_after")
+        .eq("id", deliveryId)
+        .single();
+      if (latestStateError || !latestState) {
+        throw new Error(latestStateError?.message || "Email delivery state could not be read.");
+      }
+      if (latestState.status === "sent") {
+        return { id: deliveryId, status: "sent", already_sent: true };
+      }
+
+      const retryWindowExpired = Boolean(
+        latestState.retry_not_after
+          && new Date(latestState.retry_not_after).getTime() <= Date.now(),
+      );
+      return {
+        id: deliveryId,
+        status: latestState.status,
+        in_progress: latestState.status === "processing",
+        retryable: latestState.attempts < 5 && !retryWindowExpired,
+      };
     }
 
     const siteUrl = (Deno.env.get("PCA_SITE_URL") || "https://danielw412.github.io/New-PCA-website/").replace(/\/?$/, "/");
     const message = messageFor(delivery, siteUrl);
-    await adminClient
-      .from("transactional_email_deliveries")
-      .update({ status: "processing", attempts: delivery.attempts + 1, last_error: null })
-      .eq("id", delivery.id);
 
     try {
       const resendResponse = await fetch("https://api.resend.com/emails", {
         method: "POST",
-        headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
+        headers: {
+          Authorization: `Bearer ${resendKey}`,
+          "Content-Type": "application/json",
+          "Idempotency-Key": `pca-email/${delivery.id}`,
+        },
         body: JSON.stringify({
           from: emailFrom,
           to: [delivery.recipient],
@@ -232,19 +285,71 @@ Deno.serve(async (request) => {
       });
       const resendBody = await resendResponse.json().catch(() => ({}));
       if (!resendResponse.ok) throw new Error(String(resendBody?.message || `Email provider returned ${resendResponse.status}.`));
-      await adminClient
-        .from("transactional_email_deliveries")
-        .update({ status: "sent", provider_message_id: resendBody?.id || null, sent_at: new Date().toISOString(), last_error: null })
-        .eq("id", delivery.id);
+
+      const { data: completed, error: completionError } = await adminClient.rpc(
+        "complete_transactional_email_delivery",
+        {
+          p_delivery_id: delivery.id,
+          p_processing_token: delivery.processing_token,
+          p_provider_message_id: String(resendBody?.id || ""),
+        },
+      );
+      if (completionError || completed !== true) {
+        throw new Error(completionError?.message || "The email was accepted, but its delivery record could not be finalized.");
+      }
       return { id: delivery.id, status: "sent" };
     } catch (error) {
       const messageText = error instanceof Error ? error.message : "Email delivery failed.";
-      await adminClient
-        .from("transactional_email_deliveries")
-        .update({ status: "failed", last_error: messageText.slice(0, 2000) })
-        .eq("id", delivery.id);
+      const { error: failureError } = await adminClient.rpc(
+        "fail_transactional_email_delivery",
+        {
+          p_delivery_id: delivery.id,
+          p_processing_token: delivery.processing_token,
+          p_error: messageText,
+        },
+      );
+      if (failureError) console.error("Email delivery failure could not be recorded.", failureError);
       throw error;
     }
+  };
+
+  const listClaimableDeliveryIds = async (emailKind: string | null = null) => {
+    const { data, error } = await adminClient.rpc(
+      "list_claimable_transactional_email_deliveries",
+      { p_email_kind: emailKind, p_limit: 25 },
+    );
+    if (error) throw error;
+    return (Array.isArray(data) ? data : []).map((row) => String(row.id));
+  };
+
+  const processClaimableDeliveries = async (emailKind: string | null = null) => {
+    const deliveryIds = await listClaimableDeliveryIds(emailKind);
+    const results = [];
+    for (const deliveryId of deliveryIds) {
+      try {
+        results.push(await processDelivery(deliveryId));
+      } catch (error) {
+        results.push({ id: deliveryId, status: "failed", error: error instanceof Error ? error.message : "Delivery failed." });
+      }
+    }
+    return results;
+  };
+
+  const processInitialEventPromotions = async (eventId: string) => {
+    const { data, error } = await adminClient.rpc(
+      "list_initial_event_promotion_deliveries",
+      { p_event_id: eventId, p_limit: 25 },
+    );
+    if (error) throw error;
+    const results = [];
+    for (const row of Array.isArray(data) ? data : []) {
+      try {
+        results.push(await processDelivery(String(row.id)));
+      } catch (error) {
+        results.push({ id: String(row.id), status: "failed", error: error instanceof Error ? error.message : "Delivery failed." });
+      }
+    }
+    return results;
   };
 
   try {
@@ -258,22 +363,51 @@ Deno.serve(async (request) => {
         .maybeSingle();
       if (!administrator) return jsonResponse({ error: "Administrator access is required." }, 403);
 
-      const { data: queued, error: queueError } = await adminClient
-        .from("transactional_email_deliveries")
-        .select("id")
-        .in("status", ["queued", "failed"])
-        .order("created_at", { ascending: true })
-        .limit(25);
-      if (queueError) throw queueError;
-      const results = [];
-      for (const item of queued || []) {
-        try {
-          results.push(await processDelivery(item.id));
-        } catch (error) {
-          results.push({ id: item.id, status: "failed", error: error instanceof Error ? error.message : "Delivery failed." });
-        }
-      }
+      const results = await processClaimableDeliveries();
       return jsonResponse({ processed: results.length, results });
+    }
+
+    if (body.retry_promotions) {
+      const { data: userData, error: userError } = await userClient.auth.getUser();
+      if (userError || !userData.user) return jsonResponse({ error: "Authentication is required." }, 401);
+
+	  const { data: administrator } = await adminClient
+		.from("admin_users")
+		.select("user_id")
+		.eq("user_id", userData.user.id)
+		.maybeSingle();
+
+	  if (administrator) {
+		const results = await processClaimableDeliveries("event_waitlist_promoted");
+		return jsonResponse({ processed: results.length, results });
+	  }
+
+	  const sourceRegistrationId = String(body.source_registration_id || "");
+	  const eventId = String(body.event_id || "");
+	  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+	  if (!uuidPattern.test(sourceRegistrationId) || !uuidPattern.test(eventId)) {
+		return jsonResponse({ error: "A recent registration change is required." }, 403);
+	  }
+
+	  const { data: sourceRegistration, error: sourceError } = await adminClient
+		.from("registrations")
+		.select("account_id,event_id,updated_at")
+		.eq("id", sourceRegistrationId)
+		.maybeSingle();
+	  const changedRecently = sourceRegistration?.updated_at
+		&& Date.now() - new Date(sourceRegistration.updated_at).getTime() <= 5 * 60 * 1000;
+	  if (
+		sourceError
+		|| !sourceRegistration
+		|| sourceRegistration.account_id !== userData.user.id
+		|| sourceRegistration.event_id !== eventId
+		|| !changedRecently
+	  ) {
+		return jsonResponse({ error: "You cannot dispatch notifications for this registration." }, 403);
+	  }
+
+	  const results = await processInitialEventPromotions(eventId);
+      return jsonResponse({ processed: results.length });
     }
 
     if (!body.kind || !body.resource_id) return jsonResponse({ error: "kind and resource_id are required." }, 400);
@@ -297,7 +431,12 @@ Deno.serve(async (request) => {
     });
     if (queueError || !deliveryId) return jsonResponse({ error: queueError?.message || "Email could not be queued." }, 400);
     const result = await processDelivery(deliveryId);
-    return jsonResponse(result, result.status === "queued" ? 202 : 200);
+    const responseStatus = ["queued", "processing"].includes(result.status)
+      ? 202
+      : result.status === "failed"
+      ? 503
+      : 200;
+    return jsonResponse(result, responseStatus);
   } catch (error) {
     console.error(error);
     return jsonResponse({ error: error instanceof Error ? error.message : "Email delivery failed." }, 500);

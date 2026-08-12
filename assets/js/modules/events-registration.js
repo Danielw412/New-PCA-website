@@ -9,7 +9,7 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260730-account-ux-v1";
+} from "./core-auth.js?v=20260812-production-revamp-v1";
 
 const referralLabels = {
 	friend_recommendation: "Friend recommendation",
@@ -32,6 +32,31 @@ const passwordValidationMessage = (password) => (
 		? "Your password needs at least 8 characters, with one uppercase letter, one lowercase letter, and one number."
 		: ""
 );
+
+export const registrationReferralDetails = (source, details) => (
+	source === "other" ? String(details || "").trim() || null : null
+);
+
+export const registrationEditAvailability = ({
+	registration,
+	eventId,
+	eventStartsAt,
+	isAdmin = false,
+}) => {
+	if (!registration) return "missing";
+	if (registration.event_id !== eventId) return "event_mismatch";
+	if (registration.status === "cancelled") return "cancelled";
+	if (!isAdmin && new Date(eventStartsAt) <= new Date()) return "started";
+	return "editable";
+};
+
+export const canAddRegistrationAttendee = ({ count, maximum, existingMemberIds = [], householdMemberId = null }) => {
+	if (count >= maximum) return { allowed: false, reason: "maximum" };
+	if (householdMemberId && existingMemberIds.includes(householdMemberId)) {
+		return { allowed: false, reason: "duplicate" };
+	}
+	return { allowed: true, reason: null };
+};
 
 const loadTurnstile = () => {
 	if (turnstileReadinessPromise) return turnstileReadinessPromise;
@@ -204,7 +229,13 @@ const createAttendeeRow = (index, attendee = {}) => {
 	const removeField = createElement("div", "field pca-participant-remove");
 	const remove = createElement("button", "button small", "Remove");
 	remove.type = "button";
-	remove.addEventListener("click", () => fieldset.remove());
+	remove.addEventListener("click", () => {
+		fieldset.dispatchEvent(new CustomEvent("pca:attendee-removed", {
+			bubbles: true,
+			detail: { householdMemberId: fieldset.dataset.householdMemberId || null },
+		}));
+		fieldset.remove();
+	});
 	removeField.appendChild(remove);
 	fields.append(nameField, typeField, ageField, schoolField, removeField);
 	fieldset.appendChild(fields);
@@ -228,7 +259,9 @@ const initializeRegistrationPage = async () => {
 	const page = document.querySelector("[data-platform-registration]");
 	if (!page) return;
 	const eventId = currentEventId();
+	const registrationId = new URLSearchParams(window.location.search).get("registration");
 	const status = page.querySelector("[data-platform-registration-status]");
+	const recovery = page.querySelector("[data-registration-recovery]");
 	const content = page.querySelector("[data-platform-registration-content]");
 	const chooser = page.querySelector("[data-registration-paths]");
 	const form = page.querySelector("[data-platform-registration-form]");
@@ -253,12 +286,20 @@ const initializeRegistrationPage = async () => {
 
 	if (!eventId) {
 		setStatus(status, "Choose an event before opening registration.", "error");
+		if (recovery) recovery.hidden = false;
 		return;
 	}
 
 	const { data: event, error: eventError } = await supabase.from("events").select("*").eq("id", eventId).single();
-	if (eventError || !event) {
+	const unavailableForNewRegistration = !registrationId && (
+		!event?.published
+		|| event?.deleted_at
+		|| !event?.registration_open
+		|| new Date(event?.starts_at) <= new Date()
+	);
+	if (eventError || !event || unavailableForNewRegistration) {
 		setStatus(status, "This event is not available.", "error");
+		if (recovery) recovery.hidden = false;
 		return;
 	}
 	page.querySelector("[data-registration-event-title]").textContent = event.title;
@@ -271,8 +312,88 @@ const initializeRegistrationPage = async () => {
 	let session = await getSession();
 	let context = session ? await getAccountContext() : {};
 	let guestMode = Boolean(session && context.is_anonymous);
-	const registrationId = new URLSearchParams(window.location.search).get("registration");
 	const claimKey = `pcaGuestClaim:${eventId}`;
+	const syncAttendeeRows = () => {
+		[...attendeeList.querySelectorAll("[data-attendee-row]")].forEach((row, index) => {
+			const legend = row.querySelector("legend");
+			if (legend) legend.textContent = `Attendee ${index + 1}`;
+		});
+		savedMembers.querySelectorAll("[data-household-member-button]").forEach((button) => {
+			button.disabled = Boolean(attendeeList.querySelector(`[data-household-member-id="${CSS.escape(button.dataset.householdMemberButton)}"]`));
+		});
+	};
+	const addAttendee = (attendee = {}) => {
+		const decision = canAddRegistrationAttendee({
+			count: attendeeList.children.length,
+			maximum: event.max_participants_per_registration,
+			existingMemberIds: [...attendeeList.querySelectorAll("[data-household-member-id]")].map((row) => row.dataset.householdMemberId),
+			householdMemberId: attendee.household_member_id || null,
+		});
+		if (decision.reason === "maximum") {
+			setStatus(status, `This event allows up to ${event.max_participants_per_registration} attendees per registration.`, "error");
+			return false;
+		}
+		if (decision.reason === "duplicate") {
+			setStatus(status, `${attendee.full_name || "That saved person"} is already included.`, "error");
+			return false;
+		}
+		attendeeList.appendChild(createAttendeeRow(attendeeList.children.length, attendee));
+		syncAttendeeRows();
+		setStatus(status);
+		return true;
+	};
+	attendeeList.addEventListener("pca:attendee-removed", () => queueMicrotask(syncAttendeeRows));
+	let editRegistration = null;
+	let editAttendees = [];
+
+	if (registrationId) {
+		if (!context.admin_level && context.profile?.account_type !== "household") {
+			content.hidden = true;
+			setStatus(status, "Sign in to the household account that owns this registration before editing it.", "error");
+			if (recovery) recovery.hidden = false;
+			return;
+		}
+
+		let registrationQuery = supabase.from("event_registrations").select("*").eq("id", registrationId);
+		if (!context.admin_level) registrationQuery = registrationQuery.eq("owner_user_id", session.user.id);
+		const [registrationResult, attendeesResult] = await Promise.all([
+			registrationQuery.maybeSingle(),
+			supabase.from("event_registration_attendees").select("*").eq("registration_id", registrationId).order("position"),
+		]);
+		if (registrationResult.error || attendeesResult.error || !registrationResult.data) {
+			content.hidden = true;
+			setStatus(status, "This registration could not be found or you do not have permission to edit it. Open the registration from your dashboard and try again.", "error");
+			if (recovery) recovery.hidden = false;
+			return;
+		}
+
+		editRegistration = registrationResult.data;
+		editAttendees = attendeesResult.data || [];
+		const editAvailability = registrationEditAvailability({
+			registration: editRegistration,
+			eventId,
+			eventStartsAt: event.starts_at,
+			isAdmin: Boolean(context.admin_level),
+		});
+		if (editAvailability === "event_mismatch") {
+			content.hidden = true;
+			setStatus(status, "This registration link does not match the selected event. Open the registration from your dashboard and try again.", "error");
+			if (recovery) recovery.hidden = false;
+			return;
+		}
+		if (editAvailability === "cancelled") {
+			content.hidden = true;
+			setStatus(status, "This registration was cancelled and can no longer be edited.", "error");
+			if (recovery) recovery.hidden = false;
+			return;
+		}
+		if (editAvailability === "started") {
+			content.hidden = true;
+			setStatus(status, "This event has already started, so household changes are closed. Contact PCA if you need help.", "error");
+			if (recovery) recovery.hidden = false;
+			return;
+		}
+	}
 
 	const claimStoredRegistration = async () => {
 		const token = sessionStorage.getItem(claimKey);
@@ -312,17 +433,19 @@ const initializeRegistrationPage = async () => {
 				members.forEach((member) => {
 					const button = createElement("button", "button small", member.full_name);
 					button.type = "button";
-					button.addEventListener("click", () => attendeeList.appendChild(createAttendeeRow(attendeeList.children.length, {
+					button.dataset.householdMemberButton = member.id;
+					button.addEventListener("click", () => addAttendee({
 						...member,
 						household_member_id: member.id,
-					})));
+					}));
 					memberActions.appendChild(button);
 				});
 				savedMembers.appendChild(memberActions);
+				syncAttendeeRows();
 			}
 		}
 
-		if (!attendeeList.children.length) attendeeList.appendChild(createAttendeeRow(0));
+		if (!attendeeList.children.length) addAttendee();
 	};
 
 	if (registrationId && context.admin_level) {
@@ -388,11 +511,7 @@ const initializeRegistrationPage = async () => {
 	});
 
 	page.querySelector("[data-add-attendee]").addEventListener("click", () => {
-		if (attendeeList.children.length >= event.max_participants_per_registration) {
-			setStatus(status, `This event allows up to ${event.max_participants_per_registration} attendees per registration.`, "error");
-			return;
-		}
-		attendeeList.appendChild(createAttendeeRow(attendeeList.children.length));
+		addAttendee();
 	});
 
 	page.querySelector("[data-registration-next]").addEventListener("click", () => {
@@ -424,28 +543,27 @@ const initializeRegistrationPage = async () => {
 		referralOtherField.hidden = !show;
 		form.elements.referral_source_other.disabled = !show;
 		form.elements.referral_source_other.required = show;
+		if (!show) form.elements.referral_source_other.value = "";
 	};
 	referral.addEventListener("change", syncReferral);
 	syncReferral();
 
-	if (registrationId && (context.profile?.account_type === "household" || context.admin_level)) {
-		let registrationQuery = supabase.from("event_registrations").select("*").eq("id", registrationId);
-		if (!context.admin_level) registrationQuery = registrationQuery.eq("owner_user_id", session.user.id);
-		const [registrationResult, attendeesResult] = await Promise.all([
-			registrationQuery.single(),
-			supabase.from("event_registration_attendees").select("*").eq("registration_id", registrationId).order("position"),
-		]);
-		if (registrationResult.error) throw registrationResult.error;
-		if (attendeesResult.error) throw attendeesResult.error;
-		const registration = registrationResult.data;
-		attendeeList.replaceChildren(...(attendeesResult.data || []).map((attendee, index) => createAttendeeRow(index, attendee)));
-		form.elements.contact_name.value = registration.contact_name || "";
-		form.elements.contact_email.value = registration.contact_email || "";
-		form.elements.contact_phone.value = registration.contact_phone || "";
-		referral.value = registration.referral_source || "";
-		form.elements.referral_source_other.value = registration.referral_source_other || "";
-		if (form.elements.future_event_emails) form.elements.future_event_emails.checked = Boolean(registration.future_event_emails);
+	if (editRegistration) {
+		attendeeList.replaceChildren(...editAttendees.map((attendee, index) => createAttendeeRow(index, attendee)));
+		syncAttendeeRows();
+		form.elements.contact_name.value = editRegistration.contact_name || "";
+		form.elements.contact_email.value = editRegistration.contact_email || "";
+		form.elements.contact_phone.value = editRegistration.contact_phone || "";
+		referral.value = editRegistration.referral_source || "";
+		form.elements.referral_source_other.value = editRegistration.referral_source_other || "";
+		if (form.elements.future_event_emails) form.elements.future_event_emails.checked = Boolean(editRegistration.future_event_emails);
 		syncReferral();
+		referral.disabled = true;
+		referral.required = false;
+		form.elements.referral_source_other.disabled = true;
+		if (form.elements.future_event_emails) form.elements.future_event_emails.disabled = true;
+		const editNote = page.querySelector("[data-registration-edit-note]");
+		if (editNote) editNote.hidden = false;
 		form.querySelector('[type="submit"]').textContent = "Save Changes";
 	}
 
@@ -474,13 +592,21 @@ const initializeRegistrationPage = async () => {
 				p_contact: contact,
 				p_attendees: attendees,
 				p_referral_source: referral.value,
-				p_referral_source_other: form.elements.referral_source_other.value.trim() || null,
+				p_referral_source_other: registrationReferralDetails(referral.value, form.elements.referral_source_other.value),
 				p_future_event_emails: Boolean(form.elements.future_event_emails?.checked),
 			});
 		setFormBusy(form, false);
 		if (result.error) {
 			setStatus(status, friendlyError(result.error, "The registration could not be saved."), "error");
 			return;
+		}
+		if (registrationId) {
+			void supabase.functions.invoke("pca-transactional-email", {
+				body: { retry_promotions: true, source_registration_id: registrationId, event_id: eventId },
+			})
+				.then(({ error: promotionError }) => {
+					if (promotionError) console.debug("A waitlist notification remains safely queued.", promotionError);
+				});
 		}
 		form.hidden = true;
 		success.hidden = false;
@@ -497,6 +623,49 @@ const initializeRegistrationPage = async () => {
 			sessionStorage.setItem(claimKey, saved.guest_claim_token);
 			success.querySelector("[data-guest-account-offer]").hidden = false;
 			success.querySelector("[data-conversion-email]").value = contact.email;
+			if (resultStatus === "confirmed") {
+				const checkinPanel = createElement("section", "pca-checkin-card pca-registration-success-checkin");
+				checkinPanel.appendChild(createElement("h3", "", "Event check-in"));
+				checkinPanel.appendChild(createElement("p", "pca-form-help", "Create a private check-in code to show PCA staff when your group arrives. This code is displayed only on this page."));
+				const issueCode = createElement("button", "button small", "Create Check-in Code");
+				issueCode.type = "button";
+				const code = createElement("output", "pca-checkin-code");
+				code.hidden = true;
+				const copyCode = createElement("button", "button small", "Copy Code");
+				copyCode.type = "button";
+				copyCode.hidden = true;
+				const codeStatus = createElement("p", "pca-backend-status");
+				codeStatus.setAttribute("role", "status");
+				codeStatus.setAttribute("aria-live", "polite");
+				issueCode.addEventListener("click", async () => {
+					issueCode.disabled = true;
+					setStatus(codeStatus, "Creating your secure code...", "info");
+					const { data: token, error } = await supabase.rpc("issue_guest_registration_checkin_token", {
+						p_registration_id: saved.registration_id,
+						p_claim_token: saved.guest_claim_token,
+					});
+					issueCode.disabled = false;
+					if (error || !token) {
+						setStatus(codeStatus, friendlyError(error, "The check-in code could not be created."), "error");
+						return;
+					}
+					code.textContent = String(token).toUpperCase();
+					code.hidden = false;
+					copyCode.hidden = false;
+					issueCode.textContent = "Replace Check-in Code";
+					setStatus(codeStatus, "Show this code to PCA staff. It will disappear when you leave this page.", "success");
+				});
+				copyCode.addEventListener("click", async () => {
+					try {
+						await navigator.clipboard.writeText(code.textContent);
+						setStatus(codeStatus, "Check-in code copied.", "success");
+					} catch {
+						setStatus(codeStatus, "Copy was blocked by your browser. Select the code and copy it manually.", "info");
+					}
+				});
+				checkinPanel.append(issueCode, code, copyCode, codeStatus);
+				success.insertBefore(checkinPanel, success.querySelector("[data-guest-account-offer]"));
+			}
 		}
 		if (!registrationId) {
 			await requestTransactionalEmail(supabase, "event_registration_confirmation", saved?.registration_id);

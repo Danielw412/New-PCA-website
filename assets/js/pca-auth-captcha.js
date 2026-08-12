@@ -70,10 +70,12 @@
 			let widgetId;
 			let settled = false;
 			let timeoutId;
+			let renderComplete = false;
+			let pendingResult;
 
 			const cleanup = () => {
 				window.clearTimeout(timeoutId);
-				if (widgetId !== undefined) {
+				if (renderComplete && widgetId !== undefined) {
 					try { turnstile.remove(widgetId); } catch (error) { console.debug("Turnstile removal skipped.", error); }
 				}
 				container.remove();
@@ -81,6 +83,10 @@
 
 			const finish = (token, error) => {
 				if (settled) return;
+				if (!renderComplete) {
+					pendingResult = [token, error];
+					return;
+				}
 				settled = true;
 				cleanup();
 				if (error) reject(asError(error, "The security check failed. Please try again."));
@@ -97,12 +103,18 @@
 					"expired-callback": () => finish(null, "The security check expired. Please try again."),
 					"timeout-callback": () => finish(null, "The security check timed out. Please try again."),
 				});
+				renderComplete = true;
+				if (pendingResult) {
+					finish(...pendingResult);
+					return;
+				}
 				timeoutId = window.setTimeout(
 					() => finish(null, "The security check timed out. Please try again."),
 					30000
 				);
 				turnstile.execute(widgetId);
 			} catch (error) {
+				renderComplete = true;
 				finish(null, error);
 			}
 		});

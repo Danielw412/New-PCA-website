@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html lang="en"><head><title>Blog Editor | PCA Youth Center</title><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="theme-color" content="#fffaf7" />
-		<link rel="stylesheet" href="assets/css/fontawesome-all.min.css" /><link rel="stylesheet" href="styles.css?v=20260730-account-ux-v1" /></head>	<body>
+		<link rel="stylesheet" href="assets/css/fontawesome-all.min.css" /><link rel="stylesheet" href="styles.css?v=20260812-production-revamp-v1" /></head>	<body>
 		<a class="skip-link" href="#main">Skip to content</a>
 		<header id="header" class="site-header">
 			<div class="site-header__inner">
@@ -34,8 +34,8 @@
 									<li><a href="past-events.html">Past Events</a></li>
 								</ul>
 							</li>
-							<li class="nav-item is-current"><a href="blog.html" aria-current="page">Blogs</a></li>
-							<li class="nav-item nav-support"><a href="support-us.html">Support Us</a></li>
+							<li class="nav-item is-current"><a href="blog.html" aria-current="page">Stories</a></li>
+							<li class="nav-item nav-support"><a href="support-us.html">Support PCA</a></li>
 							<li class="nav-item nav-account nav-item--dropdown" data-nav-dropdown data-pca-account-menu>
 								<div class="nav-account__row">
 									<a href="login.html" data-pca-account-link>Account</a>
@@ -54,7 +54,56 @@
 			</div>
 		</header>
 		<div id="wrapper">
-			<main id="main"><section class="post" data-blog-editor><header class="major"><span class="date">Structured Content</span><h1>Blog Editor</h1><p>Build a clean PCA article from headings, paragraphs, quotes, and images. Editors manage their own posts; administrators can manage all posts.</p></header><div class="pca-editor-layout"><aside class="pca-paper-panel"><h2>Posts</h2><ul class="pca-editor-post-list" data-editor-post-list></ul><a href="blog-editor.html" class="button small">New Post</a></aside><form class="pca-paper-panel" data-blog-editor-form><div class="fields"><div class="field"><label for="post-title">Title</label><input id="post-title" name="title" type="text" maxlength="180" required /></div><div class="field half"><label for="post-slug">URL Slug</label><input id="post-slug" name="slug" type="text" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" maxlength="120" required /></div><div class="field half"><label for="post-author">Author Display Name</label><input id="post-author" name="author_display_name" type="text" maxlength="120" required /></div><div class="field"><label for="post-excerpt">Excerpt</label><textarea id="post-excerpt" name="excerpt" rows="3" maxlength="600" required></textarea></div><div class="field"><label for="blog-media">Upload Article Image</label><input id="blog-media" data-blog-media-upload type="file" accept="image/jpeg,image/png,image/webp" /><p class="pca-form-help">JPG, PNG, or WebP up to 5 MB. Uploaded images are added as image blocks.</p></div><div class="field half"><label for="post-cover-path">Optional Cover Image Path</label><input id="post-cover-path" name="cover_image_path" type="text" maxlength="500" /></div><div class="field half"><label for="post-cover-alt">Cover Image Alt Text</label><input id="post-cover-alt" name="cover_image_alt" type="text" maxlength="240" /></div></div><div data-editor-blocks></div><ul class="actions"><li><button type="button" class="button" data-add-editor-block>Add Content Block</button></li></ul><div class="field"><input id="post-published" name="published" type="checkbox" /><label for="post-published">Publish this post</label></div><ul class="actions special"><li><button type="submit" class="button primary">Save Post</button></li></ul><p class="pca-backend-status" data-blog-editor-status data-platform-status aria-live="polite"></p></form></div></section></main>
+			<main id="main">
+				<section class="post" data-blog-editor>
+					<header class="major"><span class="date">PCA Publishing</span><h1>Create a Blog Post</h1><p>Write, preview, and publish a PCA story without working with code or file paths.</p></header>
+					<div class="pca-editor-layout">
+						<aside class="pca-paper-panel" aria-labelledby="editor-posts-title">
+							<h2 id="editor-posts-title">Your posts</h2>
+							<p class="pca-form-help">Choose a draft or published post to continue editing it.</p>
+							<ul class="pca-editor-post-list" data-editor-post-list aria-live="polite"></ul>
+							<a href="blog-editor.html" class="button small">Start a New Post</a>
+						</aside>
+						<form class="pca-paper-panel" data-blog-editor-form>
+							<header><h2>Post details</h2><p class="pca-backend-status" data-blog-save-state role="status" aria-live="polite">Loading editor...</p></header>
+							<div class="fields">
+								<div class="field"><label for="post-title">Post title <span>(required)</span></label><input id="post-title" name="title" type="text" maxlength="180" autocomplete="off" required /></div>
+								<div class="field">
+									<label for="post-slug">Blog Link <span>(required)</span></label>
+									<input id="post-slug" name="slug" type="text" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" minlength="3" maxlength="120" aria-describedby="post-link-help" required />
+									<p class="pca-form-help" id="post-link-help">This fills in from the title. The final page will be <code data-blog-link-preview>post.html?slug=your-post-title</code>. <button type="button" class="button small" data-regenerate-blog-link>Use Title</button></p>
+								</div>
+								<div class="field half"><label for="post-author">Author name shown on the post <span>(required)</span></label><input id="post-author" name="author_display_name" type="text" maxlength="120" autocomplete="name" required /></div>
+								<div class="field">
+									<label for="post-excerpt">Short summary <span>(required)</span></label>
+									<textarea id="post-excerpt" name="excerpt" rows="3" maxlength="600" aria-describedby="post-excerpt-help" required></textarea>
+									<p class="pca-form-help" id="post-excerpt-help">This appears on the blog listing. Keep it clear and inviting. <span data-blog-excerpt-count>0 of 600 characters</span>.</p>
+								</div>
+								<div class="field"><label for="blog-media">Add an image <span>(optional)</span></label><input id="blog-media" data-blog-media-upload type="file" accept="image/jpeg,image/png,image/webp" /><p class="pca-form-help">Choose a JPG, PNG, or WebP up to 5 MB. The image is added to the article, and the first upload becomes the cover image.</p></div>
+								<div class="field">
+									<h3>Cover image</h3>
+									<img class="image fit" data-blog-cover-preview hidden alt="Cover image preview" />
+									<input id="post-cover-path" name="cover_image_path" type="hidden" />
+									<input name="cover_image_source" type="hidden" />
+									<label for="post-cover-alt">Cover image description <span>(required when a cover is used)</span></label>
+									<input id="post-cover-alt" name="cover_image_alt" type="text" maxlength="240" aria-describedby="post-cover-help" />
+									<p class="pca-form-help" id="post-cover-help">Describe the important visual information for visitors who cannot see the image.</p>
+									<button type="button" class="button small" data-clear-blog-cover hidden>Remove Cover Image</button>
+								</div>
+							</div>
+							<hr />
+							<h2>Article content</h2>
+							<p>Add sections in the order they should appear. Images are added with the upload control above.</p>
+							<div data-editor-blocks></div>
+							<ul class="actions"><li><button type="button" class="button" data-add-editor-block="paragraph">Add Paragraph</button></li><li><button type="button" class="button" data-add-editor-block="heading">Add Heading</button></li><li><button type="button" class="button" data-add-editor-block="quote">Add Quote</button></li></ul>
+							<hr />
+							<div class="field"><input id="post-published" name="published" type="checkbox" /><label for="post-published"><strong>Publish this post when I save</strong><span>Leave this unchecked to keep a private draft. Publishing makes the post visible on the PCA blog immediately.</span></label></div>
+							<ul class="actions special"><li><button type="submit" class="button primary">Save Post</button></li><li><a class="button" data-blog-preview hidden target="_blank" rel="noopener">Preview Saved Post</a></li></ul>
+							<p class="pca-backend-status" data-blog-editor-status data-platform-status role="status" aria-live="polite"></p>
+						</form>
+					</div>
+				</section>
+			</main>
 			<footer id="footer" class="site-footer">
 				<div class="site-footer__inner">
 					<section class="site-footer__brand">
@@ -68,7 +117,7 @@
 					<nav class="site-footer__links" aria-label="Footer navigation">
 						<div><h2>Explore</h2><a href="about.html">About</a><a href="events.html">Events</a><a href="blog.html">Stories</a></div>
 						<div><h2>Get Involved</h2><a href="student-council.html">Student Council</a><a href="volunteer.html">Volunteer</a><a href="membership.html">Membership</a></div>
-						<div><h2>Organization</h2><a href="support-us.html">Support Us</a><a href="bylaws.html">Bylaws</a><a href="aapi-statement.html">AAPI Statement</a></div>
+						<div><h2>Organization</h2><a href="support-us.html">Support PCA</a><a href="bylaws.html">Bylaws</a><a href="aapi-statement.html">AAPI Statement</a></div>
 					</nav>
 					<section class="site-footer__connect">
 						<h2>Connect</h2>
@@ -80,4 +129,4 @@
 					</section>
 				</div>
 				<div class="site-footer__bottom"><span>&copy; 2018-2026 PCA Youth Center</span><span>Design adapted from <a href="https://html5up.net">HTML5 UP</a></span></div>
-			</footer></div><script src="script.js?v=20260730-account-ux-v1"></script></body></html>
+			</footer></div><script src="script.js?v=20260812-production-revamp-v1"></script></body></html>

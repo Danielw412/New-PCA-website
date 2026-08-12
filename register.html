@@ -8,7 +8,7 @@
 		<meta name="pca-turnstile-site-key" content="0x4AAAAAADz91_NfxkfejK0C" />
 		<meta name="description" content="Register every household attendee for a PCA Youth Center event." />
 		<link rel="stylesheet" href="assets/css/fontawesome-all.min.css" />
-		<link rel="stylesheet" href="styles.css?v=20260730-account-ux-v1" />
+		<link rel="stylesheet" href="styles.css?v=20260812-production-revamp-v1" />
 	</head>
 		<body>
 		<a class="skip-link" href="#main">Skip to content</a>
@@ -43,8 +43,8 @@
 									<li><a href="past-events.html">Past Events</a></li>
 								</ul>
 							</li>
-							<li class="nav-item"><a href="blog.html">Blogs</a></li>
-							<li class="nav-item nav-support"><a href="support-us.html">Support Us</a></li>
+							<li class="nav-item"><a href="blog.html">Stories</a></li>
+							<li class="nav-item nav-support"><a href="support-us.html">Support PCA</a></li>
 							<li class="nav-item nav-account nav-item--dropdown" data-nav-dropdown data-pca-account-menu>
 								<div class="nav-account__row">
 									<a href="login.html" data-pca-account-link>Account</a>
@@ -67,6 +67,7 @@
 				<section class="post" data-platform-registration>
 					<header class="major"><span class="date">Flexible Event Registration</span><h1>Register for a PCA Event</h1><p>Sign in for the fastest registration, create a household account, or continue as a guest without creating an account.</p></header>
 					<p class="pca-backend-status" data-platform-registration-status data-platform-status aria-live="polite">Loading event details...</p>
+					<div data-registration-recovery hidden><ul class="actions special"><li><a href="upcoming-events.html" class="button primary">Browse Upcoming Events</a></li></ul></div>
 
 					<div data-platform-registration-content hidden>
 						<div class="pca-registration-shell">
@@ -111,6 +112,7 @@
 							<section class="pca-registration-stage" data-registration-stage="contact" hidden>
 								<p class="eyebrow">Step 2 of 2</p>
 								<h2>Contact &amp; confirm</h2>
+								<div class="pca-attendee-notice" data-registration-edit-note role="note" hidden><strong>Changing an existing registration?</strong> You can update the contact and attendee details here. The original referral answer and future-events email choice are shown for reference but cannot be changed in this form.</div>
 								<fieldset class="pca-paper-panel" data-registration-contact-fields><legend>Primary Contact</legend><div class="fields"><div class="field"><label for="registration-contact-name">Full Name</label><input id="registration-contact-name" name="contact_name" type="text" maxlength="120" autocomplete="name" required /></div><div class="field half"><label for="registration-contact-email">Email</label><input id="registration-contact-email" name="contact_email" type="email" maxlength="320" autocomplete="email" required /></div><div class="field half"><label for="registration-contact-phone">Phone</label><input id="registration-contact-phone" name="contact_phone" type="tel" maxlength="40" autocomplete="tel" required /></div></div></fieldset>
 								<div class="pca-registration-details fields">
 								<div class="field">
@@ -156,7 +158,7 @@
 					<nav class="site-footer__links" aria-label="Footer navigation">
 						<div><h2>Explore</h2><a href="about.html">About</a><a href="events.html">Events</a><a href="blog.html">Stories</a></div>
 						<div><h2>Get Involved</h2><a href="student-council.html">Student Council</a><a href="volunteer.html">Volunteer</a><a href="membership.html">Membership</a></div>
-						<div><h2>Organization</h2><a href="support-us.html">Support Us</a><a href="bylaws.html">Bylaws</a><a href="aapi-statement.html">AAPI Statement</a></div>
+						<div><h2>Organization</h2><a href="support-us.html">Support PCA</a><a href="bylaws.html">Bylaws</a><a href="aapi-statement.html">AAPI Statement</a></div>
 					</nav>
 					<section class="site-footer__connect">
 						<h2>Connect</h2>
@@ -169,6 +171,6 @@
 				</div>
 				<div class="site-footer__bottom"><span>&copy; 2018-2026 PCA Youth Center</span><span>Design adapted from <a href="https://html5up.net">HTML5 UP</a></span></div>
 			</footer>
-		</div><script src="script.js?v=20260730-account-ux-v1"></script>
+		</div><script src="script.js?v=20260812-production-revamp-v1"></script>
 	</body>
 </html>

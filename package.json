@@ -1,6 +1,11 @@
 {
   "name": "new-pca-website",
   "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test --test-isolation=none tests/*.test.mjs",
+    "check": "npm test && node --check script.js && node --check assets/js/pca-backend.js && node --check assets/js/pca-auth-captcha.js && node --check assets/js/pca-platform.js && node --check assets/js/modules/accounts.js && node --check assets/js/modules/administration.js && node --check assets/js/modules/blog.js && node --check assets/js/modules/council.js && node --check assets/js/modules/events-registration.js"
+  },
   "devDependencies": {
     "supabase": "2.109.0"
   }

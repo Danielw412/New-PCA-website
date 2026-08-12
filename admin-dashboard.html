@@ -7,7 +7,7 @@
 		<meta name="theme-color" content="#fffaf7" />
 		<meta name="description" content="PCA Youth Center administrator dashboard for registrations and volunteer management." />
 		<link rel="stylesheet" href="assets/css/fontawesome-all.min.css" />
-		<link rel="stylesheet" href="styles.css?v=20260730-account-ux-v1" />
+		<link rel="stylesheet" href="styles.css?v=20260812-production-revamp-v1" />
 	</head>
 		<body>
 		<a class="skip-link" href="#main">Skip to content</a>
@@ -42,8 +42,8 @@
 									<li><a href="past-events.html">Past Events</a></li>
 								</ul>
 							</li>
-							<li class="nav-item"><a href="blog.html">Blogs</a></li>
-							<li class="nav-item nav-support"><a href="support-us.html">Support Us</a></li>
+							<li class="nav-item"><a href="blog.html">Stories</a></li>
+							<li class="nav-item nav-support"><a href="support-us.html">Support PCA</a></li>
 							<li class="nav-item nav-account nav-item--dropdown is-current" data-nav-dropdown data-pca-account-menu>
 								<div class="nav-account__row">
 									<a href="login.html" data-pca-account-link aria-current="page">Account</a>
@@ -64,9 +64,9 @@
 		<div id="wrapper">
 			<main id="main">
 				<section class="post pca-dashboard-page pca-admin-dashboard-page" data-platform-admin>
-					<header class="major"><span class="date" data-admin-level>Administrator</span><h1>PCA Administration</h1><p>Manage events, registrations, volunteer requests, accounts, publishing, and site access from one full-width workspace.</p></header>
+					<header class="major"><span class="date" data-admin-level>Administrator</span><h1>PCA Administration</h1><p>Manage day-to-day PCA events, registrations, volunteers, accounts, and publishing from one staff workspace.</p></header>
 					<p class="pca-backend-status" data-platform-admin-status data-platform-status aria-live="polite">Checking administrator access...</p>
-					<div class="pca-admin-dashboard-layout">
+					<div class="pca-admin-dashboard-layout" hidden>
 						<aside class="pca-admin-workspace-nav" aria-label="Administration workspace">
 							<div class="pca-admin-workspace-tabs" role="tablist" aria-label="Administration sections" aria-orientation="vertical">
 								<span class="pca-admin-tab-group" role="presentation">Operations</span>
@@ -85,7 +85,7 @@
 						</aside>
 						<div class="pca-admin-workspace-content">
 
-					<section id="admin-panel-overview" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-overview" data-admin-panel="overview"><h2>Overview</h2><div class="pca-admin-metric-grid"><article class="pca-card"><strong data-admin-count="events">—</strong><span>Events</span></article><article class="pca-card"><strong data-admin-count="registrations">—</strong><span>Registrations</span></article><article class="pca-card"><strong data-admin-count="volunteer-requests">—</strong><span>Pending Volunteer Requests</span></article><article class="pca-card"><strong data-admin-count="households">—</strong><span>Households</span></article><article class="pca-card"><strong data-admin-count="volunteer-applications">—</strong><span>Pending Volunteer Accounts</span></article><article class="pca-card"><strong data-admin-count="blog-posts">—</strong><span>Blog Posts</span></article></div></section>
+					<section id="admin-panel-overview" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-overview" data-admin-panel="overview"><h2>At a glance</h2><p>Counts include current and historical records unless marked as awaiting review.</p><div class="pca-admin-metric-grid"><article class="pca-card"><strong data-admin-count="events">—</strong><span>Current and past events</span></article><article class="pca-card"><strong data-admin-count="registrations">—</strong><span>All registrations</span></article><article class="pca-card"><strong data-admin-count="volunteer-requests">—</strong><span>Volunteer requests awaiting review</span></article><article class="pca-card"><strong data-admin-count="households">—</strong><span>Household accounts</span></article><article class="pca-card"><strong data-admin-count="volunteer-applications">—</strong><span>Volunteer accounts awaiting review</span></article><article class="pca-card"><strong data-admin-count="blog-posts">—</strong><span>Draft and published blog posts</span></article></div></section>
 
 					<section id="admin-panel-events" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-events" data-admin-panel="events" hidden><h2>Events</h2><details class="pca-admin-create-panel" open><summary><span>Create or Edit an Event</span><small>Times are entered in Eastern Time</small></summary><form data-admin-event-form><input type="hidden" name="event_id" />
 							<div class="pca-admin-event-fields">
@@ -99,7 +99,7 @@
 							</div>
 							<div class="pca-admin-event-options">
 								<div><input type="checkbox" id="admin-event-registration-open" name="registration_open" checked /><label for="admin-event-registration-open">Registration open</label></div>
-								<div><input type="checkbox" id="admin-event-published" name="published" checked /><label for="admin-event-published">Publish immediately</label></div>
+								<div><input type="checkbox" id="admin-event-published" name="published" /><label for="admin-event-published">Publish immediately</label></div>
 							</div>
 							<p class="pca-form-help">Event times are interpreted in Eastern Time and displayed consistently to all visitors.</p>
 							<p class="pca-backend-status pca-admin-create-status" data-admin-event-status aria-live="polite"></p>
@@ -107,7 +107,7 @@
 						</form>
 					</details><div class="table-wrapper"><table><thead><tr><th>Event</th><th>Date</th><th>Location</th><th>State</th><th>Actions</th></tr></thead><tbody data-admin-events-body></tbody></table></div></section>
 
-					<section id="admin-panel-registrations" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-registrations" data-admin-panel="registrations" hidden><h2>Registrations</h2><p>Manage household and guest registrations. Cancelling a confirmed group runs strict FIFO waitlist promotion.</p><div class="table-wrapper"><table><thead><tr><th>Event</th><th>Contact</th><th>Email</th><th>Attendees</th><th>Status</th><th>Source</th><th>Actions</th></tr></thead><tbody data-admin-registrations-body></tbody></table></div></section>
+					<section id="admin-panel-registrations" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-registrations" data-admin-panel="registrations" hidden><div class="pca-admin-panel-heading"><div><h2>Event Registrations</h2><p>Review household and guest registrations. Cancelling a confirmed group may move the next waitlisted group into the event.</p></div><button type="button" class="button" data-admin-export>Download Registration CSV</button></div><p class="pca-backend-status" data-admin-export-status role="status" aria-live="polite"></p><details class="pca-paper-panel pca-checkin-tool"><summary>Check in an attendee group</summary><p>Paste the secure code shown on the household dashboard. Review the registration before recording arrival.</p><form data-admin-checkin-form><div class="field"><label for="admin-checkin-token">Check-in code</label><input id="admin-checkin-token" name="token" type="text" inputmode="text" autocomplete="off" minlength="64" maxlength="64" pattern="[A-Fa-f0-9]{64}" required /></div><div class="actions"><button type="submit" class="button primary">Find Registration</button></div><p class="pca-backend-status" data-admin-checkin-status role="status" aria-live="polite"></p></form><section data-admin-checkin-result hidden aria-live="polite"></section></details><div class="table-wrapper"><table><thead><tr><th>Event</th><th>Primary contact</th><th>Contact email</th><th>Attendee count</th><th>Registration status</th><th>Signup type</th><th>Actions</th></tr></thead><tbody data-admin-registrations-body></tbody></table></div></section>
 
 					<section id="admin-panel-volunteer-requests" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-volunteer-requests" data-admin-panel="volunteer-requests" hidden><div class="pca-admin-panel-heading"><div><span class="eyebrow">Event help</span><h2>Volunteer Requests</h2><p>Approve account-free requests. Approval sends the volunteer an email; an account is only needed for hour tracking.</p></div><a class="button" href="upcoming-events.html">View Public Events</a></div><div class="table-wrapper pca-admin-table-fluid"><table><thead><tr><th>Volunteer</th><th>Age</th><th>Event</th><th>Interests &amp; Availability</th><th>Future Emails</th><th>Status</th><th>Actions</th></tr></thead><tbody data-admin-volunteer-requests-body></tbody></table></div></section>
 
@@ -117,7 +117,7 @@
 
 					<section id="admin-panel-blog" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-blog" data-admin-panel="blog" hidden><h2>Blog</h2><p>Administrators can create and manage every post, including posts authored by approved volunteer editors.</p><ul class="actions"><li><a href="blog-editor.html" class="button primary">Open Blog Editor</a></li><li><a href="blog.html" class="button">View Public Blog</a></li></ul></section>
 
-					<section id="admin-panel-access" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-access" data-admin-panel="access" hidden><h2>Site Access</h2><p>Super administrators can promote existing permanent accounts or remove administrator access. Self-demotion and removal of the final super administrator are blocked by the database.</p><form class="pca-paper-panel pca-admin-access-form" data-admin-access-form><div class="fields"><div class="field"><label for="admin-access-user">Existing Account</label><select id="admin-access-user" name="user_id" required></select></div><div class="field"><label for="admin-access-level">Access Level</label><select id="admin-access-level" name="access_level"><option value="admin">Administrator</option><option value="super_admin">Super Administrator</option></select></div></div><button type="submit" class="button primary">Grant Access</button></form><div class="table-wrapper"><table><thead><tr><th>Name</th><th>Email</th><th>Access</th><th>Actions</th></tr></thead><tbody data-admin-access-body></tbody></table></div></section>
+					<section id="admin-panel-access" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-access" data-admin-panel="access" hidden><h2>Administrator Access</h2><p>Only super administrators see this section. Choose an existing account, then grant the least access needed. A Super Administrator can also manage other administrators.</p><form class="pca-paper-panel pca-admin-access-form" data-admin-access-form><div class="fields"><div class="field"><label for="admin-access-user">PCA account</label><select id="admin-access-user" name="user_id" required></select></div><div class="field"><label for="admin-access-level">Permission level</label><select id="admin-access-level" name="access_level"><option value="admin">Administrator</option><option value="super_admin">Super Administrator</option></select><p class="pca-form-help">Use Administrator for normal staff work. Grant Super Administrator only to someone who should manage site access.</p></div></div><button type="submit" class="button primary">Grant Administrator Access</button></form><div class="table-wrapper"><table><thead><tr><th>Name</th><th>Email</th><th>Permission level</th><th>Actions</th></tr></thead><tbody data-admin-access-body></tbody></table></div></section>
 						</div>
 					</div>
 				</section>
@@ -135,7 +135,7 @@
 					<nav class="site-footer__links" aria-label="Footer navigation">
 						<div><h2>Explore</h2><a href="about.html">About</a><a href="events.html">Events</a><a href="blog.html">Stories</a></div>
 						<div><h2>Get Involved</h2><a href="student-council.html">Student Council</a><a href="volunteer.html">Volunteer</a><a href="membership.html">Membership</a></div>
-						<div><h2>Organization</h2><a href="support-us.html">Support Us</a><a href="bylaws.html">Bylaws</a><a href="aapi-statement.html">AAPI Statement</a></div>
+						<div><h2>Organization</h2><a href="support-us.html">Support PCA</a><a href="bylaws.html">Bylaws</a><a href="aapi-statement.html">AAPI Statement</a></div>
 					</nav>
 					<section class="site-footer__connect">
 						<h2>Connect</h2>
@@ -148,6 +148,6 @@
 				</div>
 				<div class="site-footer__bottom"><span>&copy; 2018-2026 PCA Youth Center</span><span>Design adapted from <a href="https://html5up.net">HTML5 UP</a></span></div>
 			</footer>
-		</div><script src="script.js?v=20260730-account-ux-v1"></script>
+		</div><script src="script.js?v=20260812-production-revamp-v1"></script>
 	</body>
 </html>

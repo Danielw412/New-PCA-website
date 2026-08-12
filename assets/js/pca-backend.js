@@ -244,6 +244,11 @@
 		return "";
 	};
 
+	const passwordUpdatePayload = (password, currentPassword) => ({
+		password,
+		current_password: currentPassword,
+	});
+
 	const clearAuthCallbackFragment = () => {
 		if (!window.location.hash) {
 			return;
@@ -386,7 +391,7 @@
 				if (!accountLink || !actions) return;
 
 				accountLink.href = permanentSession ? dashboardDestination : "login.html";
-				accountLink.textContent = "Account";
+				accountLink.textContent = permanentSession ? "My Account" : "Sign In";
 				menu.classList.toggle("is-current", accountPages.has(pageName));
 				actions.replaceChildren();
 
@@ -442,7 +447,7 @@
 			accountLink.dataset.pcaAccountLink = "true";
 			const dashboardDestination = accountDashboardDestination();
 			accountLink.href = permanentSession ? dashboardDestination : "login.html";
-			accountLink.textContent = "Account";
+			accountLink.textContent = permanentSession ? "My Account" : "Sign In";
 
 			const accountItem = accountLink.closest("li");
 			accountItem?.classList.add("pca-account-nav");
@@ -906,7 +911,20 @@
 		eventList.replaceChildren();
 
 		if (!events?.length) {
-			eventList.appendChild(createElement("div", "pca-empty-state", "There are no published upcoming events right now. Please check back soon."));
+			const emptyState = createElement("section", "pca-empty-state pca-empty-state--events");
+			emptyState.setAttribute("aria-labelledby", "upcoming-empty-title");
+			const eyebrow = createElement("p", "eyebrow", "The next gathering is taking shape");
+			const title = createElement("h2", "", "No events are open for registration right now");
+			title.id = "upcoming-empty-title";
+			const copy = createElement("p", "", "New programs will appear here as soon as PCA publishes them. In the meantime, explore recent events or learn how to volunteer.");
+			const actions = createElement("div", "actions");
+			const archiveLink = createElement("a", "button primary", "Explore past events");
+			archiveLink.href = "past-events.html";
+			const volunteerLink = createElement("a", "button", "Volunteer with PCA");
+			volunteerLink.href = "volunteer.html";
+			actions.append(archiveLink, volunteerLink);
+			emptyState.append(eyebrow, title, copy, actions);
+			eventList.appendChild(emptyState);
 			return;
 		}
 
@@ -1746,6 +1764,10 @@
 		const nameForm = page.querySelector("[data-profile-name-form]");
 		const nameInput = nameForm.querySelector('input[name="full_name"]');
 		const nameStatus = nameForm.querySelector("[data-profile-name-status]");
+		const contactForm = page.querySelector("[data-profile-contact-form]");
+		const contactEmailInput = contactForm.querySelector('input[name="contact_email"]');
+		const contactPhoneInput = contactForm.querySelector('input[name="contact_phone"]');
+		const contactStatus = contactForm.querySelector("[data-profile-contact-status]");
 		const emailForm = page.querySelector("[data-profile-email-form]");
 		const emailInput = emailForm.querySelector('input[name="email"]');
 		const emailPasswordInput = emailForm.querySelector('input[name="current_password"]');
@@ -1763,13 +1785,15 @@
 			dashboardLink.href = profile.account_use === "volunteer" ? "volunteer-dashboard.html" : "dashboard.html";
 			dashboardLink.textContent = profile.account_use === "volunteer" ? "Volunteer Dashboard" : "Household Dashboard";
 			nameInput.value = profile.full_name;
+			contactEmailInput.value = profile.contact_email || profile.email || "";
+			contactPhoneInput.value = profile.contact_phone || "";
 			emailInput.value = "";
 			emailInput.placeholder = profile.email;
 		};
 
 		const { data: profile, error: profileError } = await state.client
 			.from("profiles")
-			.select("full_name,email,account_use,created_at,updated_at")
+			.select("full_name,email,contact_email,contact_phone,account_use,created_at,updated_at")
 			.eq("id", session.user.id)
 			.single();
 
@@ -1816,7 +1840,7 @@
 				.from("profiles")
 				.update({ full_name: fullName })
 				.eq("id", session.user.id)
-				.select("full_name,email,account_use,created_at,updated_at")
+				.select("full_name,email,contact_email,contact_phone,account_use,created_at,updated_at")
 				.single();
 
 			if (error || !updatedProfile) {
@@ -1829,6 +1853,49 @@
 			renderProfile(updatedProfile);
 			setStatus(nameStatus, "Your account holder name was updated.", "success");
 			setFormBusy(nameForm, false);
+		});
+
+		contactForm.addEventListener("submit", async (event) => {
+			event.preventDefault();
+			setStatus(contactStatus);
+
+			if (!contactForm.reportValidity()) {
+				return;
+			}
+
+			const contactEmail = contactEmailInput.value.trim().toLowerCase();
+			const contactPhone = contactPhoneInput.value.trim();
+
+			if (contactPhone.length < 7 || contactPhone.length > 40) {
+				setStatus(contactStatus, "Enter a contact phone number between 7 and 40 characters.", "error");
+				contactPhoneInput.focus();
+				return;
+			}
+
+			if (contactEmail === (currentProfile.contact_email || currentProfile.email || "").toLowerCase()
+				&& contactPhone === (currentProfile.contact_phone || "")) {
+				setStatus(contactStatus, "Your registration contact details are already up to date.", "info");
+				return;
+			}
+
+			setFormBusy(contactForm, true, "Saving Contact...");
+			const { data: updatedProfile, error } = await state.client
+				.from("profiles")
+				.update({ contact_email: contactEmail, contact_phone: contactPhone })
+				.eq("id", session.user.id)
+				.select("full_name,email,contact_email,contact_phone,account_use,created_at,updated_at")
+				.single();
+
+			if (error || !updatedProfile) {
+				console.error("Registration contact update failed.", error);
+				setStatus(contactStatus, "Your registration contact details could not be saved. Please try again.", "error");
+				setFormBusy(contactForm, false);
+				return;
+			}
+
+			renderProfile(updatedProfile);
+			setStatus(contactStatus, "Registration contact details saved.", "success");
+			setFormBusy(contactForm, false);
 		});
 
 		emailForm.addEventListener("submit", async (event) => {
@@ -1909,10 +1976,32 @@
 			}
 
 			setFormBusy(passwordForm, true, "Updating Password...");
-			const { error } = await state.client.auth.updateUser({ password, currentPassword });
+			setStatus(passwordStatus, "Verifying your current password...", "info");
+			const { data: signInData, error: passwordError } = await state.client.auth.signInWithPassword({
+				email: session.user.email || currentProfile.email,
+				password: currentPassword,
+			});
+
+			if (passwordError || signInData.user?.id !== session.user.id) {
+				setStatus(
+					passwordStatus,
+					String(passwordError?.message || "").toLowerCase().includes("invalid login credentials")
+						? "The current password is incorrect. Your password was not changed."
+						: friendlyAuthError(passwordError, "Your current password could not be verified. Your password was not changed."),
+					"error"
+				);
+				passwordForm.querySelector('input[name="current_password"]').value = "";
+				passwordForm.querySelector('input[name="current_password"]').focus();
+				setFormBusy(passwordForm, false);
+				return;
+			}
+
+			setStatus(passwordStatus, "Current password verified. Updating your password...", "info");
+			const { error } = await state.client.auth.updateUser(passwordUpdatePayload(password, currentPassword));
 
 			if (error) {
 				setStatus(passwordStatus, friendlyAuthError(error, "Your password could not be updated. Please try again."), "error");
+				passwordForm.querySelector('input[name="current_password"]').value = "";
 				setFormBusy(passwordForm, false);
 				return;
 			}
@@ -2061,6 +2150,152 @@
 		link.click();
 		link.remove();
 		URL.revokeObjectURL(downloadUrl);
+	};
+
+	const initializeModernAdminUtilities = () => {
+		const page = document.querySelector("[data-platform-admin]");
+
+		if (!page) {
+			return;
+		}
+
+		const tabList = page.querySelector(".pca-admin-workspace-tabs");
+		const repairAdminUi = () => {
+			page.querySelectorAll("#admin-volunteer-user, #admin-volunteer-event, #admin-access-user").forEach((select) => {
+				if (select.options[0] && !select.options[0].value) return;
+				if (select.options[0]) select.options[0].value = "";
+			});
+
+			const staffLabels = Object.freeze({
+				confirmed: "Confirmed",
+				waitlisted: "On waitlist",
+				cancelled: "Cancelled",
+				household: "Household account",
+				guest: "Guest signup",
+				pending: "Awaiting review",
+				approved: "Approved",
+				rejected: "Not approved",
+				assigned: "Assigned",
+				completed: "Completed",
+				submitted: "Awaiting review",
+				super_admin: "Super Administrator",
+				admin: "Administrator",
+			});
+			page.querySelectorAll("tbody td").forEach((cell) => {
+				const normalized = cell.textContent.trim();
+				if (staffLabels[normalized]) cell.textContent = staffLabels[normalized];
+			});
+
+			const requestedTab = window.location.hash.slice(1);
+			if (requestedTab && ![...page.querySelectorAll("[data-admin-tab]")].some((tab) => tab.dataset.adminTab === requestedTab)) {
+				page.querySelector('[data-admin-tab="overview"]')?.click();
+			}
+		};
+
+		if (tabList) {
+			tabList.addEventListener("keydown", (event) => {
+				if (!["ArrowDown", "ArrowRight", "ArrowUp", "ArrowLeft", "Home", "End"].includes(event.key)) return;
+				const tabs = [...tabList.querySelectorAll("[data-admin-tab]")];
+				const currentIndex = Math.max(0, tabs.indexOf(event.target.closest("[data-admin-tab]")));
+				let nextIndex = currentIndex;
+				if (["ArrowDown", "ArrowRight"].includes(event.key)) nextIndex = (currentIndex + 1) % tabs.length;
+				if (["ArrowUp", "ArrowLeft"].includes(event.key)) nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+				if (event.key === "Home") nextIndex = 0;
+				if (event.key === "End") nextIndex = tabs.length - 1;
+				event.preventDefault();
+				event.stopImmediatePropagation();
+				tabs[nextIndex]?.click();
+				tabs[nextIndex]?.focus();
+			}, true);
+		}
+
+		const adminUiObserver = new MutationObserver(repairAdminUi);
+		adminUiObserver.observe(page, { childList: true, subtree: true });
+		repairAdminUi();
+		document.addEventListener("pca:platform-ready", () => repairAdminUi(), { once: true });
+
+		const exportButton = page.querySelector("[data-admin-export]");
+		const exportStatus = page.querySelector("[data-admin-export-status]");
+		exportButton?.addEventListener("click", async () => {
+			const originalLabel = exportButton.textContent;
+			exportButton.disabled = true;
+			exportButton.textContent = "Preparing Download...";
+			setStatus(exportStatus, "Preparing a secure registration export...", "info");
+
+			try {
+				const [registrationsResult, eventsResult, attendeesResult] = await Promise.all([
+					state.client.from("event_registrations").select("id,event_id,registration_source,contact_name,contact_email,contact_phone,status,participant_count,referral_source,referral_source_other,future_event_emails,created_at").order("created_at", { ascending: false }),
+					state.client.from("events").select("id,title,starts_at"),
+					state.client.from("event_registration_attendees").select("registration_id,position,full_name,attendee_type,age,school_district,grade").order("position"),
+				]);
+				for (const result of [registrationsResult, eventsResult, attendeesResult]) {
+					if (result.error) throw result.error;
+				}
+
+				const events = new Map((eventsResult.data || []).map((event) => [event.id, event]));
+				const attendeesByRegistration = new Map();
+				(attendeesResult.data || []).forEach((attendee) => {
+					const attendees = attendeesByRegistration.get(attendee.registration_id) || [];
+					attendees.push(attendee);
+					attendeesByRegistration.set(attendee.registration_id, attendees);
+				});
+				const headers = [
+					"Event",
+					"Event Start (America/New_York)",
+					"Registration Status",
+					"Signup Type",
+					"Primary Contact",
+					"Contact Email",
+					"Contact Phone",
+					"Attendee",
+					"Attendee Type",
+					"Age",
+					"School / District",
+					"Referral Source",
+					"Future Event Emails",
+					"Registered At (America/New_York)",
+					"Registration ID",
+				];
+				const values = (registrationsResult.data || []).flatMap((registration) => {
+					const event = events.get(registration.event_id);
+					const attendees = attendeesByRegistration.get(registration.id) || [null];
+					return attendees.map((attendee) => [
+						event?.title || "Archived event",
+						event?.starts_at ? shortDateTimeFormatter.format(new Date(event.starts_at)) : "",
+						registration.status === "waitlisted" ? "On waitlist" : registration.status === "cancelled" ? "Cancelled" : "Confirmed",
+						registration.registration_source === "guest" ? "Guest signup" : "Household account",
+						registration.contact_name,
+						registration.contact_email,
+						registration.contact_phone,
+						attendee?.full_name || "",
+						attendee?.attendee_type === "child" ? "Child / Youth" : attendee?.attendee_type === "adult" ? "Adult" : "",
+						attendee?.age ?? "",
+						attendee?.school_district || "",
+						formatReferralSource(registration.referral_source, registration.referral_source_other),
+						registration.future_event_emails ? "Yes" : "No",
+						shortDateTimeFormatter.format(new Date(registration.created_at)),
+						registration.id,
+					]);
+				});
+				const csv = [headers, ...values].map((row) => row.map(csvCell).join(",")).join("\r\n");
+				const blob = new Blob(["\ufeff", csv], { type: "text/csv;charset=utf-8" });
+				const downloadUrl = URL.createObjectURL(blob);
+				const link = document.createElement("a");
+				link.href = downloadUrl;
+				link.download = `pca-registrations-${new Date().toISOString().slice(0, 10)}.csv`;
+				document.body.appendChild(link);
+				link.click();
+				link.remove();
+				URL.revokeObjectURL(downloadUrl);
+				setStatus(exportStatus, `Downloaded ${values.length} attendee row${values.length === 1 ? "" : "s"}.`, "success");
+			} catch (error) {
+				console.error("Registration export failed.", error);
+				setStatus(exportStatus, "The registration export could not be created. Please refresh and try again.", "error");
+			} finally {
+				exportButton.disabled = false;
+				exportButton.textContent = originalLabel;
+			}
+		});
 	};
 
 	const initializeAdminVolunteerManagement = async (events) => {
@@ -2684,6 +2919,7 @@
 		await loadAccountUse(state.session);
 		void notifyVolunteerApplication(state.session);
 		await syncNavigation(state.session);
+		initializeModernAdminUtilities();
 
 		window.PCA = {
 			supabase: state.client,

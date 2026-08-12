@@ -9,7 +9,7 @@ import {
 	requirePermanentAccount,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260730-account-ux-v1";
+} from "./core-auth.js?v=20260812-production-revamp-v1";
 
 const roleLabels = {
 	student_council: "Student Council",
@@ -270,6 +270,52 @@ const renderHouseholdRegistration = (registration, event, attendees, supabase, r
 	const list = createElement("ul", "pca-compact-list");
 	attendees.forEach((attendee) => list.appendChild(createElement("li", "", attendee.full_name)));
 	card.appendChild(list);
+	if (registration.status === "confirmed" && new Date(event.ends_at) > new Date()) {
+		const checkin = createElement("details", "pca-checkin-card");
+		const summary = createElement("summary", "", "Event check-in code");
+		const copy = createElement("p", "pca-form-help", "Create a secure code when PCA staff asks for it at check-in. Creating a new code replaces the previous one.");
+		const code = createElement("output", "pca-checkin-code");
+		code.hidden = true;
+		const copyCode = createElement("button", "button small", "Copy Code");
+		copyCode.type = "button";
+		copyCode.hidden = true;
+		copyCode.addEventListener("click", async () => {
+			try {
+				await navigator.clipboard.writeText(code.textContent);
+				status.textContent = "Check-in code copied.";
+				status.className = "pca-backend-status is-success";
+			} catch {
+				status.textContent = "Copy was blocked by your browser. Select the code and copy it manually.";
+				status.className = "pca-backend-status is-info";
+			}
+		});
+		const status = createElement("p", "pca-backend-status");
+		status.setAttribute("role", "status");
+		status.setAttribute("aria-live", "polite");
+		const issue = createElement("button", "button small", "Create Check-in Code");
+		issue.type = "button";
+		issue.addEventListener("click", async () => {
+			if (!window.confirm("Create a new check-in code? Any previously created code for this registration will stop working.")) return;
+			issue.disabled = true;
+			status.textContent = "Creating a secure code...";
+			status.className = "pca-backend-status is-info";
+			const { data: token, error } = await supabase.rpc("issue_registration_checkin_token", { p_registration_id: registration.id });
+			issue.disabled = false;
+			if (error || !token) {
+				status.textContent = friendlyError(error, "The check-in code could not be created.");
+				status.className = "pca-backend-status is-error";
+				return;
+			}
+			code.textContent = String(token).toUpperCase();
+			code.hidden = false;
+			copyCode.hidden = false;
+			issue.textContent = "Replace Check-in Code";
+			status.textContent = "Show this code to PCA staff. For your privacy, it will disappear when you leave this page.";
+			status.className = "pca-backend-status is-success";
+		});
+		checkin.append(summary, copy, issue, code, copyCode, status);
+		card.appendChild(checkin);
+	}
 	if (registration.status !== "cancelled" && new Date(event.starts_at) > new Date()) {
 		const actions = createElement("ul", "actions");
 		const edit = createElement("a", "button", "Change Registration");
@@ -285,6 +331,12 @@ const renderHouseholdRegistration = (registration, event, attendees, supabase, r
 				window.alert(friendlyError(error, "The registration could not be cancelled."));
 				return;
 			}
+			void supabase.functions.invoke("pca-transactional-email", {
+				body: { retry_promotions: true, source_registration_id: registration.id, event_id: event.id },
+			})
+				.then(({ error: promotionError }) => {
+					if (promotionError) console.debug("A waitlist notification remains safely queued.", promotionError);
+				});
 			await reload();
 		});
 		actions.append(createElement("li", "").appendChild(edit).parentElement, createElement("li", "").appendChild(cancel).parentElement);
