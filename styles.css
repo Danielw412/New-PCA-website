@@ -1,5 +1,6 @@
 :root {
 	--pca-red: #d71920;
+	--pca-red-soft: #f7dfe1;
 	--pca-red-700: #b5121b;
 	--pca-red-800: #8d0e16;
 	--pca-red-950: #31070a;
@@ -3739,7 +3740,11 @@ header.major::after {
 	border-right: 0;
 }
 
-.pca-involvement-card.is-featured,
+.pca-involvement-card.is-featured {
+	background: var(--pca-red-soft);
+	color: var(--pca-ink);
+}
+
 .pca-involvement-card:hover {
 	background: var(--pca-red-800);
 	color: #fff;
