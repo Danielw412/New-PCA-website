@@ -152,6 +152,11 @@ hr {
 	font-weight: 900;
 }
 
+.icon.regular {
+	font-family: "Font Awesome 5 Free";
+	font-weight: 400;
+}
+
 .icon.brands {
 	font-family: "Font Awesome 5 Brands";
 	font-weight: 400;
