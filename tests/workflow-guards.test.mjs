@@ -9,6 +9,7 @@ const read = (path) => readFileSync(resolve(root, path), "utf8");
 
 const registration = await import("../assets/js/modules/events-registration.js");
 const administration = await import("../assets/js/modules/administration.js");
+const accounts = await import("../assets/js/modules/accounts.js");
 
 test("registration referral details never leak a stale Other value", () => {
 	assert.equal(registration.registrationReferralDetails("other", "  Community fair  "), "Community fair");
@@ -39,6 +40,27 @@ test("check-in eligibility excludes stale and invalid registrations", () => {
 	assert.deepEqual(administration.checkinEligibility({ checked_in_at: null, registration_status: "confirmed", event_deleted_at: "2026-08-01T10:00:00Z" }), { allowed: false, reason: "archived" });
 	assert.deepEqual(administration.checkinEligibility({ checked_in_at: null, registration_status: "cancelled", event_deleted_at: null }), { allowed: false, reason: "not_confirmed" });
 	assert.deepEqual(administration.checkinEligibility({ checked_in_at: null, registration_status: "confirmed", event_deleted_at: null }), { allowed: true, reason: null });
+});
+
+test("profile event records exclude deleted events before rendering or counting", () => {
+	const records = [
+		{ id: "registration-active", event_id: "event-active" },
+		{ id: "registration-deleted", event_id: "event-deleted" },
+		{ id: "registration-missing", event_id: "event-missing" },
+	];
+	const events = new Map([
+		["event-active", { deleted_at: null }],
+		["event-deleted", { deleted_at: "2026-07-31T00:14:11Z" }],
+	]);
+
+	assert.deepEqual(accounts.filterRecordsWithVisibleEvents(records, events), [records[0]]);
+});
+
+test("deleted events are excluded from registered and assigned user visibility", () => {
+	const migration = read("supabase/migrations/20260815180354_hide_deleted_events_from_profiles.sql");
+	assert.match(migration, /deleted_at is null[\s\S]*?registrations\.event_id = events\.id/);
+	assert.match(migration, /deleted_at is null[\s\S]*?volunteer_assignments\.event_id = events\.id/);
+	assert.match(migration, /private\.is_site_administrator\(\)/);
 });
 
 test("password updates retain the documented current-password field", () => {

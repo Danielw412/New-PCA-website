@@ -9,13 +9,18 @@ import {
 	requirePermanentAccount,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260812-production-revamp-v2";
+} from "./core-auth.js?v=20260815-production-revamp-v4";
 
 const roleLabels = {
 	student_council: "Student Council",
 	editor: "Blog Editor",
 	volunteer: "Volunteer",
 };
+
+export const filterRecordsWithVisibleEvents = (records, eventById) => records.filter((record) => {
+	const event = eventById.get(record.event_id);
+	return event && !event.deleted_at;
+});
 
 const requestVolunteerSubmissionEmails = async (supabase, applicationId) => {
 	if (!applicationId) return;
@@ -76,21 +81,27 @@ const renderTeenAssignments = async (supabase, assignments, container) => {
 	container.replaceChildren();
 	if (!assignments.length) {
 		container.appendChild(createElement("p", "pca-empty-state", "No volunteer event assignments yet."));
-		return;
+		return [];
 	}
 	const eventIds = [...new Set(assignments.map((assignment) => assignment.event_id))];
-	const { data: events, error } = await supabase.from("events").select("id,title,starts_at,ends_at,location").in("id", eventIds);
+	const { data: events, error } = await supabase.from("events").select("id,title,starts_at,ends_at,location,deleted_at").in("id", eventIds).is("deleted_at", null);
 	if (error) throw error;
 	const eventById = new Map((events || []).map((event) => [event.id, event]));
-	assignments.forEach((assignment) => {
+	const activeAssignments = filterRecordsWithVisibleEvents(assignments, eventById);
+	if (!activeAssignments.length) {
+		container.appendChild(createElement("p", "pca-empty-state", "No volunteer event assignments yet."));
+		return [];
+	}
+	activeAssignments.forEach((assignment) => {
 		const event = eventById.get(assignment.event_id);
 		const card = createElement("article", "pca-card pca-assignment-card");
-		card.append(createElement("span", "pca-status-badge", assignment.status), createElement("h3", "", event?.title || "PCA event"));
+		card.append(createElement("span", "pca-status-badge", assignment.status), createElement("h3", "", event.title));
 		card.appendChild(createElement("p", "", assignment.role_title));
-		if (event) card.appendChild(createElement("p", "", `${formatEventRange(event)} · ${event.location}`));
+		card.appendChild(createElement("p", "", `${formatEventRange(event)} · ${event.location}`));
 		if (assignment.instructions) card.appendChild(createElement("p", "", assignment.instructions));
 		container.appendChild(card);
 	});
+	return activeAssignments;
 };
 
 const initializeTeenDashboard = async () => {
@@ -134,7 +145,7 @@ const initializeTeenDashboard = async () => {
 	const roleNames = new Set(roles.map(({ role }) => role));
 	page.querySelector("[data-editor-tools]").hidden = !roleNames.has("editor");
 	page.querySelector("[data-volunteer-tools]").hidden = !roleNames.has("volunteer");
-	await renderTeenAssignments(supabase, assignmentsResult.data || [], page.querySelector("[data-teen-assignments]"));
+	const visibleAssignments = await renderTeenAssignments(supabase, assignmentsResult.data || [], page.querySelector("[data-teen-assignments]"));
 
 	if (roleNames.has("volunteer")) {
 		const profileForm = page.querySelector("[data-teen-volunteer-profile-form]");
@@ -171,7 +182,7 @@ const initializeTeenDashboard = async () => {
 
 		const hoursForm = page.querySelector("[data-teen-hours-form]");
 		const assignmentSelect = hoursForm.elements.assignment_id;
-		const activeAssignments = (assignmentsResult.data || []).filter((assignment) => assignment.status !== "cancelled");
+		const activeAssignments = visibleAssignments.filter((assignment) => assignment.status !== "cancelled");
 		const assignmentById = new Map(activeAssignments.map((assignment) => [assignment.id, assignment]));
 		activeAssignments.forEach((assignment) => {
 			const option = createElement("option", "", assignment.role_title);
@@ -399,19 +410,19 @@ const initializeHouseholdDashboard = async () => {
 		const eventIds = [...new Set(registrations.map((registration) => registration.event_id))];
 		const registrationIds = registrations.map((registration) => registration.id);
 		const [eventsResult, attendeesResult] = await Promise.all([
-			supabase.from("events").select("id,title,location,starts_at,ends_at").in("id", eventIds),
+			supabase.from("events").select("id,title,location,starts_at,ends_at,deleted_at").in("id", eventIds).is("deleted_at", null),
 			supabase.from("event_registration_attendees").select("*").in("registration_id", registrationIds).order("position"),
 		]);
 		if (eventsResult.error) throw eventsResult.error;
 		if (attendeesResult.error) throw attendeesResult.error;
 		const events = new Map((eventsResult.data || []).map((event) => [event.id, event]));
-		registrations.forEach((registration) => {
+		const visibleRegistrations = filterRecordsWithVisibleEvents(registrations, events);
+		visibleRegistrations.forEach((registration) => {
 			const event = events.get(registration.event_id);
-			if (!event) return;
 			const attendees = (attendeesResult.data || []).filter((attendee) => attendee.registration_id === registration.id);
 			container.appendChild(renderHouseholdRegistration(registration, event, attendees, supabase, loadRegistrations));
 		});
-		const counts = { all: registrations.length, upcoming: 0, past: 0, waitlisted: 0, cancelled: 0 };
+		const counts = { all: visibleRegistrations.length, upcoming: 0, past: 0, waitlisted: 0, cancelled: 0 };
 		container.querySelectorAll("[data-registration-group]").forEach((card) => {
 			if (Object.hasOwn(counts, card.dataset.registrationGroup)) counts[card.dataset.registrationGroup] += 1;
 		});

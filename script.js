@@ -1,4 +1,4 @@
-const ASSET_VERSION = "20260812-production-revamp-v2";
+const ASSET_VERSION = "20260815-production-revamp-v4";
 const MOBILE_NAV_QUERY = window.matchMedia("(max-width: 980px)");
 const REDUCED_MOTION_QUERY = window.matchMedia("(prefers-reduced-motion: reduce)");
 
