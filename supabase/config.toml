@@ -11,7 +11,7 @@ verify_jwt = true
 enabled = true
 # Port to use for the API URL.
 port = 54321
-# Schemas to expose in your API. Tables, views and stored procedures in this schema will get API
+# Schemas to expose in your API. Tables, views and stored procedures in this schema get API
 # endpoints. `public` and `graphql_public` schemas are included by default.
 schemas = ["public", "graphql_public"]
 # Extra schemas to add to the search_path of every request.
@@ -38,7 +38,7 @@ enabled = false
 port = 54322
 # Port used by db diff command to initialize the shadow database.
 shadow_port = 54320
-# Maximum amount of time to wait for health check when starting the local database.
+# Maximum amount of time to wait for health check before timing out.
 health_timeout = "2m"
 # The database major version to use. This has to be the same as your remote database's. Run `SHOW
 # server_version;` on the remote database to check.
@@ -67,9 +67,9 @@ enabled = true
 schema_paths = []
 
 [db.seed]
-# If enabled, seeds the database after migrations during a db reset.
+# If enabled, seeds will be applied during a db reset.
 enabled = true
-# Specifies an ordered list of seed files to load during db reset.
+# Specifies an ordered list of seed files to load during a db reset.
 # Supports glob patterns relative to supabase directory: "./seeds/*.sql"
 sql_paths = ["./seed.sql"]
 
@@ -117,7 +117,7 @@ port = 54324
 
 [storage]
 enabled = true
-# The maximum file size allowed (e.g. "5MB", "500KB").
+# The maximum file size (e.g. "5MB", "500KB").
 file_size_limit = "50MiB"
 
 # Uncomment to configure local storage buckets
@@ -135,7 +135,7 @@ enabled = true
 # [storage.image_transformation]
 # enabled = true
 
-# Store analytical data in S3 for running ETL jobs over Iceberg Catalog
+# Store analytical data in S3 for running ETL over Iceberg Catalog
 # This feature is only available on the hosted platform.
 [storage.analytics]
 enabled = false
@@ -159,13 +159,15 @@ max_indexes = 5
 enabled = true
 # The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
 # in emails.
-site_url = "https://danielw412.github.io/New-PCA-website/"
+site_url = "https://pcayouthcenter.org/"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
 additional_redirect_urls = [
   "http://127.0.0.1:3000/**",
   "http://localhost:3000/**",
+  "https://pcayouthcenter.org/**",
+  "https://www.pcayouthcenter.org/**",
   "https://danielw412.github.io/New-PCA-website/**"
 ]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
@@ -176,7 +178,7 @@ jwt_expiry = 3600
 # signing_keys_path = "./signing_keys.json"
 # If disabled, the refresh token will never expire.
 enable_refresh_token_rotation = true
-# Allows refresh tokens to be reused after expiry, up to the specified interval in seconds.
+# Allows refresh tokens to be reused after expiry, up to the specified interval.
 # Requires enable_refresh_token_rotation = true.
 refresh_token_reuse_interval = 10
 # Allow/disallow new user signups to your project.
@@ -290,7 +292,7 @@ max_frequency = "5s"
 # This hook runs before a token is issued and allows you to add additional claims based on the authentication method used.
 # [auth.hook.custom_access_token]
 # enabled = true
-# uri = "pg-functions://<database>/<schema>/<hook_name>"
+# uri = "pg-functions://<postgres>/<schema>/<hook_name>"
 
 # Configure one of the supported SMS providers: `twilio`, `twilio_verify`, `messagebird`, `textlocal`, `vonage`.
 [auth.sms.twilio]
@@ -302,15 +304,10 @@ auth_token = "env(SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN)"
 
 # Multi-factor-authentication is available to Supabase Pro plan.
 [auth.mfa]
-# Control how many MFA factors can be enrolled at once per user.
+# Control how many MFA factors can be enrolled at once.
 max_enrolled_factors = 10
 
-# Control MFA via App Authenticator (TOTP)
-[auth.mfa.totp]
-enroll_enabled = true
-verify_enabled = true
-
-# Configure MFA via Phone Messaging
+# Control MFA via Phone Messaging
 [auth.mfa.phone]
 enroll_enabled = false
 verify_enabled = false
@@ -382,7 +379,7 @@ allow_dynamic_registration = false
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.
 # `per_worker` (default) — enables hot reload during local development.
-# `oneshot` — fallback mode if hot reload causes issues (e.g. in large repos or with symlinks).
+# `oneshot` — fallback if hot reload causes issues with Edge Function bundling.
 policy = "per_worker"
 # Port to attach the Chrome inspector for debugging edge functions.
 inspector_port = 8083
