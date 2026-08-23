@@ -86,7 +86,7 @@ const messageFor = (delivery: Delivery, siteUrl: string): Message => {
       return {
         subject: `${waitlisted ? "Waitlist confirmation" : "Registration confirmation"}: ${eventTitle}`,
         html: pageShell("Event registration", eventTitle, body, { label: "View upcoming events", url: `${siteUrl}upcoming-events.html` }),
-        text: `Hi ${name},\n\n${statusLine}\n\n${eventTitle}\n${date}\n${location}\n${payload.participant_count} attendee(s)\n\nPCA Youth Center`,
+        text: `Hi ${name}\n\n${statusLine}\n\n${eventTitle}\n${date}\n${location}\n${payload.participant_count} attendee(s)\n\nPCA Youth Center`,
       };
     }
     case "event_waitlist_promoted": {
@@ -263,7 +263,12 @@ Deno.serve(async (request) => {
       };
     }
 
-    const siteUrl = (Deno.env.get("PCA_SITE_URL") || "https://danielw412.github.io/New-PCA-website/").replace(/\/?$/, "/");
+    const configuredSiteUrl = Deno.env.get("PCA_SITE_URL")?.trim();
+    const siteUrl = (
+      configuredSiteUrl && /^https:\/\/(www\.)?pcayouthcenter\.org(?:\/|$)/i.test(configuredSiteUrl)
+        ? configuredSiteUrl
+        : "https://pcayouthcenter.org/"
+    ).replace(/\/?$/, "/");
     const message = messageFor(delivery, siteUrl);
 
     try {
@@ -371,42 +376,42 @@ Deno.serve(async (request) => {
       const { data: userData, error: userError } = await userClient.auth.getUser();
       if (userError || !userData.user) return jsonResponse({ error: "Authentication is required." }, 401);
 
-	  const { data: administrator } = await adminClient
-		.from("admin_users")
-		.select("user_id")
-		.eq("user_id", userData.user.id)
-		.maybeSingle();
+      const { data: administrator } = await adminClient
+        .from("admin_users")
+        .select("user_id")
+        .eq("user_id", userData.user.id)
+        .maybeSingle();
 
-	  if (administrator) {
-		const results = await processClaimableDeliveries("event_waitlist_promoted");
-		return jsonResponse({ processed: results.length, results });
-	  }
+      if (administrator) {
+        const results = await processClaimableDeliveries("event_waitlist_promoted");
+        return jsonResponse({ processed: results.length, results });
+      }
 
-	  const sourceRegistrationId = String(body.source_registration_id || "");
-	  const eventId = String(body.event_id || "");
-	  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-	  if (!uuidPattern.test(sourceRegistrationId) || !uuidPattern.test(eventId)) {
-		return jsonResponse({ error: "A recent registration change is required." }, 403);
-	  }
+      const sourceRegistrationId = String(body.source_registration_id || "");
+      const eventId = String(body.event_id || "");
+      const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if (!uuidPattern.test(sourceRegistrationId) || !uuidPattern.test(eventId)) {
+        return jsonResponse({ error: "A recent registration change is required." }, 403);
+      }
 
-	  const { data: sourceRegistration, error: sourceError } = await adminClient
-		.from("registrations")
-		.select("account_id,event_id,updated_at")
-		.eq("id", sourceRegistrationId)
-		.maybeSingle();
-	  const changedRecently = sourceRegistration?.updated_at
-		&& Date.now() - new Date(sourceRegistration.updated_at).getTime() <= 5 * 60 * 1000;
-	  if (
-		sourceError
-		|| !sourceRegistration
-		|| sourceRegistration.account_id !== userData.user.id
-		|| sourceRegistration.event_id !== eventId
-		|| !changedRecently
-	  ) {
-		return jsonResponse({ error: "You cannot dispatch notifications for this registration." }, 403);
-	  }
+      const { data: sourceRegistration, error: sourceError } = await adminClient
+        .from("registrations")
+        .select("account_id,event_id,updated_at")
+        .eq("id", sourceRegistrationId)
+        .maybeSingle();
+      const changedRecently = sourceRegistration?.updated_at
+        && Date.now() - new Date(sourceRegistration.updated_at).getTime() <= 5 * 60 * 1000;
+      if (
+        sourceError
+        || !sourceRegistration
+        || sourceRegistration.account_id !== userData.user.id
+        || sourceRegistration.event_id !== eventId
+        || !changedRecently
+      ) {
+        return jsonResponse({ error: "You cannot dispatch notifications for this registration." }, 403);
+      }
 
-	  const results = await processInitialEventPromotions(eventId);
+      const results = await processInitialEventPromotions(eventId);
       return jsonResponse({ processed: results.length });
     }
 
