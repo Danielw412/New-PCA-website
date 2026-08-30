@@ -44,6 +44,23 @@
 		timeZone: APP_TIME_ZONE,
 	});
 
+	const eventDateOnlyFormatter = new Intl.DateTimeFormat("en-US", {
+		dateStyle: "long",
+		timeZone: "UTC",
+	});
+
+	const parseDateOnly = (value) => {
+		const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ""));
+		if (!match) return null;
+		const [, year, month, day] = match;
+		return new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+	};
+
+	const formatDateOnly = (value) => {
+		const date = parseDateOnly(value);
+		return date ? eventDateOnlyFormatter.format(date) : "";
+	};
+
 	const accountDateFormatter = new Intl.DateTimeFormat("en-US", {
 		dateStyle: "long",
 		timeZone: APP_TIME_ZONE,
@@ -258,15 +275,26 @@
 	};
 
 	const formatEventRange = (event) => {
-		const start = new Date(event.starts_at);
-		const end = new Date(event.ends_at);
+		if (event?.starts_at && event?.ends_at) {
+			const start = new Date(event.starts_at);
+			const end = new Date(event.ends_at);
 
-		if (typeof dateTimeFormatter.formatRange === "function") {
-			return dateTimeFormatter.formatRange(start, end);
+			if (typeof dateTimeFormatter.formatRange === "function") {
+				return dateTimeFormatter.formatRange(start, end);
+			}
+
+			return `${dateTimeFormatter.format(start)} – ${dateTimeFormatter.format(end)}`;
 		}
 
-		return `${dateTimeFormatter.format(start)} – ${dateTimeFormatter.format(end)}`;
+		return event?.starts_at
+			? dateTimeFormatter.format(new Date(event.starts_at))
+			: formatDateOnly(event?.event_date) || "Date not listed";
 	};
+
+	const formatEventMeta = (event) => [
+		event?.starts_at ? formatEventRange(event) : formatDateOnly(event?.event_date),
+		event?.location || "",
+	].filter(Boolean).join(" · ");
 
 	const makeEventDetail = (label, value) => {
 		const detail = createElement("div", "pca-event-detail");
@@ -803,25 +831,29 @@
 
 	const createEventCard = (event, session) => {
 		const card = createElement("article", "pca-card pca-event-card pca-event-agenda");
-		const start = new Date(event.starts_at);
+		const start = event.starts_at ? new Date(event.starts_at) : parseDateOnly(event.event_date);
+		const dateTimeZone = event.starts_at ? APP_TIME_ZONE : "UTC";
 		const date = createElement("time", "pca-event-agenda__date");
-		date.dateTime = event.starts_at;
-		date.append(
-			createElement("span", "pca-event-agenda__month", start.toLocaleDateString("en-US", { month: "short", timeZone: "America/New_York" })),
-			createElement("span", "pca-event-agenda__day", start.toLocaleDateString("en-US", { day: "numeric", timeZone: "America/New_York" })),
-			createElement("span", "pca-event-agenda__year", start.toLocaleDateString("en-US", { year: "numeric", timeZone: "America/New_York" }))
-		);
+		date.dateTime = event.starts_at || event.event_date || "";
+		if (start) {
+			date.append(
+				createElement("span", "pca-event-agenda__month", start.toLocaleDateString("en-US", { month: "short", timeZone: dateTimeZone })),
+				createElement("span", "pca-event-agenda__day", start.toLocaleDateString("en-US", { day: "numeric", timeZone: dateTimeZone })),
+				createElement("span", "pca-event-agenda__year", start.toLocaleDateString("en-US", { year: "numeric", timeZone: dateTimeZone }))
+			);
+		}
 		const body = createElement("div", "pca-event-agenda__body");
 		body.appendChild(createElement("p", "pca-event-agenda__kicker", event.lifecycle === "in_progress" ? "Happening now" : "Next PCA event"));
 		body.appendChild(createElement("h2", "", event.title));
-		body.appendChild(createElement("p", "pca-event-agenda__meta", `${formatEventRange(event)} · ${event.location}`));
+		const meta = formatEventMeta(event);
+		if (meta) body.appendChild(createElement("p", "pca-event-agenda__meta", meta));
 
 		if (event.description) {
 			body.appendChild(createElement("p", "", event.description));
 		}
 
 		const registrationMeta = createElement("p", "pca-event-registration-meta");
-		const eventStarted = new Date(event.starts_at) <= new Date();
+		const eventStarted = !event.starts_at || new Date(event.starts_at) <= new Date();
 		const canRegister = typeof event.registration_available === "boolean"
 			? event.registration_available
 			: event.registration_open && !eventStarted;
@@ -865,9 +897,9 @@
 	const loadPublicEvents = async (lifecycle) => {
 		let query = state.client
 			.from("event_catalog")
-			.select("id,title,description,location,starts_at,ends_at,capacity,max_participants_per_registration,registration_open,published,lifecycle,registration_available");
+			.select("id,title,description,location,starts_at,ends_at,capacity,max_participants_per_registration,registration_open,published,lifecycle,registration_available,event_date");
 		query = lifecycle === "past"
-			? query.eq("lifecycle", "past").order("ends_at", { ascending: false })
+			? query.eq("lifecycle", "past").order("event_date", { ascending: false }).order("ends_at", { ascending: false, nullsFirst: false })
 			: query.in("lifecycle", ["upcoming", "in_progress"]).order("starts_at", { ascending: true });
 		const result = await query;
 		if (!result.error) return result;
@@ -875,17 +907,26 @@
 
 		let fallback = state.client
 			.from("events")
-			.select("id,title,description,location,starts_at,ends_at,capacity,max_participants_per_registration,registration_open,published");
+			.select("id,title,description,location,starts_at,ends_at,capacity,max_participants_per_registration,registration_open,published,event_date");
+		const now = new Date();
+		const easternToday = new Intl.DateTimeFormat("en-CA", {
+			timeZone: APP_TIME_ZONE,
+			year: "numeric",
+			month: "2-digit",
+			day: "2-digit",
+		}).format(now);
 		fallback = lifecycle === "past"
-			? fallback.lt("ends_at", new Date().toISOString()).order("ends_at", { ascending: false })
-			: fallback.gte("ends_at", new Date().toISOString()).order("starts_at", { ascending: true });
+			? fallback.or(`ends_at.lt.${now.toISOString()},and(starts_at.is.null,event_date.lte.${easternToday})`).order("event_date", { ascending: false }).order("ends_at", { ascending: false, nullsFirst: false })
+			: fallback.or(`ends_at.gte.${now.toISOString()},and(starts_at.is.null,event_date.gt.${easternToday})`).order("starts_at", { ascending: true });
 		const fallbackResult = await fallback;
 		return {
 			...fallbackResult,
 			data: (fallbackResult.data || []).map((event) => ({
 				...event,
-				lifecycle: new Date(event.starts_at) <= new Date() ? "in_progress" : lifecycle,
-				registration_available: event.registration_open && new Date(event.starts_at) > new Date(),
+				lifecycle: event.starts_at
+					? (new Date(event.ends_at) < now ? "past" : new Date(event.starts_at) <= now ? "in_progress" : "upcoming")
+					: event.event_date <= easternToday ? "past" : "upcoming",
+				registration_available: Boolean(event.registration_open && event.starts_at && new Date(event.starts_at) > now),
 			})),
 		};
 	};
@@ -941,17 +982,18 @@
 		toggle.append(createElement("span", "", event.title), icon);
 		const body = createElement("div", "pca-archive-entry__body");
 		body.hidden = true;
-		const date = createElement("time", "pca-event-agenda__kicker", new Date(event.starts_at).toLocaleDateString("en-US", {
-			month: "long",
-			day: "numeric",
-			year: "numeric",
-			timeZone: "America/New_York",
-		}));
-		date.dateTime = event.starts_at;
-		body.append(
-			date,
-			createElement("p", "pca-event-agenda__meta", `${formatEventRange(event)} · ${event.location}`)
-		);
+		const dateText = event.event_date
+			? formatDateOnly(event.event_date)
+			: event.starts_at
+				? eventDateFormatter.format(new Date(event.starts_at))
+				: "";
+		if (dateText) {
+			const date = createElement("time", "pca-event-agenda__kicker", dateText);
+			date.dateTime = event.event_date || event.starts_at;
+			body.appendChild(date);
+		}
+		const meta = [event.starts_at && event.ends_at ? formatEventRange(event) : "", event.location || ""].filter(Boolean).join(" · ");
+		if (meta) body.appendChild(createElement("p", "pca-event-agenda__meta", meta));
 		if (event.description) body.appendChild(createElement("p", "", event.description));
 		card.append(toggle, body);
 		toggle.addEventListener("click", () => {
@@ -1115,7 +1157,7 @@
 		const [{ data: event, error: eventError }, { data: existing, error: existingError }] = await Promise.all([
 			state.client
 				.from("events")
-				.select("id,title,description,location,starts_at,ends_at,capacity,max_participants_per_registration,registration_open,published")
+				.select("id,title,description,location,starts_at,ends_at,capacity,max_participants_per_registration,registration_open,published,event_date")
 				.eq("id", eventId)
 				.maybeSingle(),
 			state.client
@@ -1398,7 +1440,7 @@
 					instructions,
 					status,
 					created_at,
-					event:events!volunteer_assignments_event_id_fkey(id,title,description,location,starts_at,ends_at)
+					event:events!volunteer_assignments_event_id_fkey(id,title,description,location,starts_at,ends_at,event_date)
 				`)
 				.eq("volunteer_user_id", session.user.id)
 				.order("created_at", { ascending: false }),
@@ -2046,7 +2088,7 @@
 					created_at,
 					referral_source,
 					referral_source_other,
-					event:events!registrations_event_id_fkey(id,title,description,location,starts_at,ends_at),
+					event:events!registrations_event_id_fkey(id,title,description,location,starts_at,ends_at,event_date),
 					participants:registration_participants(id,position,full_name,attendee_type,age,school_district,grade)
 				`)
 				.eq("account_id", session.user.id)

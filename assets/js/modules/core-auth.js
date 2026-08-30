@@ -11,6 +11,18 @@ const shortDateFormatter = new Intl.DateTimeFormat("en-US", {
 	timeZone: APP_TIME_ZONE,
 });
 
+const dateOnlyFormatter = new Intl.DateTimeFormat("en-US", {
+	dateStyle: "long",
+	timeZone: "UTC",
+});
+
+const formatDateOnly = (value) => {
+	const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ""));
+	if (!match) return "";
+	const [, year, month, day] = match;
+	return dateOnlyFormatter.format(new Date(Date.UTC(Number(year), Number(month) - 1, Number(day))));
+};
+
 export const createElement = (tagName, className = "", text = "") => {
 	const element = document.createElement(tagName);
 	if (className) element.className = className;
@@ -42,11 +54,16 @@ export const setFormBusy = (form, busy, label = "Working...") => {
 };
 
 export const formatEventRange = (event) => {
-	const start = new Date(event.starts_at);
-	const end = new Date(event.ends_at);
-	return typeof dateTimeFormatter.formatRange === "function"
-		? dateTimeFormatter.formatRange(start, end)
-		: `${dateTimeFormatter.format(start)} – ${dateTimeFormatter.format(end)}`;
+	if (event?.starts_at && event?.ends_at) {
+		const start = new Date(event.starts_at);
+		const end = new Date(event.ends_at);
+		return typeof dateTimeFormatter.formatRange === "function"
+			? dateTimeFormatter.formatRange(start, end)
+			: `${dateTimeFormatter.format(start)} – ${dateTimeFormatter.format(end)}`;
+	}
+	return event?.starts_at
+		? dateTimeFormatter.format(new Date(event.starts_at))
+		: formatDateOnly(event?.event_date) || "Date not listed";
 };
 
 export const formatShortDate = (value) => shortDateFormatter.format(new Date(value));

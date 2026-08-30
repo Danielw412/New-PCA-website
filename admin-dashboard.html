@@ -7,7 +7,7 @@
 		<meta name="theme-color" content="#fffaf7" />
 		<meta name="description" content="PCA Youth Center administrator dashboard for registrations and volunteer management." />
 		<link rel="stylesheet" href="assets/css/fontawesome-all.min.css" />
-		<link rel="stylesheet" href="styles.css?v=20260815-production-revamp-v4" />
+		<link rel="stylesheet" href="styles.css?v=20260830-past-events-v1" />
 	</head>
 		<body>
 		<a class="skip-link" href="#main">Skip to content</a>
@@ -87,13 +87,14 @@
 
 					<section id="admin-panel-overview" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-overview" data-admin-panel="overview"><h2>At a glance</h2><p>Counts include current and historical records unless marked as awaiting review.</p><div class="pca-admin-metric-grid"><article class="pca-card"><strong data-admin-count="events">—</strong><span>Current and past events</span></article><article class="pca-card"><strong data-admin-count="registrations">—</strong><span>All registrations</span></article><article class="pca-card"><strong data-admin-count="volunteer-requests">—</strong><span>Volunteer requests awaiting review</span></article><article class="pca-card"><strong data-admin-count="households">—</strong><span>Household accounts</span></article><article class="pca-card"><strong data-admin-count="volunteer-applications">—</strong><span>Volunteer accounts awaiting review</span></article><article class="pca-card"><strong data-admin-count="blog-posts">—</strong><span>Draft and published blog posts</span></article></div></section>
 
-					<section id="admin-panel-events" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-events" data-admin-panel="events" hidden><h2>Events</h2><details class="pca-admin-create-panel" open><summary><span>Create or Edit an Event</span><small>Times are entered in Eastern Time</small></summary><form data-admin-event-form><input type="hidden" name="event_id" />
+					<section id="admin-panel-events" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-events" data-admin-panel="events" hidden><h2>Events</h2><details class="pca-admin-create-panel" open><summary><span>Create or Edit an Event</span><small>Event date is required; times are optional and use Eastern Time</small></summary><form data-admin-event-form><input type="hidden" name="event_id" />
 							<div class="pca-admin-event-fields">
 								<div class="field pca-field-wide"><label for="admin-event-title">Event title</label><input type="text" id="admin-event-title" name="title" maxlength="160" required /></div>
 								<div class="field pca-field-wide"><label for="admin-event-description">Description</label><textarea id="admin-event-description" name="description" rows="3" maxlength="5000"></textarea></div>
-								<div class="field pca-field-wide"><label for="admin-event-location">Location</label><input type="text" id="admin-event-location" name="location" maxlength="240" required /></div>
-								<div class="field"><label for="admin-event-start">Starts (Eastern Time)</label><input type="datetime-local" id="admin-event-start" name="starts_at" required /></div>
-								<div class="field"><label for="admin-event-end">Ends (Eastern Time)</label><input type="datetime-local" id="admin-event-end" name="ends_at" required /></div>
+								<div class="field"><label for="admin-event-date">Event date</label><input type="date" id="admin-event-date" name="event_date" required /></div>
+								<div class="field pca-field-wide"><label for="admin-event-location">Location <small>(optional)</small></label><input type="text" id="admin-event-location" name="location" maxlength="240" /></div>
+								<div class="field"><label for="admin-event-start">Starts (Eastern Time) <small>(optional)</small></label><input type="datetime-local" id="admin-event-start" name="starts_at" /></div>
+								<div class="field"><label for="admin-event-end">Ends (Eastern Time) <small>(optional)</small></label><input type="datetime-local" id="admin-event-end" name="ends_at" /></div>
 								<div class="field"><label for="admin-event-capacity">Attendee capacity</label><input type="number" id="admin-event-capacity" name="capacity" min="1" step="1" value="50" required /></div>
 								<div class="field"><label for="admin-event-group-limit">Maximum per household registration</label><input type="number" id="admin-event-group-limit" name="max_participants_per_registration" min="1" step="1" value="6" required /></div>
 							</div>
@@ -101,7 +102,7 @@
 								<div><input type="checkbox" id="admin-event-registration-open" name="registration_open" checked /><label for="admin-event-registration-open">Registration open</label></div>
 								<div><input type="checkbox" id="admin-event-published" name="published" /><label for="admin-event-published">Publish immediately</label></div>
 							</div>
-							<p class="pca-form-help">Event times are interpreted in Eastern Time and displayed consistently to all visitors.</p>
+							<p class="pca-form-help">Event date is required. If times are provided, both times are interpreted in Eastern Time; location may be left blank for historical entries.</p>
 							<p class="pca-backend-status pca-admin-create-status" data-admin-event-status aria-live="polite"></p>
 							<ul class="actions"><li><button type="submit" class="button primary">Save Event</button></li><li><button type="button" class="button" data-admin-event-clear>Clear</button></li></ul>
 						</form>
@@ -148,6 +149,6 @@
 				</div>
 				<div class="site-footer__bottom"><span>&copy; 2018-2026 PCA Youth Center</span></div>
 			</footer>
-		</div><script src="script.js?v=20260815-production-revamp-v4"></script>
+		</div><script src="script.js?v=20260830-past-events-v1"></script>
 	</body>
 </html>

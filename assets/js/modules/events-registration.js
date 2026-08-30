@@ -9,7 +9,7 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260815-production-revamp-v4";
+} from "./core-auth.js?v=20260830-past-events-v1";
 
 const referralLabels = {
 	friend_recommendation: "Friend recommendation",
@@ -741,7 +741,7 @@ const initializeVolunteerRequestPage = async () => {
 
 	const { data: event, error: eventError } = await supabase
 		.from("events")
-		.select("id,title,starts_at,ends_at,location,published")
+		.select("id,title,starts_at,ends_at,event_date,location,published")
 		.eq("id", eventId)
 		.single();
 	if (eventError || !event || !event.published || new Date(event.starts_at) <= new Date()) {

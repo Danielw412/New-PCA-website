@@ -9,7 +9,7 @@ import {
 	requirePermanentAccount,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260815-production-revamp-v4";
+} from "./core-auth.js?v=20260830-past-events-v1";
 
 const roleLabels = {
 	student_council: "Student Council",
@@ -84,7 +84,7 @@ const renderTeenAssignments = async (supabase, assignments, container) => {
 		return [];
 	}
 	const eventIds = [...new Set(assignments.map((assignment) => assignment.event_id))];
-	const { data: events, error } = await supabase.from("events").select("id,title,starts_at,ends_at,location,deleted_at").in("id", eventIds).is("deleted_at", null);
+	const { data: events, error } = await supabase.from("events").select("id,title,starts_at,ends_at,event_date,location,deleted_at").in("id", eventIds).is("deleted_at", null);
 	if (error) throw error;
 	const eventById = new Map((events || []).map((event) => [event.id, event]));
 	const activeAssignments = filterRecordsWithVisibleEvents(assignments, eventById);
@@ -410,7 +410,7 @@ const initializeHouseholdDashboard = async () => {
 		const eventIds = [...new Set(registrations.map((registration) => registration.event_id))];
 		const registrationIds = registrations.map((registration) => registration.id);
 		const [eventsResult, attendeesResult] = await Promise.all([
-			supabase.from("events").select("id,title,location,starts_at,ends_at,deleted_at").in("id", eventIds).is("deleted_at", null),
+			supabase.from("events").select("id,title,location,starts_at,ends_at,event_date,deleted_at").in("id", eventIds).is("deleted_at", null),
 			supabase.from("event_registration_attendees").select("*").in("registration_id", registrationIds).order("position"),
 		]);
 		if (eventsResult.error) throw eventsResult.error;

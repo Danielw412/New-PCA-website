@@ -7,7 +7,7 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260815-production-revamp-v4";
+} from "./core-auth.js?v=20260830-past-events-v1";
 
 const timeZonePartsFormatter = new Intl.DateTimeFormat("en-CA", {
 	timeZone: "America/New_York",
@@ -42,6 +42,20 @@ const easternDateTimeToIso = (value) => {
 
 const tableCell = (text) => createElement("td", "", text == null || text === "" ? "—" : String(text));
 
+const easternCalendarDateFormatter = new Intl.DateTimeFormat("sv-SE", {
+	timeZone: "America/New_York",
+	year: "numeric",
+	month: "2-digit",
+	day: "2-digit",
+});
+
+const eventDateInputValue = (event) => event.event_date || (event.starts_at ? easternCalendarDateFormatter.format(new Date(event.starts_at)) : "");
+const eventDateTableValue = (event) => event.event_date
+	? formatShortDate(`${event.event_date}T12:00:00Z`)
+	: event.starts_at
+		? formatShortDate(event.starts_at)
+		: "—";
+
 export const checkinEligibility = (registration) => {
 	if (!registration) return { allowed: false, reason: "missing" };
 	if (registration.checked_in_at) return { allowed: false, reason: "already_checked_in" };
@@ -61,8 +75,9 @@ const requestTransactionalEmail = async (supabase, kind, resourceId) => {
 const eventStateLabel = (event) => {
 	if (!event.published) return "Draft";
 	const now = new Date();
-	if (new Date(event.ends_at) < now) return "Past";
-	if (new Date(event.starts_at) <= now) return "In progress";
+	if (event.ends_at && new Date(event.ends_at) < now) return "Past";
+	if (event.starts_at && new Date(event.starts_at) <= now) return "In progress";
+	if (!event.starts_at && event.event_date && event.event_date <= easternCalendarDateFormatter.format(now)) return "Past";
 	return "Upcoming";
 };
 
@@ -158,7 +173,7 @@ const loadOverview = async (page, supabase) => {
 
 const loadEvents = async (page, supabase) => {
 	const table = page.querySelector("[data-admin-events-body]");
-	const { data: events, error } = await supabase.from("events").select("*").is("deleted_at", null).order("starts_at", { ascending: false });
+	const { data: events, error } = await supabase.from("events").select("*").is("deleted_at", null).order("event_date", { ascending: false }).order("starts_at", { ascending: false, nullsFirst: false });
 	if (error) throw error;
 	table.replaceChildren();
 	(events || []).forEach((event) => {
@@ -171,8 +186,9 @@ const loadEvents = async (page, supabase) => {
 			form.elements.event_id.value = event.id;
 			form.elements.title.value = event.title;
 			form.elements.description.value = event.description;
-			form.elements.location.value = event.location;
-			const localValue = (iso) => new Intl.DateTimeFormat("sv-SE", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date(iso)).replace(" ", "T");
+			form.elements.location.value = event.location || "";
+			form.elements.event_date.value = eventDateInputValue(event);
+			const localValue = (iso) => iso ? new Intl.DateTimeFormat("sv-SE", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date(iso)).replace(" ", "T") : "";
 			form.elements.starts_at.value = localValue(event.starts_at);
 			form.elements.ends_at.value = localValue(event.ends_at);
 			form.elements.capacity.value = event.capacity;
@@ -194,7 +210,7 @@ const loadEvents = async (page, supabase) => {
 			} else await Promise.all([loadEvents(page, supabase), loadOverview(page, supabase)]);
 		});
 		actions.appendChild(remove);
-		row.append(tableCell(event.title), tableCell(formatShortDate(event.starts_at)), tableCell(event.location), tableCell(eventStateLabel(event)), actions);
+		row.append(tableCell(event.title), tableCell(eventDateTableValue(event)), tableCell(event.location), tableCell(eventStateLabel(event)), actions);
 		table.appendChild(row);
 	});
 };
@@ -207,12 +223,16 @@ const initializeEventForm = (page, supabase) => {
 		const values = new FormData(form);
 		let payload;
 		try {
+			const startsAt = String(values.get("starts_at") || "").trim();
+			const endsAt = String(values.get("ends_at") || "").trim();
+			if ((startsAt && !endsAt) || (!startsAt && endsAt)) throw new Error("Enter both start and end times, or leave both blank.");
 			payload = {
 				title: String(values.get("title") || "").trim(),
 				description: String(values.get("description") || "").trim(),
-				location: String(values.get("location") || "").trim(),
-				starts_at: easternDateTimeToIso(String(values.get("starts_at") || "")),
-				ends_at: easternDateTimeToIso(String(values.get("ends_at") || "")),
+				location: String(values.get("location") || "").trim() || null,
+				event_date: String(values.get("event_date") || "").trim(),
+				starts_at: startsAt ? easternDateTimeToIso(startsAt) : null,
+				ends_at: endsAt ? easternDateTimeToIso(endsAt) : null,
 				capacity: Number(values.get("capacity")),
 				max_participants_per_registration: Number(values.get("max_participants_per_registration")),
 				registration_open: values.has("registration_open"),
@@ -244,7 +264,7 @@ const initializeEventForm = (page, supabase) => {
 const loadRegistrations = async (page, supabase) => {
 	const [registrationResult, eventsResult, profilesResult] = await Promise.all([
 		supabase.from("event_registrations").select("*").order("created_at", { ascending: false }),
-		supabase.from("events").select("id,title,starts_at,ends_at,deleted_at"),
+		supabase.from("events").select("id,title,starts_at,ends_at,event_date,deleted_at"),
 		supabase.from("account_profiles").select("id,full_name,email"),
 	]);
 	for (const result of [registrationResult, eventsResult, profilesResult]) if (result.error) throw result.error;
@@ -568,7 +588,7 @@ const loadVolunteerRequests = async (page, supabase) => {
 	if (!body) return;
 	const [requestsResult, eventsResult] = await Promise.all([
 		supabase.from("event_volunteer_requests").select("*").order("submitted_at", { ascending: false }),
-		supabase.from("events").select("id,title,starts_at"),
+		supabase.from("events").select("id,title,starts_at,event_date"),
 	]);
 	if (requestsResult.error) throw requestsResult.error;
 	if (eventsResult.error) throw eventsResult.error;
@@ -634,7 +654,7 @@ const loadVolunteerManagement = async (page, supabase) => {
 	const [profilesResult, rolesResult, eventsResult, assignmentsResult, hoursResult] = await Promise.all([
 		supabase.from("account_profiles").select("id,full_name,email"),
 		supabase.from("teen_member_role_assignments").select("user_id,role,revoked_at").eq("role", "volunteer").is("revoked_at", null),
-		supabase.from("events").select("id,title,starts_at").is("deleted_at", null).order("starts_at", { ascending: false }),
+		supabase.from("events").select("id,title,starts_at,event_date").is("deleted_at", null).order("event_date", { ascending: false }).order("starts_at", { ascending: false, nullsFirst: false }),
 		supabase.from("event_volunteer_assignments").select("*").order("created_at", { ascending: false }),
 		supabase.from("volunteer_service_hours").select("*").order("submitted_at", { ascending: false }),
 	]);
@@ -656,7 +676,7 @@ const loadVolunteerManagement = async (page, supabase) => {
 		volunteerSelect.appendChild(option);
 	});
 	eventsResult.data.forEach((event) => {
-		const option = createElement("option", "", `${event.title} — ${formatShortDate(event.starts_at)}`);
+		const option = createElement("option", "", `${event.title} — ${eventDateTableValue(event)}`);
 		option.value = event.id;
 		eventSelect.appendChild(option);
 	});
