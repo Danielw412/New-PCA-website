@@ -1,7 +1,7 @@
 (function () {
 	"use strict";
 
-	const TURNSTILE_SITE_KEY = "0x4AAAAAADz91_NfxkfejK0C";
+	const TURNSTILE_SITE_KEY = "0x4AAAAAAEiJOulNZbFK7gY4";
 	const TURNSTILE_SCRIPT_ID = "pca-auth-turnstile-script";
 	const TURNSTILE_ONLOAD_CALLBACK = "pcaAuthTurnstileOnload";
 	const PATCH_FLAG = Symbol.for("pca.authCaptchaPatched");
