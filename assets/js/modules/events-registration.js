@@ -9,7 +9,7 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260830-past-events-v1";
+} from "./core-auth.js?v=20260911-guest-turnstile-v1";
 
 const referralLabels = {
 	friend_recommendation: "Friend recommendation",
@@ -501,6 +501,7 @@ const initializeRegistrationPage = async () => {
 		})().catch((error) => {
 			preparedGuestChallengePromise = null;
 			setStatus(status, friendlyError(error, "Guest registration could not be started."), "error");
+			status.scrollIntoView({ behavior: "smooth", block: "center" });
 		}).finally(() => {
 			guestStartPromise = null;
 			if (!chooser.hidden) {

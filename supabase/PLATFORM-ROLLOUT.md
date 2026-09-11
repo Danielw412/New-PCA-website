@@ -23,7 +23,7 @@ These settings are hosted project configuration and are not changed by PostgreSQ
 - Enable anonymous sign-ins.
 - Enable manual identity linking.
 - Enable Cloudflare Turnstile CAPTCHA protection and store the secret only in Supabase/Auth configuration.
-- Put the matching public Turnstile site key in the `pca-turnstile-site-key` meta tag in `register.html`.
+- Put the matching public Turnstile site key in the `pca-turnstile-site-key` meta tag in `register.html` and `volunteer-apply.html`, and in `TURNSTILE_SITE_KEY` in `assets/js/pca-auth-captcha.js`. `npm test` fails if these copies drift apart.
 - Enable leaked-password protection while retaining immediate-access email signup and the current password requirements.
 
 Guest registration is fail-closed: the browser will not create an anonymous

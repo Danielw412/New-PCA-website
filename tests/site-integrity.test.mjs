@@ -5,7 +5,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const assetVersion = "20260830-past-events-v1";
+const assetVersion = "20260911-guest-turnstile-v1";
 const redirectPages = new Set([
   "teen-member-apply.html",
   "teen-member-dashboard.html",
@@ -56,11 +56,23 @@ test("external new-tab links prevent opener access", () => {
 
 test("changed first-party assets share one cache version", () => {
   assert.match(read("script.js"), new RegExp(`ASSET_VERSION = "${assetVersion}"`));
-  assert.doesNotMatch(read("assets/js/pca-platform.js"), /\?v=(?!20260830-past-events-v1)/);
+  assert.doesNotMatch(read("assets/js/pca-platform.js"), /\?v=(?!20260911-guest-turnstile-v1)/);
   assert.match(read("assets/js/modules/blog.js"), new RegExp(`blog-seed\\.js\\?v=${assetVersion}`));
 
   for (const file of ["login.html", "profile.html", "reset-password.html"]) {
     assert.match(read(file), new RegExp(`pca-auth-captcha\\.js\\?v=${assetVersion}`), `${file}: stale captcha version`);
+  }
+});
+
+test("Turnstile pages share the auth captcha site key", () => {
+  const siteKey = read("assets/js/pca-auth-captcha.js").match(/TURNSTILE_SITE_KEY = "([^"]+)"/)?.[1];
+  assert.ok(siteKey, "pca-auth-captcha.js: missing TURNSTILE_SITE_KEY");
+
+  const turnstilePages = htmlFiles.filter((file) => /data-turnstile-container|pca-turnstile-site-key/.test(read(file)));
+  assert.ok(turnstilePages.includes("register.html"), "register.html: missing Turnstile container");
+  for (const file of turnstilePages) {
+    const pageKey = read(file).match(/<meta name="pca-turnstile-site-key" content="([^"]*)"/)?.[1];
+    assert.equal(pageKey, siteKey, `${file}: Turnstile site key does not match pca-auth-captcha.js`);
   }
 });
 

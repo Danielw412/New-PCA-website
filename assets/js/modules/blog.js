@@ -7,11 +7,11 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260830-past-events-v1";
+} from "./core-auth.js?v=20260911-guest-turnstile-v1";
 let importedPostsPromise;
 
 const loadImportedPosts = async () => {
-	importedPostsPromise ||= import("./blog-seed.js?v=20260830-past-events-v1").then(({ importedPosts }) => importedPosts);
+	importedPostsPromise ||= import("./blog-seed.js?v=20260911-guest-turnstile-v1").then(({ importedPosts }) => importedPosts);
 	return importedPostsPromise;
 };
 
