@@ -5257,3 +5257,32 @@ h2 {
 		padding: 1.5rem 0 2.25rem;
 	}
 }
+
+/* Organization document preview (bylaws PDF) */
+.doc-preview {
+	margin: 2.5rem 0 0;
+	border: 1px solid var(--pca-line);
+	border-radius: var(--pca-radius-lg);
+	background: var(--pca-surface);
+	box-shadow: var(--pca-shadow-sm);
+	overflow: hidden;
+}
+
+.doc-preview__frame {
+	display: block;
+	width: 100%;
+	height: min(80vh, 46rem);
+	border: 0;
+}
+
+.doc-preview__fallback {
+	margin: 0;
+	padding: 2rem;
+	color: var(--pca-muted);
+}
+
+@media screen and (max-width: 736px) {
+	.doc-preview__frame {
+		height: 60vh;
+	}
+}

@@ -9,7 +9,7 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260911-guest-turnstile-v1";
+} from "./core-auth.js?v=20260911-bylaws-pdf-v1";
 
 const referralLabels = {
 	friend_recommendation: "Friend recommendation",
