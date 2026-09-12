@@ -7,11 +7,11 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260911-bylaws-pdf-v1";
+} from "./core-auth.js?v=20260911-ui-polish-v1";
 let importedPostsPromise;
 
 const loadImportedPosts = async () => {
-	importedPostsPromise ||= import("./blog-seed.js?v=20260911-bylaws-pdf-v1").then(({ importedPosts }) => importedPosts);
+	importedPostsPromise ||= import("./blog-seed.js?v=20260911-ui-polish-v1").then(({ importedPosts }) => importedPosts);
 	return importedPostsPromise;
 };
 
@@ -32,7 +32,7 @@ const fetchPublishedPosts = async (supabase) => {
 	throw error;
 };
 
-const renderPostCard = (post, supabase) => {
+const renderPostCard = (post, supabase, headingTag = "h3") => {
 	const card = createElement("article", "pca-card pca-blog-card");
 	const coverUrl = imageUrl(supabase, post.cover_image_source, post.cover_image_path);
 	if (coverUrl) {
@@ -47,7 +47,7 @@ const renderPostCard = (post, supabase) => {
 		card.appendChild(link);
 	}
 	const meta = createElement("p", "pca-blog-meta", `${post.author_display_name} · ${formatShortDate(post.published_at)}`);
-	const title = createElement("h3");
+	const title = createElement(headingTag);
 	const titleLink = createElement("a", "", post.title);
 	titleLink.href = `post.html?slug=${encodeURIComponent(post.slug)}`;
 	title.appendChild(titleLink);
@@ -102,7 +102,7 @@ const initializeBlogFeed = async () => {
 				? posts.filter((post) => [post.title, post.excerpt, post.author_display_name].some((value) => String(value || "").toLocaleLowerCase().includes(query)))
 				: posts;
 			list.replaceChildren();
-			matches.slice(0, visibleCount).forEach((post) => list.appendChild(renderPostCard(post, supabase)));
+			matches.slice(0, visibleCount).forEach((post) => list.appendChild(renderPostCard(post, supabase, "h2")));
 			const shown = Math.min(matches.length, visibleCount);
 			if (count) count.textContent = matches.length > shown
 				? `${matches.length} stories · showing ${shown}`
