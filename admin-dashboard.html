@@ -7,7 +7,7 @@
 		<meta name="theme-color" content="#fffaf7" />
 		<meta name="description" content="PCA Youth Center administrator dashboard for registrations and volunteer management." />
 		<link rel="stylesheet" href="assets/css/fontawesome-all.min.css" />
-		<link rel="stylesheet" href="styles.css?v=20260912-registrant-details-v1" />
+		<link rel="stylesheet" href="styles.css?v=20260913-admin-otp-v1" />
 	</head>
 		<body>
 		<a class="skip-link" href="#main">Skip to content</a>
@@ -64,8 +64,9 @@
 		<div id="wrapper">
 			<main id="main">
 				<section class="post pca-dashboard-page pca-admin-dashboard-page" data-platform-admin>
-					<header class="major"><span class="date" data-admin-level>Administrator</span><h1>PCA Administration</h1><p>Manage day-to-day PCA events, registrations, volunteers, accounts, and publishing from one staff workspace.</p></header>
+					<header class="major"><span class="date" data-admin-level>Administrator</span><h1>PCA Administration</h1><p>Events, registrations, volunteers, accounts, and publishing in one workspace.</p></header>
 					<p class="pca-backend-status" data-platform-admin-status data-platform-status aria-live="polite">Checking administrator access...</p>
+					<div class="pca-admin-toast-region" data-admin-toast aria-live="polite"></div>
 					<div class="pca-admin-dashboard-layout" hidden>
 						<aside class="pca-admin-workspace-nav" aria-label="Administration workspace">
 							<div class="pca-admin-workspace-tabs" role="tablist" aria-label="Administration sections" aria-orientation="vertical">
@@ -77,6 +78,7 @@
 								<span class="pca-admin-tab-group" role="presentation">Community</span>
 								<button id="admin-tab-households" type="button" class="button small" role="tab" aria-selected="false" aria-controls="admin-panel-households" tabindex="-1" data-admin-tab="households">Households</button>
 								<button id="admin-tab-teen-members" type="button" class="button small" role="tab" aria-selected="false" aria-controls="admin-panel-teen-members" tabindex="-1" data-admin-tab="teen-members">Volunteer Accounts</button>
+								<button id="admin-tab-volunteers" type="button" class="button small" role="tab" aria-selected="false" aria-controls="admin-panel-volunteers" tabindex="-1" data-admin-tab="volunteers">Assignments &amp; Hours</button>
 								<span class="pca-admin-tab-group" role="presentation">Publishing</span>
 								<button id="admin-tab-blog" type="button" class="button small" role="tab" aria-selected="false" aria-controls="admin-panel-blog" tabindex="-1" data-admin-tab="blog">Blog</button>
 								<span class="pca-admin-tab-group" role="presentation">Access</span>
@@ -85,40 +87,99 @@
 						</aside>
 						<div class="pca-admin-workspace-content">
 
-					<section id="admin-panel-overview" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-overview" data-admin-panel="overview"><h2>At a glance</h2><p>Counts include current and historical records unless marked as awaiting review.</p><div class="pca-admin-metric-grid"><article class="pca-card"><strong data-admin-count="events">—</strong><span>Current and past events</span></article><article class="pca-card"><strong data-admin-count="registrations">—</strong><span>All registrations</span></article><article class="pca-card"><strong data-admin-count="volunteer-requests">—</strong><span>Volunteer requests awaiting review</span></article><article class="pca-card"><strong data-admin-count="households">—</strong><span>Household accounts</span></article><article class="pca-card"><strong data-admin-count="volunteer-applications">—</strong><span>Volunteer accounts awaiting review</span></article><article class="pca-card"><strong data-admin-count="blog-posts">—</strong><span>Draft and published blog posts</span></article></div></section>
+					<section id="admin-panel-overview" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-overview" data-admin-panel="overview">
+						<div class="pca-admin-panel-heading"><div><h2>Overview</h2><p>Where things stand right now. Choose a number to open that section.</p></div></div>
+						<div class="pca-admin-metric-grid">
+							<button type="button" class="pca-admin-metric" data-admin-tab-link="events"><strong data-admin-count="upcoming-events">…</strong><span>Upcoming events</span></button>
+							<button type="button" class="pca-admin-metric" data-admin-tab-link="registrations"><strong data-admin-count="upcoming-attendees">…</strong><span>Attendees coming to upcoming events</span></button>
+							<button type="button" class="pca-admin-metric" data-admin-tab-link="registrations"><strong data-admin-count="waitlisted">…</strong><span>Groups on a waitlist</span></button>
+							<button type="button" class="pca-admin-metric" data-admin-tab-link="volunteer-requests"><strong data-admin-count="volunteer-requests">…</strong><span>Volunteer requests to review</span></button>
+							<button type="button" class="pca-admin-metric" data-admin-tab-link="teen-members"><strong data-admin-count="volunteer-applications">…</strong><span>Volunteer accounts to review</span></button>
+							<button type="button" class="pca-admin-metric" data-admin-tab-link="households"><strong data-admin-count="households">…</strong><span>Household accounts</span></button>
+						</div>
+						<section class="pca-admin-email-health" data-admin-email-health aria-labelledby="admin-email-health-title">
+							<div><h3 id="admin-email-health-title">Email delivery</h3><p data-admin-email-health-copy>Checking the email queue...</p></div>
+							<button type="button" class="button small" data-admin-email-retry hidden>Retry Waiting Emails</button>
+						</section>
+					</section>
 
-					<section id="admin-panel-events" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-events" data-admin-panel="events" hidden><h2>Events</h2><details class="pca-admin-create-panel" open><summary><span>Create or Edit an Event</span><small>Event date is required; times are optional and use Eastern Time</small></summary><form data-admin-event-form><input type="hidden" name="event_id" />
+					<section id="admin-panel-events" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-events" data-admin-panel="events" hidden>
+						<div class="pca-admin-panel-heading"><div><h2>Events</h2><p>Publish events, open or close registration, and adjust capacity. Raising capacity or reopening registration moves waitlisted groups in automatically.</p></div><button type="button" class="button primary" data-admin-event-new>New Event</button></div>
+						<details class="pca-admin-create-panel" data-admin-event-editor><summary><span data-admin-event-editor-title>Create an event</span><small>Dates and times are Eastern Time</small></summary><form data-admin-event-form><input type="hidden" name="event_id" />
 							<div class="pca-admin-event-fields">
 								<div class="field pca-field-wide"><label for="admin-event-title">Event title</label><input type="text" id="admin-event-title" name="title" maxlength="160" required /></div>
 								<div class="field pca-field-wide"><label for="admin-event-description">Description</label><textarea id="admin-event-description" name="description" rows="3" maxlength="5000"></textarea></div>
 								<div class="field"><label for="admin-event-date">Event date</label><input type="date" id="admin-event-date" name="event_date" required /></div>
-								<div class="field pca-field-wide"><label for="admin-event-location">Location <small>(optional)</small></label><input type="text" id="admin-event-location" name="location" maxlength="240" /></div>
-								<div class="field"><label for="admin-event-start">Starts (Eastern Time) <small>(optional)</small></label><input type="datetime-local" id="admin-event-start" name="starts_at" /></div>
-								<div class="field"><label for="admin-event-end">Ends (Eastern Time) <small>(optional)</small></label><input type="datetime-local" id="admin-event-end" name="ends_at" /></div>
+								<div class="field pca-field-wide"><label for="admin-event-location">Location</label><input type="text" id="admin-event-location" name="location" maxlength="240" /></div>
+								<div class="field"><label for="admin-event-start">Starts</label><input type="datetime-local" id="admin-event-start" name="starts_at" /></div>
+								<div class="field"><label for="admin-event-end">Ends</label><input type="datetime-local" id="admin-event-end" name="ends_at" /></div>
 								<div class="field"><label for="admin-event-capacity">Attendee capacity</label><input type="number" id="admin-event-capacity" name="capacity" min="1" step="1" value="50" required /></div>
-								<div class="field"><label for="admin-event-group-limit">Maximum per household registration</label><input type="number" id="admin-event-group-limit" name="max_participants_per_registration" min="1" step="1" value="6" required /></div>
+								<div class="field"><label for="admin-event-group-limit">Maximum attendees per registration</label><input type="number" id="admin-event-group-limit" name="max_participants_per_registration" min="1" step="1" value="6" required /></div>
 							</div>
 							<div class="pca-admin-event-options">
 								<div><input type="checkbox" id="admin-event-registration-open" name="registration_open" checked /><label for="admin-event-registration-open">Registration open</label></div>
-								<div><input type="checkbox" id="admin-event-published" name="published" /><label for="admin-event-published">Publish immediately</label></div>
+								<div><input type="checkbox" id="admin-event-published" name="published" /><label for="admin-event-published">Published on the website</label></div>
 							</div>
-							<p class="pca-form-help">Event date is required. If times are provided, both times are interpreted in Eastern Time; location may be left blank for historical entries.</p>
+							<p class="pca-form-help">Leave both times blank for a date-only listing, such as a past event. Registration needs a start time.</p>
 							<p class="pca-backend-status pca-admin-create-status" data-admin-event-status aria-live="polite"></p>
-							<ul class="actions"><li><button type="submit" class="button primary">Save Event</button></li><li><button type="button" class="button" data-admin-event-clear>Clear</button></li></ul>
-						</form>
-					</details><div class="table-wrapper"><table><thead><tr><th>Event</th><th>Date</th><th>Location</th><th>State</th><th>Actions</th></tr></thead><tbody data-admin-events-body></tbody></table></div></section>
+							<ul class="actions"><li><button type="submit" class="button primary">Save Event</button></li><li><button type="button" class="button" data-admin-event-clear>Cancel</button></li></ul>
+						</form></details>
+						<div class="table-wrapper"><table><thead><tr><th>Event</th><th>Date</th><th>Registered</th><th>State</th><th>Actions</th></tr></thead><tbody data-admin-events-body></tbody></table></div>
+					</section>
 
-					<section id="admin-panel-registrations" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-registrations" data-admin-panel="registrations" hidden><div class="pca-admin-panel-heading"><div><h2>Event Registrations</h2><p>Review household and guest registrations. Choose View Details to see contact information and each attendee's age and school district. Cancelling a confirmed group may move the next waitlisted group into the event.</p></div><button type="button" class="button" data-admin-export>Download Registration CSV</button></div><p class="pca-backend-status" data-admin-export-status role="status" aria-live="polite"></p><div class="table-wrapper"><table><thead><tr><th>Event</th><th>Primary contact</th><th>Contact email</th><th>Attendee count</th><th>Registration status</th><th>Signup type</th><th>Actions</th></tr></thead><tbody data-admin-registrations-body></tbody></table></div></section>
+					<section id="admin-panel-registrations" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-registrations" data-admin-panel="registrations" hidden>
+						<div class="pca-admin-panel-heading"><div><h2>Registrations</h2><p>Pick an event to see everyone coming. Cancelling a confirmed group frees its seats for the next waitlisted group.</p></div><button type="button" class="button" data-admin-export>Download CSV</button></div>
+						<p class="pca-backend-status" data-admin-export-status role="status" aria-live="polite"></p>
+						<div class="pca-admin-registrations">
+							<nav class="pca-admin-event-rail" aria-label="Events"><div class="pca-admin-event-rail__list" data-admin-event-rail></div></nav>
+							<div class="pca-admin-roster">
+								<header class="pca-admin-roster__header">
+									<div><h3 data-admin-roster-title>Choose an event</h3><p data-admin-roster-meta></p></div>
+									<div class="pca-admin-roster__tools"><label class="pca-visually-hidden" for="admin-roster-search">Search registrations</label><input id="admin-roster-search" type="search" data-admin-roster-search placeholder="Search names, email, or school" /><label class="pca-inline-check"><input type="checkbox" data-admin-roster-cancelled /> Show cancelled</label></div>
+								</header>
+								<p class="pca-backend-status" data-admin-roster-status aria-live="polite"></p>
+								<div class="pca-admin-record-list" data-admin-roster-list></div>
+							</div>
+						</div>
+					</section>
 
-					<section id="admin-panel-volunteer-requests" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-volunteer-requests" data-admin-panel="volunteer-requests" hidden><div class="pca-admin-panel-heading"><div><span class="eyebrow">Event help</span><h2>Volunteer Requests</h2><p>Approve account-free requests. Approval sends the volunteer an email; an account is only needed for hour tracking.</p></div><a class="button" href="upcoming-events.html">View Public Events</a></div><div class="table-wrapper pca-admin-table-fluid"><table><thead><tr><th>Volunteer</th><th>Age</th><th>Event</th><th>Interests &amp; Availability</th><th>Future Emails</th><th>Status</th><th>Actions</th></tr></thead><tbody data-admin-volunteer-requests-body></tbody></table></div></section>
+					<section id="admin-panel-volunteer-requests" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-volunteer-requests" data-admin-panel="volunteer-requests" hidden>
+						<div class="pca-admin-panel-heading"><div><h2>Volunteer Requests</h2><p>Requests to help at an event. Approving one emails the volunteer. No account is needed unless they want tracked hours.</p></div><a class="button" href="upcoming-events.html">View Public Events</a></div>
+						<div class="pca-admin-roster__tools pca-admin-list-tools"><label class="pca-inline-check"><input type="checkbox" data-admin-requests-reviewed /> Show reviewed requests</label></div>
+						<div class="pca-admin-record-list" data-admin-volunteer-requests></div>
+					</section>
 
-					<section id="admin-panel-households" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-households" data-admin-panel="households" hidden><h2>Household Accounts</h2><div class="field"><label for="admin-household-search">Search households</label><input id="admin-household-search" type="search" data-admin-household-search placeholder="Name or email" /></div><p class="pca-form-help">Edit contact information, manage saved members, send password-reset emails, or permanently delete a non-administrator household account.</p><div class="table-wrapper"><table><thead><tr><th>Name</th><th>Contact Email</th><th>Phone</th><th>Actions</th></tr></thead><tbody data-admin-households-body></tbody></table></div><div class="pca-paper-panel" data-admin-household-members hidden></div></section>
+					<section id="admin-panel-households" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-households" data-admin-panel="households" hidden>
+						<div class="pca-admin-panel-heading"><div><h2>Household Accounts</h2><p>Update contact details, manage saved attendees, or send a password reset.</p></div></div>
+						<div class="field pca-admin-search-field"><label for="admin-household-search">Search households</label><input id="admin-household-search" type="search" data-admin-household-search placeholder="Name or email" /></div>
+						<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Contact email</th><th>Phone</th><th>Actions</th></tr></thead><tbody data-admin-households-body></tbody></table></div>
+						<div class="pca-paper-panel pca-admin-members-panel" data-admin-household-members hidden></div>
+					</section>
 
-					<section id="admin-panel-teen-members" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-teen-members" data-admin-panel="teen-members" hidden><h2>Volunteer Accounts</h2><p>Review the required application details. Approval automatically grants Volunteer access; Student Council and Blog Editor roles remain optional.</p><div class="table-wrapper"><table><thead><tr><th>Volunteer</th><th>Email</th><th>Age</th><th>School</th><th>Student Phone</th><th>Status</th><th>Roles</th><th>Actions</th></tr></thead><tbody data-admin-teens-body></tbody></table></div><details class="pca-admin-create-panel"><summary><span>Create Volunteer Assignment</span><small>Assign an approved volunteer to an event</small></summary><form data-admin-volunteer-assignment-form><div class="fields"><div class="field half"><label for="admin-volunteer-user">Volunteer Account</label><select id="admin-volunteer-user" name="teen_member_user_id" required><option value="">Choose a volunteer</option></select></div><div class="field half"><label for="admin-volunteer-event">Event</label><select id="admin-volunteer-event" name="event_id" required><option value="">Choose an event</option></select></div><div class="field"><label for="admin-volunteer-role">Assignment Role</label><input id="admin-volunteer-role" name="role_title" type="text" maxlength="160" required /></div><div class="field"><label for="admin-volunteer-instructions">Instructions</label><textarea id="admin-volunteer-instructions" name="instructions" rows="3" maxlength="4000"></textarea></div></div><button type="submit" class="button primary">Create Assignment</button><p class="pca-backend-status" data-admin-volunteer-assignment-status aria-live="polite"></p></form></details><h3>Volunteer Assignments</h3><div class="table-wrapper"><table><thead><tr><th>Volunteer</th><th>Event</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead><tbody data-admin-volunteer-assignments-body></tbody></table></div><h3>Submitted Service Hours</h3><div class="table-wrapper"><table><thead><tr><th>Volunteer</th><th>Date</th><th>Submitted</th><th>Description</th><th>Status</th><th>Review</th></tr></thead><tbody data-admin-volunteer-hours-body></tbody></table></div></section>
+					<section id="admin-panel-teen-members" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-teen-members" data-admin-panel="teen-members" hidden>
+						<div class="pca-admin-panel-heading"><div><h2>Volunteer Accounts</h2><p>Approving an account grants the Volunteer role. Student Council and Blog Editor roles are optional extras.</p></div></div>
+						<div class="pca-admin-record-list" data-admin-teens-list></div>
+					</section>
 
-					<section id="admin-panel-blog" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-blog" data-admin-panel="blog" hidden><h2>Blog</h2><p>Administrators can create and manage every post, including posts authored by approved volunteer editors.</p><ul class="actions"><li><a href="blog-editor.html" class="button primary">Open Blog Editor</a></li><li><a href="blog.html" class="button">View Public Blog</a></li></ul></section>
+					<section id="admin-panel-volunteers" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-volunteers" data-admin-panel="volunteers" hidden>
+						<div class="pca-admin-panel-heading"><div><h2>Assignments &amp; Hours</h2><p>Assign approved volunteers to events and review the hours they submit.</p></div></div>
+						<details class="pca-admin-create-panel"><summary><span>Create an assignment</span><small>Only approved Volunteer Accounts appear here</small></summary><form data-admin-volunteer-assignment-form><div class="fields"><div class="field half"><label for="admin-volunteer-user">Volunteer</label><select id="admin-volunteer-user" name="teen_member_user_id" required><option value="">Choose a volunteer</option></select></div><div class="field half"><label for="admin-volunteer-event">Event</label><select id="admin-volunteer-event" name="event_id" required><option value="">Choose an event</option></select></div><div class="field"><label for="admin-volunteer-role">Role</label><input id="admin-volunteer-role" name="role_title" type="text" maxlength="160" required /></div><div class="field"><label for="admin-volunteer-instructions">Instructions</label><textarea id="admin-volunteer-instructions" name="instructions" rows="3" maxlength="4000"></textarea></div></div><ul class="actions"><li><button type="submit" class="button primary">Create Assignment</button></li></ul><p class="pca-backend-status" data-admin-volunteer-assignment-status aria-live="polite"></p></form></details>
+						<h3>Assignments</h3>
+						<div class="table-wrapper"><table><thead><tr><th>Volunteer</th><th>Event</th><th>Role</th><th>Status</th></tr></thead><tbody data-admin-volunteer-assignments-body></tbody></table></div>
+						<h3>Submitted hours</h3>
+						<div class="table-wrapper"><table><thead><tr><th>Volunteer</th><th>Date</th><th>Hours</th><th>Work</th><th>Status</th><th>Review</th></tr></thead><tbody data-admin-volunteer-hours-body></tbody></table></div>
+					</section>
 
-					<section id="admin-panel-access" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-access" data-admin-panel="access" hidden><h2>Administrator Access</h2><p>Only super administrators see this section. Choose an existing account, then grant the least access needed. A Super Administrator can also manage other administrators.</p><form class="pca-paper-panel pca-admin-access-form" data-admin-access-form><div class="fields"><div class="field"><label for="admin-access-user">PCA account</label><select id="admin-access-user" name="user_id" required></select></div><div class="field"><label for="admin-access-level">Permission level</label><select id="admin-access-level" name="access_level"><option value="admin">Administrator</option><option value="super_admin">Super Administrator</option></select><p class="pca-form-help">Use Administrator for normal staff work. Grant Super Administrator only to someone who should manage site access.</p></div></div><button type="submit" class="button primary">Grant Administrator Access</button></form><div class="table-wrapper"><table><thead><tr><th>Name</th><th>Email</th><th>Permission level</th><th>Actions</th></tr></thead><tbody data-admin-access-body></tbody></table></div></section>
+					<section id="admin-panel-blog" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-blog" data-admin-panel="blog" hidden>
+						<div class="pca-admin-panel-heading"><div><h2>Blog</h2><p>Administrators can create and manage every post, including posts by approved volunteer editors.</p></div></div>
+						<ul class="actions"><li><a href="blog-editor.html" class="button primary">Open Blog Editor</a></li><li><a href="blog.html" class="button">View Public Blog</a></li></ul>
+					</section>
+
+					<section id="admin-panel-access" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-access" data-admin-panel="access" hidden>
+						<div class="pca-admin-panel-heading"><div><h2>Administrator Access</h2><p>Only super administrators see this section. Grant the least access needed.</p></div></div>
+						<form class="pca-paper-panel pca-admin-access-form" data-admin-access-form><div class="fields"><div class="field half"><label for="admin-access-user">PCA account</label><select id="admin-access-user" name="user_id" required></select></div><div class="field half"><label for="admin-access-level">Permission level</label><select id="admin-access-level" name="access_level"><option value="admin">Administrator</option><option value="super_admin">Super Administrator</option></select></div></div><p class="pca-form-help">Administrators handle daily work. Super Administrators can also manage who has access.</p><ul class="actions"><li><button type="submit" class="button primary">Grant Access</button></li></ul></form>
+						<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Email</th><th>Permission level</th><th>Actions</th></tr></thead><tbody data-admin-access-body></tbody></table></div>
+					</section>
 						</div>
 					</div>
 				</section>
@@ -149,6 +210,6 @@
 				</div>
 				<div class="site-footer__bottom"><span>&copy; 2018-2026 PCA Youth Center</span></div>
 			</footer>
-		</div><script src="script.js?v=20260912-registrant-details-v1"></script>
+		</div><script src="script.js?v=20260913-admin-otp-v1"></script>
 	</body>
 </html>

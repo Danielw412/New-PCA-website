@@ -7,7 +7,7 @@
 		<meta name="theme-color" content="#fffaf7" />
 		<meta name="description" content="Sign in to or create a PCA Youth Center household or Volunteer Account." />
 		<link rel="stylesheet" href="assets/css/fontawesome-all.min.css" />
-		<link rel="stylesheet" href="styles.css?v=20260912-registrant-details-v1" />
+		<link rel="stylesheet" href="styles.css?v=20260913-admin-otp-v1" />
 	</head>
 		<body>
 		<a class="skip-link" href="#main">Skip to content</a>
@@ -67,7 +67,7 @@
 					<header class="major">
 						<span class="date">PCA Account Access</span>
 						<h1>Your PCA Account</h1>
-						<p>Households use one account for easier event registration. Volunteers use their own account for applications and any assigned Student Council, Blog Editor, or Volunteer roles.</p>
+						<p>Households use one account for event registration. Volunteers use their own account for applications and any Student Council, Blog Editor, or Volunteer roles.</p>
 					</header>
 					<p class="pca-login-status" data-login-notice role="status" aria-live="polite" hidden></p>
 					<div class="pca-login-card" data-auth-forms>
@@ -76,15 +76,37 @@
 							<button id="pca-signup-tab" type="button" class="button" role="tab" aria-selected="false" aria-controls="pca-signup-panel" tabindex="-1" data-auth-tab="signup">Create Account</button>
 						</div>
 
-						<form id="pca-signin-panel" role="tabpanel" aria-labelledby="pca-signin-tab" data-login-form>
-							<div class="fields">
-								<div class="field"><label for="login-email">Email</label><input id="login-email" name="email" type="email" autocomplete="email" maxlength="320" required /></div>
-								<div class="field"><label for="login-password">Password</label><input id="login-password" name="password" type="password" autocomplete="current-password" required /></div>
-							</div>
-							<p class="pca-forgot-password"><a href="reset-password.html">Forgot your password?</a></p>
-							<ul class="actions special"><li><input type="submit" value="Sign In" class="primary" /></li></ul>
-							<p class="pca-login-status" data-login-status aria-live="polite"></p>
-						</form>
+						<div id="pca-signin-panel" role="tabpanel" aria-labelledby="pca-signin-tab" data-signin-panel>
+							<form data-login-form>
+								<div class="fields">
+									<div class="field"><label for="login-email">Email</label><input id="login-email" name="email" type="email" autocomplete="email" maxlength="320" required /></div>
+									<div class="field"><label for="login-password">Password</label><input id="login-password" name="password" type="password" autocomplete="current-password" required /></div>
+								</div>
+								<ul class="actions"><li><input type="submit" value="Sign In" class="primary" /></li></ul>
+								<div class="pca-auth-alternatives"><button type="button" class="pca-link-button" data-otp-start>Email me a sign-in code instead</button><a href="reset-password.html">Forgot your password?</a></div>
+								<p class="pca-login-status" data-login-status aria-live="polite"></p>
+							</form>
+
+							<form data-otp-request-form hidden>
+								<div class="pca-form-intro"><h2>Sign in with a code</h2><p>Enter the email on your PCA account and we will send a one-time code. No password needed.</p></div>
+								<div class="fields">
+									<div class="field"><label for="otp-email">Email</label><input id="otp-email" name="email" type="email" autocomplete="email" maxlength="320" required /></div>
+								</div>
+								<ul class="actions"><li><input type="submit" value="Email Me a Code" class="primary" /></li></ul>
+								<div class="pca-auth-alternatives"><button type="button" class="pca-link-button" data-otp-use-password>Use my password instead</button></div>
+								<p class="pca-login-status" data-otp-request-status aria-live="polite"></p>
+							</form>
+
+							<form data-otp-verify-form hidden>
+								<div class="pca-form-intro"><h2>Check your email</h2><p>We sent a code to <strong data-otp-email></strong>. Enter it below, or open the link in that email. The code expires after one hour.</p></div>
+								<div class="fields">
+									<div class="field"><label for="otp-code">One-time code</label><input id="otp-code" name="token" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6,10}" minlength="6" maxlength="10" spellcheck="false" required /></div>
+								</div>
+								<ul class="actions"><li><input type="submit" value="Sign In" class="primary" /></li><li><button type="button" class="button" data-otp-resend>Send a New Code</button></li></ul>
+								<div class="pca-auth-alternatives"><button type="button" class="pca-link-button" data-otp-change-email>Use a different email</button><button type="button" class="pca-link-button" data-otp-use-password>Use my password instead</button></div>
+								<p class="pca-login-status" data-otp-verify-status aria-live="polite"></p>
+							</form>
+						</div>
 
 						<form id="pca-signup-panel" role="tabpanel" aria-labelledby="pca-signup-tab" data-signup-form hidden>
 							<div class="pca-form-intro"><h2>Create your PCA account</h2><p>Choose the account type that matches how you will use PCA services.</p></div>
@@ -112,16 +134,16 @@
 								<div class="field half"><label for="signup-password">Password</label><input id="signup-password" name="password" type="password" autocomplete="new-password" minlength="8" required /></div>
 								<div class="field half"><label for="signup-password-confirmation">Confirm Password</label><input id="signup-password-confirmation" name="password_confirmation" type="password" autocomplete="new-password" minlength="8" required /></div>
 							</div>
-							<p class="pca-form-help">Password: at least 8 characters with one uppercase letter, one lowercase letter, and one number.</p>
-							<ul class="actions special pca-form-submit-actions"><li><input type="submit" value="Create Account" class="primary" /></li></ul>
+							<p class="pca-form-help">At least 8 characters with an uppercase letter, a lowercase letter, and a number.</p>
+							<ul class="actions pca-form-submit-actions"><li><input type="submit" value="Create Account" class="primary" /></li></ul>
 							<p class="pca-login-status" data-signup-status aria-live="polite"></p>
 						</form>
 					</div>
 
 					<div class="pca-login-card pca-authenticated-panel" data-authenticated-panel hidden>
-					<h2>You are signed in</h2>
+						<h2>You are signed in</h2>
 						<p>Signed in as <strong data-authenticated-email></strong>.</p>
-						<ul class="actions special">
+						<ul class="actions">
 							<li><a href="dashboard.html" class="button primary" data-login-dashboard>Continue</a></li>
 							<li><button type="button" class="button" data-login-signout>Sign Out</button></li>
 						</ul>
@@ -155,6 +177,6 @@
 				</div>
 				<div class="site-footer__bottom"><span>&copy; 2018-2026 PCA Youth Center</span></div>
 			</footer>
-		</div><script src="assets/js/pca-auth-captcha.js?v=20260912-registrant-details-v1"></script><script src="script.js?v=20260912-registrant-details-v1"></script>
+		</div><script src="assets/js/pca-auth-captcha.js?v=20260913-admin-otp-v1"></script><script src="script.js?v=20260913-admin-otp-v1"></script>
 	</body>
 </html>

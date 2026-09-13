@@ -2,6 +2,7 @@ import {
 	createElement,
 	currentEventId,
 	formatEventRange,
+	formatShortDate,
 	friendlyError,
 	getAccountContext,
 	getSession,
@@ -9,7 +10,44 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260912-registrant-details-v1";
+} from "./core-auth.js?v=20260913-admin-otp-v1";
+
+const registrationStatusLabels = Object.freeze({
+	confirmed: "Confirmed",
+	waitlisted: "On the waitlist",
+	cancelled: "Cancelled",
+});
+
+export const registrationOutcomeCopy = (status, count) => {
+	const group = count === 1 ? "Your attendee" : `Your group of ${count}`;
+	if (status === "waitlisted") return `${group} is on the waitlist. PCA will email you if space opens up.`;
+	if (status === "confirmed") return `${group} is confirmed.`;
+	return `${group} has been recorded.`;
+};
+
+export const attendeeSummaryLine = (attendee) => {
+	const name = String(attendee?.full_name || "").trim() || "Attendee";
+	if (attendee?.attendee_type === "child") {
+		const details = [attendee.age != null && attendee.age !== "" ? `age ${attendee.age}` : "", attendee.school_district || ""].filter(Boolean);
+		return details.length ? `${name} (${details.join(", ")})` : name;
+	}
+	if (attendee?.attendee_type === "adult") return `${name} (adult)`;
+	return name;
+};
+
+const isViewToken = (value) => /^[0-9a-f]{64}$/i.test(String(value || ""));
+
+const registrationViewUrl = (token) => `registration.html?token=${encodeURIComponent(String(token || "").toLowerCase())}`;
+
+const issueViewLink = async (supabase, registrationId) => {
+	if (!registrationId) return "";
+	const { data, error } = await supabase.rpc("issue_registration_view_token", { p_registration_id: registrationId });
+	if (error || !isViewToken(data)) {
+		if (error) console.debug("A registration view link could not be created.", error);
+		return "";
+	}
+	return registrationViewUrl(data);
+};
 
 const referralLabels = {
 	friend_recommendation: "Friend recommendation",
@@ -313,6 +351,36 @@ const initializeRegistrationPage = async () => {
 	let context = session ? await getAccountContext() : {};
 	let guestMode = Boolean(session && context.is_anonymous);
 	const claimKey = `pcaGuestClaim:${eventId}`;
+	const existingPanel = page.querySelector("[data-registration-existing]");
+
+	// A returning household or guest session that already holds a place is
+	// told so up front instead of after filling in the whole form.
+	const showExistingRegistration = async (existing) => {
+		if (!existingPanel) return false;
+		chooser.hidden = true;
+		form.hidden = true;
+		const names = Array.isArray(existing.attendee_names) ? existing.attendee_names.filter(Boolean) : [];
+		const label = registrationStatusLabels[existing.status] || existing.status;
+		const when = existing.created_at ? ` on ${formatShortDate(existing.created_at)}` : "";
+		const who = names.length ? ` for ${names.join(", ")}` : "";
+		existingPanel.querySelector("[data-registration-existing-summary]").textContent =
+			`This ${context.profile ? "household account" : "guest session"} registered${who}${when}. Status: ${label}.`;
+		const dashboardLink = existingPanel.querySelector("[data-registration-existing-dashboard]");
+		if (dashboardLink) dashboardLink.hidden = context.profile?.account_type !== "household";
+		const viewLink = existingPanel.querySelector("[data-registration-existing-view]");
+		if (viewLink) {
+			const href = await issueViewLink(supabase, existing.registration_id);
+			viewLink.hidden = !href;
+			if (href) viewLink.href = href;
+		}
+		existingPanel.hidden = false;
+		stepItems.forEach((step) => {
+			step.removeAttribute("aria-current");
+			step.classList.add("is-complete");
+		});
+		setStatus(status);
+		return true;
+	};
 	const syncAttendeeRows = () => {
 		[...attendeeList.querySelectorAll("[data-attendee-row]")].forEach((row, index) => {
 			const legend = row.querySelector("legend");
@@ -409,6 +477,12 @@ const initializeRegistrationPage = async () => {
 	};
 
 	if (new URLSearchParams(window.location.search).get("claim") === "1") await claimStoredRegistration();
+
+	if (!registrationId && session?.user && !context.admin_level) {
+		const { data: existing, error: existingError } = await supabase.rpc("get_my_event_registration", { p_event_id: eventId });
+		if (existingError) console.debug("Existing registration check skipped.", existingError);
+		else if (existing && await showExistingRegistration(existing)) return;
+	}
 
 	const showForm = async () => {
 		chooser.hidden = true;
@@ -518,6 +592,12 @@ const initializeRegistrationPage = async () => {
 	page.querySelector("[data-registration-next]").addEventListener("click", () => {
 		const controls = [...page.querySelectorAll('[data-registration-stage="attendees"] input, [data-registration-stage="attendees"] select, [data-registration-stage="attendees"] textarea')]
 			.filter((control) => !control.disabled);
+		// Whitespace-only names pass the required check but are rejected by the
+		// database, so catch them here with the same wording.
+		controls.forEach((control) => {
+			if (control.type !== "text") return;
+			control.setCustomValidity(control.required && !control.value.trim() ? "Enter a name." : "");
+		});
 		const invalid = controls.find((control) => !control.checkValidity());
 		if (invalid) {
 			invalid.reportValidity();
@@ -616,19 +696,48 @@ const initializeRegistrationPage = async () => {
 			step.classList.add("is-complete");
 		});
 		const saved = Array.isArray(result.data) ? result.data[0] : result.data;
-		const resultStatus = saved?.status || "updated";
+		const savedRegistrationId = registrationId || saved?.registration_id;
+		const savedCount = Number(saved?.participant_count) || attendees.length;
+		const successTitle = success.querySelector("[data-registration-success-title]");
+		if (successTitle) successTitle.textContent = registrationId ? "Changes saved" : saved?.status === "waitlisted" ? "You are on the waitlist" : "Registration complete";
 		success.querySelector("[data-registration-result]").textContent = registrationId
-			? "Your registration changes were saved."
-			: `Your group is ${resultStatus}.`;
+			? registrationOutcomeCopy(saved?.status, savedCount)
+			: registrationOutcomeCopy(saved?.status, savedCount);
+		const attendeeSummary = success.querySelector("[data-registration-success-attendees]");
+		if (attendeeSummary) {
+			attendeeSummary.replaceChildren(...attendees.map((attendee) => createElement("li", "", attendeeSummaryLine(attendee))));
+		}
+		const dashboardLink = success.querySelector("[data-registration-dashboard-link]");
+		if (dashboardLink) dashboardLink.hidden = context.profile?.account_type !== "household";
 		if (saved?.guest_claim_token) {
 			sessionStorage.setItem(claimKey, saved.guest_claim_token);
 			success.querySelector("[data-guest-account-offer]").hidden = false;
-			success.querySelector("[data-conversion-email]").value = contact.email;
+			const conversion = success.querySelector("[data-guest-conversion-form]");
+			conversion.elements.full_name.value = contact.full_name;
+			conversion.elements.email.value = contact.email;
+			conversion.elements.phone.value = contact.phone;
 		}
-		if (!registrationId) {
-			await requestTransactionalEmail(supabase, "event_registration_confirmation", saved?.registration_id);
+		const emailNote = success.querySelector("[data-registration-email-note]");
+		setStatus(status, registrationId ? "Registration changes saved." : "Registration saved.", "success");
+		const viewLink = success.querySelector("[data-registration-view-link]");
+		const [viewHref, emailResult] = await Promise.all([
+			issueViewLink(supabase, savedRegistrationId),
+			registrationId ? Promise.resolve(null) : requestTransactionalEmail(supabase, "event_registration_confirmation", savedRegistrationId),
+		]);
+		if (viewLink) {
+			viewLink.hidden = !viewHref;
+			if (viewHref) viewLink.href = viewHref;
 		}
-		setStatus(status, registrationId ? "Registration changes saved." : "Registration saved. A confirmation email is queued for your contact email.", "success");
+		if (emailNote) {
+			emailNote.textContent = registrationId
+				? ""
+				: emailResult?.status === "sent"
+					? `A confirmation email is on its way to ${contact.email}.`
+					: viewHref
+						? "Save the registration link below. It shows this registration at any time."
+						: "";
+			emailNote.hidden = !emailNote.textContent;
+		}
 	});
 
 	const conversionForm = page.querySelector("[data-guest-conversion-form]");
@@ -779,9 +888,86 @@ const initializeVolunteerRequestPage = async () => {
 	});
 };
 
+// registration.html: opened from the confirmation email or the success page.
+// The token is a capability link, so no session is required.
+const initializeRegistrationViewPage = async () => {
+	const page = document.querySelector("[data-registration-view]");
+	if (!page) return;
+	const status = page.querySelector("[data-registration-view-status]");
+	const recovery = page.querySelector("[data-registration-view-recovery]");
+	const content = page.querySelector("[data-registration-view-content]");
+	const token = String(new URLSearchParams(window.location.search).get("token") || "").trim().toLowerCase();
+	const { supabase } = await platformReady();
+
+	const fail = (message) => {
+		setStatus(status, message, "error");
+		if (recovery) recovery.hidden = false;
+	};
+
+	if (!isViewToken(token)) {
+		fail("This registration link is incomplete. Open the link from your confirmation email, or sign in to see your registrations.");
+		return;
+	}
+
+	const { data, error } = await supabase.rpc("get_registration_by_token", { p_token: token });
+	if (error || !data?.event) {
+		fail("This registration link is invalid or has expired. Sign in to your household account to see your registrations, or contact PCA for help.");
+		return;
+	}
+
+	const event = data.event;
+	const statusKey = String(data.status || "");
+	page.querySelector("[data-view-event-title]").textContent = event.title || "PCA event";
+	const badge = page.querySelector("[data-view-status]");
+	badge.textContent = registrationStatusLabels[statusKey] || statusKey;
+	badge.className = `pca-status-badge is-${statusKey}`;
+	page.querySelector("[data-view-event-date]").textContent = formatEventRange(event);
+	page.querySelector("[data-view-event-location]").textContent = event.location || "Location to be announced";
+	page.querySelector("[data-view-contact]").textContent = [data.contact_name, data.contact_email, data.contact_phone].filter(Boolean).join(", ");
+	page.querySelector("[data-view-registered-at]").textContent = data.created_at ? formatShortDate(data.created_at) : "";
+
+	const attendees = Array.isArray(data.attendees) ? data.attendees : [];
+	page.querySelector("[data-view-attendee-heading]").textContent = `Attendees (${attendees.length})`;
+	page.querySelector("[data-view-attendees]").replaceChildren(
+		...attendees.map((attendee) => createElement("li", "", attendeeSummaryLine(attendee)))
+	);
+
+	const note = page.querySelector("[data-view-note]");
+	const notes = [];
+	if (statusKey === "cancelled") notes.push(`This registration was cancelled${data.cancelled_at ? ` on ${formatShortDate(data.cancelled_at)}` : ""}.`);
+	if (statusKey === "waitlisted") notes.push("PCA will email you if space opens up.");
+	if (event.deleted) notes.push("This event is no longer listed on the PCA website.");
+	note.textContent = notes.join(" ");
+	note.hidden = !notes.length;
+
+	const changeCopy = page.querySelector("[data-view-change-copy]");
+	const actions = page.querySelector("[data-view-actions]");
+	actions.replaceChildren();
+	const addAction = (label, href, primary = false) => {
+		const item = createElement("li");
+		const link = createElement("a", `button${primary ? " primary" : ""}`, label);
+		link.href = href;
+		item.appendChild(link);
+		actions.appendChild(item);
+	};
+	if (data.owner_is_permanent) {
+		changeCopy.textContent = "Attendees and contact details can be changed, and the registration cancelled, from the household dashboard.";
+		addAction("Open Household Dashboard", "dashboard.html", true);
+	} else {
+		changeCopy.textContent = "This registration was made as a guest. To change or cancel it, email PCA and mention the event name and your contact name.";
+		const subject = encodeURIComponent(`Registration change: ${event.title || "PCA event"}`);
+		addAction("Email PCA", `mailto:pcayouthcenter@gmail.com?subject=${subject}`, true);
+	}
+	addAction("Upcoming Events", "upcoming-events.html");
+
+	setStatus(status);
+	content.hidden = false;
+};
+
 export const initializeRegistrationPages = async () => {
 	await Promise.all([
 		initializeRegistrationPage(),
+		initializeRegistrationViewPage(),
 		initializeVolunteerRequestPage(),
 	]);
 };

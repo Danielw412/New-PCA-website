@@ -1,7 +1,15 @@
 <!DOCTYPE HTML>
-<html lang="en"><head><title>Blog | PCA Youth Center</title><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
-		<meta name="theme-color" content="#fffaf7" /><meta name="description" content="News, event recaps, and stories from PCA Youth Center." />
-		<link rel="stylesheet" href="assets/css/fontawesome-all.min.css" /><link rel="stylesheet" href="styles.css?v=20260913-admin-otp-v1" /></head>
+<html lang="en">
+	<head>
+		<title>Your Registration | PCA Youth Center</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="theme-color" content="#fffaf7" />
+		<meta name="robots" content="noindex" />
+		<meta name="description" content="View the details of a PCA Youth Center event registration." />
+		<link rel="stylesheet" href="assets/css/fontawesome-all.min.css" />
+		<link rel="stylesheet" href="styles.css?v=20260913-admin-otp-v1" />
+	</head>
 		<body>
 		<a class="skip-link" href="#main">Skip to content</a>
 		<header id="header" class="site-header">
@@ -27,7 +35,7 @@
 									<li><a href="membership.html">Membership</a></li>
 								</ul>
 							</li>
-							<li class="nav-item nav-item--dropdown" data-nav-dropdown>
+							<li class="nav-item nav-item--dropdown is-current" data-nav-dropdown>
 								<button type="button" aria-expanded="false" aria-controls="pca-nav-events">Events <span class="icon solid fa-chevron-down" aria-hidden="true"></span></button>
 								<ul class="nav-submenu" id="pca-nav-events">
 									<li><a href="events.html">Events Overview</a></li>
@@ -35,7 +43,7 @@
 									<li><a href="past-events.html">Past Events</a></li>
 								</ul>
 							</li>
-							<li class="nav-item is-current"><a href="blog.html" aria-current="page">Stories</a></li>
+							<li class="nav-item"><a href="blog.html">Stories</a></li>
 							<li class="nav-item nav-support"><a href="support-us.html">Support PCA</a></li>
 							<li class="nav-item nav-account nav-item--dropdown" data-nav-dropdown data-pca-account-menu>
 								<div class="nav-account__row">
@@ -56,16 +64,29 @@
 		</header>
 		<div id="wrapper">
 			<main id="main">
-				<section class="post" data-blog-feed>
-					<header class="major"><span class="date">Stories from Our Community</span><h1>PCA Blog</h1><p>Event recaps, cultural stories, and updates from the PCA community.</p></header>
-					<p class="pca-backend-status" data-blog-status data-platform-status aria-live="polite">Loading posts...</p>
-					<div class="pca-blog-toolbar">
-						<div class="field"><label for="blog-search">Search stories</label><input id="blog-search" type="search" inputmode="search" autocomplete="off" placeholder="Search by title, author, or topic" data-blog-search /></div>
-						<span class="pca-blog-count" data-blog-count aria-live="polite"></span>
+				<section class="post pca-registration-view-page" data-registration-view>
+					<header class="major"><span class="date">Event registration</span><h1>Your registration</h1><p>Everything PCA has on file for this registration.</p></header>
+					<p class="pca-backend-status" data-registration-view-status data-platform-status aria-live="polite">Loading your registration...</p>
+					<div data-registration-view-recovery hidden><ul class="actions"><li><a href="upcoming-events.html" class="button primary">Browse Upcoming Events</a></li><li><a href="login.html?next=dashboard.html" class="button">Sign In</a></li></ul></div>
+					<div class="pca-registration-view" data-registration-view-content hidden>
+						<article class="pca-registration-view__card" aria-labelledby="registration-view-event">
+							<div class="pca-registration-view__heading"><h2 id="registration-view-event" data-view-event-title></h2><span class="pca-status-badge" data-view-status></span></div>
+							<p class="pca-registration-view__note" data-view-note hidden></p>
+							<dl class="pca-detail-list">
+								<div><dt>Date and time</dt><dd data-view-event-date></dd></div>
+								<div><dt>Location</dt><dd data-view-event-location></dd></div>
+								<div><dt>Primary contact</dt><dd data-view-contact></dd></div>
+								<div><dt>Registered</dt><dd data-view-registered-at></dd></div>
+							</dl>
+							<h3 data-view-attendee-heading>Attendees</h3>
+							<ol class="pca-attendee-summary" data-view-attendees></ol>
+						</article>
+						<aside class="pca-registration-view__aside" aria-labelledby="registration-view-help">
+							<h2 id="registration-view-help">Need to make a change?</h2>
+							<p data-view-change-copy></p>
+							<ul class="actions" data-view-actions></ul>
+						</aside>
 					</div>
-					<div class="pca-blog-grid" data-blog-list></div>
-					<p class="pca-empty-state" data-blog-empty hidden>No stories match that search.</p>
-					<div class="actions special"><button type="button" class="button" data-blog-more hidden>Show more stories</button></div>
 				</section>
 			</main>
 			<footer id="footer" class="site-footer">
@@ -93,4 +114,7 @@
 					</section>
 				</div>
 				<div class="site-footer__bottom"><span>&copy; 2018-2026 PCA Youth Center</span></div>
-			</footer></div><script src="script.js?v=20260913-admin-otp-v1"></script></body></html>
+			</footer>
+		</div><script src="script.js?v=20260913-admin-otp-v1"></script>
+	</body>
+</html>

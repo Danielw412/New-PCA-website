@@ -7,11 +7,11 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260912-registrant-details-v1";
+} from "./core-auth.js?v=20260913-admin-otp-v1";
 let importedPostsPromise;
 
 const loadImportedPosts = async () => {
-	importedPostsPromise ||= import("./blog-seed.js?v=20260912-registrant-details-v1").then(({ importedPosts }) => importedPosts);
+	importedPostsPromise ||= import("./blog-seed.js?v=20260913-admin-otp-v1").then(({ importedPosts }) => importedPosts);
 	return importedPostsPromise;
 };
 

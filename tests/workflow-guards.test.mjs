@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
@@ -96,6 +96,80 @@ test("email typo checks catch provider and domain slips without rejecting real d
 	assert.equal(checkEmailAddress("   ").status, "empty");
 	assert.deepEqual(checkEmailAddress("parent.example.com"), { status: "invalid", message: "Enter a complete email address, like name@example.com.", suggestion: null });
 	assert.equal(checkEmailAddress("parent@localhost").suggestion, null);
+});
+
+test("registration outcome copy and attendee summaries read plainly", () => {
+	assert.equal(registration.registrationOutcomeCopy("confirmed", 1), "Your attendee is confirmed.");
+	assert.equal(registration.registrationOutcomeCopy("confirmed", 3), "Your group of 3 is confirmed.");
+	assert.match(registration.registrationOutcomeCopy("waitlisted", 2), /^Your group of 2 is on the waitlist\./);
+	assert.equal(registration.attendeeSummaryLine({ full_name: "Mei Chen", attendee_type: "child", age: 9, school_district: "PPS" }), "Mei Chen (age 9, PPS)");
+	assert.equal(registration.attendeeSummaryLine({ full_name: "Lin Chen", attendee_type: "adult" }), "Lin Chen (adult)");
+	assert.equal(administration.attendeeInlineSummary({ full_name: "Old Record", grade: "4" }), "Old Record (grade 4)");
+});
+
+test("event rail summaries count seats, waiting groups, and upcoming state", () => {
+	const now = new Date("2026-09-13T12:00:00Z");
+	const event = { id: "event-a", title: "Festival", capacity: 50, starts_at: "2026-09-26T18:00:00Z", ends_at: "2026-09-26T20:00:00Z", deleted_at: null };
+	const registrations = [
+		{ event_id: "event-a", status: "confirmed", participant_count: 3 },
+		{ event_id: "event-a", status: "confirmed", participant_count: 2 },
+		{ event_id: "event-a", status: "waitlisted", participant_count: 4 },
+		{ event_id: "event-a", status: "cancelled", participant_count: 1 },
+		{ event_id: "event-b", status: "confirmed", participant_count: 9 },
+	];
+	const summary = administration.summarizeEventRegistrations(event, registrations, now);
+	assert.equal(summary.confirmedSeats, 5);
+	assert.equal(summary.confirmedGroups, 2);
+	assert.equal(summary.waitlistedGroups, 1);
+	assert.equal(summary.cancelledGroups, 1);
+	assert.equal(summary.totalGroups, 4);
+	assert.equal(summary.upcoming, true);
+	assert.equal(administration.summarizeEventRegistrations({ ...event, starts_at: "2026-01-01T18:00:00Z", ends_at: "2026-01-01T20:00:00Z" }, registrations, now).upcoming, false);
+});
+
+test("registration view links are hashed, scoped, and carried into confirmation emails", () => {
+	const migration = read("supabase/migrations/20260913023208_registration_view_links_and_admin_queue.sql");
+	assert.match(migration, /create table private\.registration_view_tokens/);
+	assert.match(migration, /token_hash bytea not null unique/);
+	assert.match(migration, /extensions\.digest\(pg_catalog\.convert_to\(raw_token, 'UTF8'\), 'sha256'\)/);
+	assert.match(migration, /grant execute on function public\.get_registration_by_token\(text\) to anon, authenticated/);
+	assert.match(migration, /grant execute on function public\.issue_registration_view_token\(uuid\) to authenticated/);
+	assert.doesNotMatch(migration, /grant execute on function public\.issue_registration_view_token\(uuid\) to anon/);
+	assert.match(migration, /owner_id is distinct from caller_id and not private\.is_site_administrator\(caller_id\)/);
+	assert.match(migration, /'view_token', private\.issue_registration_view_token\(p_resource_id\)/);
+	assert.match(migration, /'event_waitlist_promoted'[\s\S]*?'view_token', private\.issue_registration_view_token\(waiting_registration\.id\)/);
+	assert.match(migration, /grant execute on function public\.admin_email_queue_summary\(\) to authenticated/);
+	assert.match(migration, /if not private\.is_site_administrator\(\) then[\s\S]*?transactional_email_deliveries/);
+
+	const edgeSource = read("supabase/functions/pca-transactional-email/index.ts");
+	assert.match(edgeSource, /registration\.html\?token=\$\{token\}/);
+	assert.match(edgeSource, /\/\^\[0-9a-f\]\{64\}\$\/\.test\(token\)/);
+	assert.match(edgeSource, /configured: providerConfigured/);
+
+	const registrationSource = read("assets/js/modules/events-registration.js");
+	assert.match(registrationSource, /get_registration_by_token/);
+	assert.match(registrationSource, /get_my_event_registration/);
+	assert.ok(existsSync(resolve(root, "registration.html")));
+	assert.match(read("registration.html"), /data-registration-view/);
+});
+
+test("one-time code sign-in uses existing accounts only and carries the captcha token", () => {
+	const backend = read("assets/js/pca-backend.js");
+	assert.match(backend, /signInWithOtp\(\{[\s\S]*?shouldCreateUser:\s*false/);
+	assert.match(backend, /verifyOtp\(\{ email: otpEmail, token, type: "email" \}\)/);
+	assert.match(read("assets/js/pca-auth-captcha.js"), /wrapCredentialsMethod\("signInWithOtp"\)/);
+	const login = read("login.html");
+	assert.match(login, /data-otp-request-form/);
+	assert.match(login, /data-otp-verify-form/);
+	assert.match(login, /autocomplete="one-time-code"/);
+});
+
+test("the administration workspace never blocks on native browser dialogs", () => {
+	const adminSource = read("assets/js/modules/administration.js");
+	assert.doesNotMatch(adminSource, /window\.(?:prompt|alert)\(/);
+	assert.doesNotMatch(adminSource, /\bconfirm\(`/);
+	assert.match(adminSource, /confirmDialog\(\{[\s\S]*?title: `Cancel /);
+	assert.match(adminSource, /event_registration_attendees[\s\S]*?\.in\("registration_id", ids\)/);
 });
 
 test("profile event records exclude deleted events before rendering or counting", () => {

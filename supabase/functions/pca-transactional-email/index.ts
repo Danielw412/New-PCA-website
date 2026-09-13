@@ -67,6 +67,26 @@ const pageShell = (eyebrow: string, heading: string, body: string, action?: { la
   </body>
 </html>`;
 
+// The view link is a capability URL: anyone holding it can read the
+// registration, so it only ever travels to the registrant's own inbox.
+const registrationViewUrl = (siteUrl: string, payload: Record<string, unknown>) => {
+  const token = String(payload.view_token || "");
+  return /^[0-9a-f]{64}$/.test(token) ? `${siteUrl}registration.html?token=${token}` : "";
+};
+
+const attendeeLines = (payload: Record<string, unknown>) => {
+  const attendees = Array.isArray(payload.attendees) ? payload.attendees : [];
+  return attendees
+    .map((attendee) => {
+      const record = (attendee && typeof attendee === "object" ? attendee : {}) as Record<string, unknown>;
+      const name = String(record.full_name || "").trim();
+      if (!name) return "";
+      const type = record.attendee_type === "child" ? "child / youth" : record.attendee_type === "adult" ? "adult" : "";
+      return type ? `${name} (${type})` : name;
+    })
+    .filter(Boolean);
+};
+
 const messageFor = (delivery: Delivery, siteUrl: string): Message => {
   const payload = delivery.payload || {};
   const eventTitle = String(payload.event_title || "PCA event");
@@ -78,25 +98,47 @@ const messageFor = (delivery: Delivery, siteUrl: string): Message => {
     case "event_registration_confirmation": {
       const waitlisted = payload.status === "waitlisted";
       const statusLine = waitlisted
-        ? "Your group is on the waitlist. PCA will contact you if space becomes available."
+        ? "Your group is on the waitlist. PCA will email you if space becomes available."
         : "Your registration is confirmed.";
+      const attendees = attendeeLines(payload);
+      const count = Number(payload.participant_count) || attendees.length;
+      const viewUrl = registrationViewUrl(siteUrl, payload);
+      const attendeeHtml = attendees.length
+        ? `<p style="line-height:1.65;"><strong>Attendees (${count})</strong><br>${attendees.map((line) => escapeHtml(line)).join("<br>")}</p>`
+        : `<p style="line-height:1.65;">${count} attendee${count === 1 ? "" : "s"}</p>`;
+      const linkHtml = viewUrl
+        ? `<p style="line-height:1.65;">You can open your registration at any time with this link:<br><a href="${escapeHtml(viewUrl)}" style="color:#b31722;overflow-wrap:anywhere;">${escapeHtml(viewUrl)}</a></p>`
+        : "";
       const body = `<p style="line-height:1.65;">Hi ${escapeHtml(name)},</p>
         <p style="line-height:1.65;">${escapeHtml(statusLine)}</p>
-        <p style="line-height:1.65;"><strong>${escapeHtml(eventTitle)}</strong><br>${escapeHtml(date)}<br>${escapeHtml(location)}<br>${escapeHtml(payload.participant_count)} attendee${Number(payload.participant_count) === 1 ? "" : "s"}</p>`;
+        <p style="line-height:1.65;"><strong>${escapeHtml(eventTitle)}</strong><br>${escapeHtml(date)}<br>${escapeHtml(location)}</p>
+        ${attendeeHtml}
+        ${linkHtml}`;
+      const attendeeText = attendees.length ? `Attendees (${count}):\n${attendees.join("\n")}` : `${count} attendee(s)`;
       return {
         subject: `${waitlisted ? "Waitlist confirmation" : "Registration confirmation"}: ${eventTitle}`,
-        html: pageShell("Event registration", eventTitle, body, { label: "View upcoming events", url: `${siteUrl}upcoming-events.html` }),
-        text: `Hi ${name}\n\n${statusLine}\n\n${eventTitle}\n${date}\n${location}\n${payload.participant_count} attendee(s)\n\nPCA Youth Center`,
+        html: pageShell(
+          "Event registration",
+          eventTitle,
+          body,
+          viewUrl ? { label: "View your registration", url: viewUrl } : { label: "View upcoming events", url: `${siteUrl}upcoming-events.html` },
+        ),
+        text: `Hi ${name},\n\n${statusLine}\n\n${eventTitle}\n${date}\n${location}\n\n${attendeeText}${viewUrl ? `\n\nView your registration: ${viewUrl}` : ""}\n\nPCA Youth Center`,
       };
     }
     case "event_waitlist_promoted": {
+      const viewUrl = registrationViewUrl(siteUrl, payload);
+      const linkHtml = viewUrl
+        ? `<p style="line-height:1.65;">Open your registration at any time:<br><a href="${escapeHtml(viewUrl)}" style="color:#b31722;overflow-wrap:anywhere;">${escapeHtml(viewUrl)}</a></p>`
+        : "";
       const body = `<p style="line-height:1.65;">Hi ${escapeHtml(name)},</p>
         <p style="line-height:1.65;">Space is now available and your group has been moved from the waitlist to <strong>confirmed</strong>.</p>
-        <p style="line-height:1.65;"><strong>${escapeHtml(eventTitle)}</strong><br>${escapeHtml(date)}<br>${escapeHtml(location)}<br>${escapeHtml(payload.participant_count)} attendee${Number(payload.participant_count) === 1 ? "" : "s"}</p>`;
+        <p style="line-height:1.65;"><strong>${escapeHtml(eventTitle)}</strong><br>${escapeHtml(date)}<br>${escapeHtml(location)}<br>${escapeHtml(payload.participant_count)} attendee${Number(payload.participant_count) === 1 ? "" : "s"}</p>
+        ${linkHtml}`;
       return {
         subject: `You're confirmed: ${eventTitle}`,
-        html: pageShell("Waitlist update", "Your registration is confirmed", body, { label: "View your registration", url: `${siteUrl}dashboard.html` }),
-        text: `Hi ${name},\n\nSpace is now available and your group has been moved from the waitlist to confirmed.\n\n${eventTitle}\n${date}\n${location}\n${payload.participant_count} attendee(s)\n\nPCA Youth Center`,
+        html: pageShell("Waitlist update", "Your registration is confirmed", body, { label: "View your registration", url: viewUrl || `${siteUrl}dashboard.html` }),
+        text: `Hi ${name},\n\nSpace is now available and your group has been moved from the waitlist to confirmed.\n\n${eventTitle}\n${date}\n${location}\n${payload.participant_count} attendee(s)${viewUrl ? `\n\nView your registration: ${viewUrl}` : ""}\n\nPCA Youth Center`,
       };
     }
     case "volunteer_request_received": {
@@ -197,6 +239,9 @@ Deno.serve(async (request) => {
   const adminClient = createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
+  // Deliveries stay queued until both provider secrets exist. Every response
+  // reports this so the website can say "queued" instead of "sent".
+  const providerConfigured = Boolean(Deno.env.get("RESEND_API_KEY") && Deno.env.get("PCA_EMAIL_FROM"));
 
   let body: {
     kind?: string;
@@ -368,8 +413,9 @@ Deno.serve(async (request) => {
         .maybeSingle();
       if (!administrator) return jsonResponse({ error: "Administrator access is required." }, 403);
 
-      const results = await processClaimableDeliveries();
-      return jsonResponse({ processed: results.length, results });
+      const results = providerConfigured ? await processClaimableDeliveries() : [];
+      const sent = results.filter((result) => result.status === "sent").length;
+      return jsonResponse({ configured: providerConfigured, processed: results.length, sent, results });
     }
 
     if (body.retry_promotions) {
@@ -435,7 +481,7 @@ Deno.serve(async (request) => {
       p_resource_id: body.resource_id,
     });
     if (queueError || !deliveryId) return jsonResponse({ error: queueError?.message || "Email could not be queued." }, 400);
-    const result = await processDelivery(deliveryId);
+    const result = { configured: providerConfigured, ...(await processDelivery(deliveryId)) };
     const responseStatus = ["queued", "processing"].includes(result.status)
       ? 202
       : result.status === "failed"

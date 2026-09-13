@@ -147,6 +147,7 @@
 		};
 
 		wrapCredentialsMethod("signInWithPassword");
+		wrapCredentialsMethod("signInWithOtp");
 		wrapCredentialsMethod("signUp");
 		wrapCredentialsMethod("signInAnonymously");
 

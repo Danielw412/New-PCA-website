@@ -5923,3 +5923,935 @@ caption {
 		padding-top: 1.4rem;
 	}
 }
+
+/* ==========================================================================
+   2026-09-13 layout, colour, and administration workspace pass.
+   ========================================================================== */
+
+/* --- Home closing band ----------------------------------------------------
+   The decorative ring sat on top of the buttons and swallowed their clicks,
+   and the saturated gradient shouted next to the rest of the page. */
+
+.home-cta {
+	background: linear-gradient(115deg, #8f151c 0%, #a3212a 100%);
+}
+
+.home-cta::after {
+	border-color: rgba(255, 255, 255, 0.12);
+	pointer-events: none;
+}
+
+.home-cta__inner {
+	align-items: center;
+	gap: clamp(2rem, 6vw, 6rem);
+}
+
+.home-cta__inner > div {
+	position: relative;
+	z-index: 1;
+}
+
+.home-cta .eyebrow {
+	margin-bottom: 1.1rem;
+	color: rgba(255, 255, 255, 0.78);
+}
+
+.home-cta h2 {
+	margin-bottom: 1rem;
+}
+
+.home-cta__inner > div > p {
+	color: rgba(255, 255, 255, 0.88);
+}
+
+.home-cta .actions {
+	position: relative;
+	z-index: 1;
+	flex: 0 0 auto;
+	margin: 0;
+}
+
+/* --- Long-form pages ------------------------------------------------------
+   The heading rail parked every section title in a side column and every
+   block on its own left edge. Pages now share one centred column: headings
+   sit above their content, prose keeps a reading measure, and card grids
+   use the full column. */
+
+@media screen and (min-width: 981px) {
+	#main > .post.pca-longform,
+	#main > .post.pca-longform:has(> h2) {
+		display: block;
+		max-width: calc(72rem + 2 * var(--pca-page-gutter));
+		margin-right: auto;
+		margin-left: auto;
+	}
+
+	#main > .post.pca-longform:has(> h2) > h2 {
+		max-width: 30ch;
+		margin-top: 3.25rem;
+		margin-bottom: 1rem;
+		font-size: clamp(1.75rem, 2.4vw, 2.35rem);
+	}
+
+	#main > .post.pca-longform:has(> h2) > h2:first-of-type {
+		margin-top: 2.75rem;
+	}
+
+	#main > .post.pca-longform:has(> h2) > h2 + *,
+	#main > .post.pca-longform:has(> h2) > h2:first-of-type + * {
+		margin-top: 0;
+	}
+
+	#main > .post.pca-longform:not(:has(> h2)) > .doc-preview,
+	#main > .post.pca-longform:not(:has(> h2)) > section {
+		width: 100%;
+	}
+
+	#main > .post.pca-longform > header.major p {
+		max-width: 46rem;
+	}
+
+	#main > .post.pca-longform > .pca-card-grid,
+	#main > .post.pca-longform > .pca-event-categories {
+		max-width: none;
+		margin-top: 1.5rem;
+	}
+
+	#main > .post.pca-longform > .pca-card-grid + h2,
+	#main > .post.pca-longform > .pca-event-categories + h2 {
+		margin-top: 3.75rem;
+	}
+}
+
+#main > .post.pca-longform > .actions {
+	margin-bottom: 0.5rem;
+}
+
+.pca-card h3 {
+	font-size: 1.2rem;
+	letter-spacing: -0.02em;
+}
+
+.pca-card p:last-child {
+	margin-bottom: 0;
+}
+
+/* --- Get involved paths ---------------------------------------------------
+   The featured column was a solid pink block and every card inverted to dark
+   red on hover. A top rule marks the recommended path and hover stays light. */
+
+.pca-involvement-card {
+	min-height: 0;
+	padding: clamp(2rem, 3.5vw, 3.25rem) var(--pca-page-gutter);
+}
+
+.pca-involvement-card.is-featured {
+	background: var(--pca-paper);
+	box-shadow: inset 0 3px 0 var(--pca-red-700);
+}
+
+.pca-involvement-card:hover,
+.pca-involvement-card:focus-visible {
+	background: var(--pca-paper);
+	color: var(--pca-ink);
+}
+
+.pca-involvement-card:focus-visible {
+	outline-color: var(--pca-red-700);
+}
+
+.pca-involvement-card > .icon {
+	margin-bottom: 1.5rem;
+	color: var(--pca-red-700);
+	font-size: 1.75rem;
+}
+
+.pca-involvement-card .eyebrow {
+	color: var(--pca-red-700);
+}
+
+.pca-involvement-card p {
+	color: var(--pca-muted);
+}
+
+.pca-involvement-card h2 {
+	margin-top: 0.4rem;
+	font-size: clamp(1.6rem, 2.6vw, 2.2rem);
+}
+
+.pca-involvement-card strong {
+	color: var(--pca-red-700);
+}
+
+.pca-involvement-card:hover h2 {
+	color: var(--pca-red-800);
+}
+
+/* --- Sign in --------------------------------------------------------------- */
+
+.pca-link-button {
+	display: inline;
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--pca-red-700);
+	font: inherit;
+	font-weight: 700;
+	text-decoration: underline;
+	text-underline-offset: 0.18em;
+	cursor: pointer;
+}
+
+.pca-link-button:hover {
+	color: var(--pca-red-800);
+}
+
+.pca-auth-alternatives {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem 1.5rem;
+	margin-top: 1.1rem;
+	font-size: 0.92rem;
+}
+
+.pca-auth-alternatives a {
+	font-weight: 700;
+}
+
+/* --- Registration outcome panels ------------------------------------------ */
+
+.pca-registration-existing {
+	padding: 1.25rem 1.5rem;
+	margin-bottom: 1.25rem;
+	border-left: 4px solid var(--pca-red-700);
+	border-radius: var(--pca-radius-sm);
+	background: #fff5f1;
+}
+
+.pca-registration-existing h2,
+.pca-registration-success h2 {
+	margin-bottom: 0.5rem;
+	font-size: clamp(1.5rem, 3vw, 2.1rem);
+}
+
+.pca-registration-success > p:empty,
+.pca-registration-success > ul:empty {
+	display: none;
+}
+
+.pca-attendee-summary {
+	padding-left: 1.2rem;
+	margin: 0 0 1rem;
+}
+
+.pca-attendee-summary li {
+	margin-bottom: 0.35rem;
+	color: var(--pca-ink);
+}
+
+.pca-registration-success > .actions {
+	margin-top: 0.75rem;
+}
+
+.pca-registration-success hr {
+	margin: 2rem 0 1.5rem;
+}
+
+/* --- Registration view page ----------------------------------------------- */
+
+.pca-registration-view {
+	display: grid;
+	grid-template-columns: minmax(0, 1.5fr) minmax(16rem, 0.7fr);
+	align-items: start;
+	gap: clamp(2rem, 5vw, 5rem);
+	max-width: 68rem;
+}
+
+.pca-registration-view__card {
+	padding: clamp(1.5rem, 3vw, 2.5rem);
+	border: 1px solid var(--pca-line);
+	border-top: 3px solid var(--pca-red-700);
+	background: var(--pca-surface);
+}
+
+.pca-registration-view__heading {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem 1rem;
+	margin-bottom: 1rem;
+}
+
+.pca-registration-view__heading h2 {
+	margin: 0;
+	font-size: clamp(1.6rem, 3vw, 2.3rem);
+}
+
+.pca-registration-view__note {
+	padding: 0.85rem 1rem;
+	margin: 0 0 1rem;
+	border-left: 3px solid var(--pca-warning);
+	background: #fff8ec;
+	color: var(--pca-ink);
+}
+
+.pca-registration-view__card h3 {
+	margin: 1.5rem 0 0.75rem;
+	font-size: 1.1rem;
+}
+
+.pca-registration-view__aside h2 {
+	margin-bottom: 0.6rem;
+	font-size: 1.45rem;
+}
+
+.pca-registration-view__aside .actions {
+	flex-direction: column;
+	align-items: stretch;
+}
+
+.pca-registration-view__aside .actions .button {
+	width: 100%;
+}
+
+.pca-detail-list {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 1rem 2rem;
+	margin: 1.25rem 0 0;
+}
+
+.pca-detail-list > div {
+	padding-top: 0.75rem;
+	border-top: 1px solid var(--pca-line);
+}
+
+.pca-detail-list dt {
+	color: var(--pca-muted);
+	font-size: 0.76rem;
+	font-weight: 750;
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
+}
+
+.pca-detail-list dd {
+	margin: 0.2rem 0 0;
+	color: var(--pca-ink);
+	overflow-wrap: anywhere;
+}
+
+@media screen and (max-width: 980px) {
+	.pca-registration-view {
+		grid-template-columns: 1fr;
+	}
+}
+
+@media screen and (max-width: 560px) {
+	.pca-detail-list {
+		grid-template-columns: 1fr;
+	}
+}
+
+/* --- Shared dialog and toast ---------------------------------------------- */
+
+.pca-dialog {
+	width: min(92vw, 30rem);
+	padding: 0;
+	border: 0;
+	border-radius: var(--pca-radius-md);
+	background: var(--pca-surface);
+	box-shadow: var(--pca-shadow-md);
+}
+
+.pca-dialog::backdrop {
+	background: rgba(25, 21, 22, 0.6);
+}
+
+.pca-dialog form {
+	padding: clamp(1.5rem, 4vw, 2rem);
+}
+
+.pca-dialog h2 {
+	margin-bottom: 0.6rem;
+	font-family: var(--pca-font-sans);
+	font-size: 1.3rem;
+	letter-spacing: -0.02em;
+}
+
+.pca-dialog p {
+	margin-bottom: 1.4rem;
+}
+
+.pca-dialog__actions {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	gap: 0.6rem;
+}
+
+.pca-admin-toast-region {
+	position: fixed;
+	right: 1rem;
+	bottom: 1rem;
+	z-index: 1500;
+	display: grid;
+	gap: 0.5rem;
+	width: min(92vw, 24rem);
+	pointer-events: none;
+}
+
+.pca-admin-toast {
+	margin: 0;
+	padding: 0.85rem 1.1rem;
+	border-left: 4px solid var(--pca-success);
+	border-radius: var(--pca-radius-sm);
+	background: var(--pca-surface);
+	box-shadow: var(--pca-shadow-md);
+	color: var(--pca-ink);
+	font-weight: 600;
+	transition: opacity 400ms ease, transform 400ms var(--pca-ease);
+}
+
+.pca-admin-toast.is-error {
+	border-left-color: var(--pca-danger);
+}
+
+.pca-admin-toast.is-leaving {
+	opacity: 0;
+	transform: translateY(6px);
+}
+
+/* --- Administration workspace --------------------------------------------- */
+
+.pca-visually-hidden {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
+
+.pca-inline-check {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+	margin: 0;
+	font-size: 0.9rem;
+	font-weight: 600;
+}
+
+.pca-admin-dashboard-page > header.major {
+	background: var(--pca-surface);
+}
+
+.pca-admin-dashboard-page > header.major h1 {
+	font-size: clamp(2rem, 3.5vw, 3rem);
+}
+
+.pca-admin-dashboard-page > header.major p {
+	font-family: var(--pca-font-sans);
+	font-size: 1rem;
+}
+
+.pca-admin-workspace-panel > .pca-admin-panel-heading {
+	margin-bottom: 1.5rem;
+}
+
+.pca-admin-panel-heading h2 {
+	font-size: clamp(1.7rem, 2.6vw, 2.3rem);
+}
+
+.pca-admin-panel-heading p {
+	max-width: 56ch;
+	margin-top: 0.4rem;
+}
+
+.pca-admin-workspace-panel > h3 {
+	margin-top: 2.75rem;
+	margin-bottom: 0.85rem;
+	font-size: 1.15rem;
+}
+
+.pca-admin-metric {
+	display: grid;
+	align-content: start;
+	gap: 0.4rem;
+	min-height: 9rem;
+	padding: clamp(1.25rem, 2.5vw, 2rem);
+	border: 0;
+	background: var(--pca-surface);
+	color: var(--pca-ink);
+	text-align: left;
+	cursor: pointer;
+	transition: background-color 160ms ease;
+}
+
+.pca-admin-metric:hover {
+	background: #fff6f3;
+}
+
+.pca-admin-metric strong {
+	color: var(--pca-red-800);
+	font-family: var(--pca-font-serif);
+	font-size: clamp(2.2rem, 3.5vw, 3.4rem);
+	line-height: 1;
+}
+
+.pca-admin-metric span {
+	color: var(--pca-muted);
+	font-size: 0.92rem;
+	line-height: 1.4;
+}
+
+.pca-admin-email-health {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	padding: 1.25rem 1.5rem;
+	margin-top: 1.5rem;
+	border: 1px solid var(--pca-line);
+	border-left: 4px solid var(--pca-muted);
+	border-radius: var(--pca-radius-md);
+	background: var(--pca-surface);
+}
+
+.pca-admin-email-health h3 {
+	margin: 0 0 0.25rem;
+	font-size: 1.05rem;
+}
+
+.pca-admin-email-health p {
+	max-width: 64ch;
+	margin: 0;
+}
+
+.pca-admin-email-health[data-state="unconfigured"],
+.pca-admin-email-health[data-state="error"] {
+	border-left-color: var(--pca-danger);
+	background: #fff5f5;
+}
+
+.pca-admin-email-health[data-state="unconfigured"] p,
+.pca-admin-email-health[data-state="error"] p {
+	color: var(--pca-ink);
+}
+
+.pca-admin-email-health[data-state="waiting"] {
+	border-left-color: var(--pca-warning);
+}
+
+.pca-admin-email-health[data-state="healthy"] {
+	border-left-color: var(--pca-success);
+}
+
+.pca-admin-search-field {
+	max-width: 24rem;
+	margin-bottom: 1rem;
+}
+
+.pca-admin-record-list {
+	display: grid;
+	gap: 0.75rem;
+}
+
+.pca-admin-record {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	gap: 0.75rem 1.5rem;
+	padding: 1.1rem 1.25rem;
+	border: 1px solid var(--pca-line);
+	border-radius: var(--pca-radius-md);
+	background: var(--pca-surface);
+}
+
+.pca-admin-record.is-cancelled,
+.pca-admin-record.is-rejected {
+	background: var(--pca-paper);
+}
+
+.pca-admin-record.is-cancelled .pca-admin-record__main {
+	opacity: 0.72;
+}
+
+.pca-admin-record__main {
+	min-width: 0;
+}
+
+.pca-admin-record__title {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem 0.75rem;
+	margin-bottom: 0.35rem;
+}
+
+.pca-admin-record__title strong {
+	font-size: 1.08rem;
+}
+
+.pca-admin-record__tag {
+	padding: 0.15rem 0.55rem;
+	border: 1px solid var(--pca-line);
+	border-radius: 999px;
+	color: var(--pca-muted);
+	font-size: 0.74rem;
+	font-weight: 700;
+}
+
+.pca-admin-record__meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.25rem 1.25rem;
+	margin: 0 0 0.4rem;
+	color: var(--pca-muted);
+	font-size: 0.9rem;
+}
+
+.pca-admin-record__attendees,
+.pca-admin-record__note {
+	margin: 0.35rem 0 0;
+	color: var(--pca-ink);
+	font-size: 0.95rem;
+	line-height: 1.55;
+}
+
+.pca-admin-record__note {
+	color: var(--pca-muted);
+}
+
+.pca-admin-record__roles {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem 1.25rem;
+	margin-top: 0.75rem;
+}
+
+.pca-admin-record__actions {
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	gap: 0.45rem;
+	min-width: 11rem;
+}
+
+.pca-admin-record__actions .button {
+	width: 100%;
+	white-space: nowrap;
+}
+
+.pca-admin-record__details {
+	grid-column: 1 / -1;
+	padding-top: 1rem;
+	border-top: 1px solid var(--pca-line);
+}
+
+.pca-admin-record__details h4 {
+	margin: 0 0 0.6rem;
+	font-size: 0.95rem;
+}
+
+.pca-admin-record__details section + section {
+	margin-top: 1.25rem;
+}
+
+.pca-admin-record__details .table-wrapper {
+	border-radius: var(--pca-radius-sm);
+}
+
+.pca-admin-record__details table {
+	min-width: 0;
+}
+
+.pca-admin-decision {
+	display: grid;
+	gap: 0.75rem;
+	max-width: 40rem;
+}
+
+.pca-admin-decision textarea {
+	min-height: 5rem;
+}
+
+.pca-admin-decision__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+}
+
+.pca-admin-registrations {
+	display: grid;
+	grid-template-columns: minmax(15rem, 18rem) minmax(0, 1fr);
+	align-items: start;
+	gap: clamp(1.5rem, 3vw, 3rem);
+}
+
+.pca-admin-event-rail {
+	position: sticky;
+	top: calc(var(--pca-header-height) + 1rem);
+}
+
+.pca-admin-event-rail__list {
+	display: grid;
+	gap: 0.35rem;
+}
+
+.pca-admin-event-rail__group {
+	padding: 0.75rem 0 0.25rem;
+	color: var(--pca-muted);
+	font-size: 0.72rem;
+	font-weight: 800;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+}
+
+.pca-admin-event-rail__item {
+	display: grid;
+	gap: 0.15rem;
+	width: 100%;
+	padding: 0.75rem 0.9rem;
+	border: 1px solid transparent;
+	border-radius: var(--pca-radius-sm);
+	background: transparent;
+	color: var(--pca-ink);
+	text-align: left;
+	transition: background-color 160ms ease, border-color 160ms ease;
+}
+
+.pca-admin-event-rail__item:hover {
+	background: var(--pca-paper);
+}
+
+.pca-admin-event-rail__item[aria-pressed="true"] {
+	border-color: #e3c5c7;
+	background: #fff6f3;
+}
+
+.pca-admin-event-rail__item strong {
+	font-size: 0.98rem;
+	line-height: 1.3;
+}
+
+.pca-admin-event-rail__item span {
+	color: var(--pca-muted);
+	font-size: 0.82rem;
+}
+
+.pca-admin-event-rail__item .pca-admin-event-rail__count {
+	color: var(--pca-red-800);
+	font-weight: 700;
+}
+
+.pca-admin-event-rail__item .pca-admin-event-rail__count.is-empty {
+	color: var(--pca-muted);
+	font-weight: 600;
+}
+
+@media screen and (max-width: 736px) {
+	.home-cta .actions {
+		width: 100%;
+		flex-wrap: wrap;
+	}
+
+	.home-cta .actions .button {
+		flex: 1 1 100%;
+	}
+}
+
+.pca-admin-event-rail__empty {
+	margin: 0;
+	color: var(--pca-muted);
+}
+
+.pca-admin-roster {
+	min-width: 0;
+}
+
+.pca-admin-roster__header {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 1rem;
+	padding-bottom: 1rem;
+	margin-bottom: 1rem;
+	border-bottom: 1px solid var(--pca-line);
+}
+
+.pca-admin-roster__header h3 {
+	margin: 0 0 0.35rem;
+	font-family: var(--pca-font-serif);
+	font-size: clamp(1.4rem, 2.4vw, 1.9rem);
+}
+
+.pca-admin-roster__header p {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.25rem 1.25rem;
+	margin: 0;
+	color: var(--pca-muted);
+	font-size: 0.9rem;
+}
+
+.pca-admin-roster__tools {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.75rem 1rem;
+}
+
+.pca-admin-roster__tools input[type="search"] {
+	min-width: 15rem;
+	min-height: 42px;
+	padding-top: 0.5rem;
+	padding-bottom: 0.5rem;
+}
+
+.pca-admin-list-tools {
+	margin-bottom: 1rem;
+}
+
+.pca-admin-roster .pca-empty-state,
+.pca-admin-record-list > .pca-empty-state {
+	padding: 2rem;
+	margin: 0;
+	font-size: 1rem;
+}
+
+.pca-admin-inline-row > td {
+	background: var(--pca-paper);
+}
+
+.pca-admin-inline-form {
+	display: grid;
+	gap: 1rem;
+	max-width: 60rem;
+}
+
+.pca-admin-inline-form h4 {
+	margin: 0;
+}
+
+.pca-admin-inline-form .fields {
+	gap: 0.75rem;
+}
+
+.pca-admin-inline-form .fields:has(.third) {
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.pca-admin-inline-form .field.third,
+.pca-admin-inline-form .field.half {
+	grid-column: span 1;
+}
+
+.pca-admin-inline-form .button {
+	justify-self: start;
+}
+
+.pca-admin-members-panel {
+	margin-top: 1.5rem;
+}
+
+.pca-admin-members-panel__heading {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	margin-bottom: 1rem;
+}
+
+.pca-admin-members-panel__heading h3 {
+	margin: 0;
+	font-size: 1.2rem;
+}
+
+.pca-admin-members-panel .pca-saved-member-grid {
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	max-width: none;
+	margin: 0 0 1.5rem;
+}
+
+.pca-admin-workspace-panel td .pca-link-button {
+	font-size: inherit;
+}
+
+.pca-admin-workspace-panel .pca-admin-row-actions {
+	min-width: 8.5rem;
+}
+
+.pca-admin-create-panel[data-admin-event-editor] {
+	margin-top: 0;
+}
+
+@media screen and (max-width: 980px) {
+	.pca-admin-registrations {
+		grid-template-columns: 1fr;
+	}
+
+	.pca-admin-event-rail {
+		position: static;
+	}
+
+	.pca-admin-event-rail__list {
+		display: flex;
+		gap: 0.5rem;
+		padding-bottom: 0.5rem;
+		overflow-x: auto;
+	}
+
+	.pca-admin-event-rail__group {
+		display: none;
+	}
+
+	.pca-admin-event-rail__item {
+		flex: 0 0 auto;
+		width: 15rem;
+		border-color: var(--pca-line);
+	}
+
+	.pca-admin-members-panel .pca-saved-member-grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+@media screen and (max-width: 736px) {
+	.pca-admin-record {
+		grid-template-columns: 1fr;
+	}
+
+	.pca-admin-record__actions {
+		flex-direction: row;
+		flex-wrap: wrap;
+		min-width: 0;
+	}
+
+	.pca-admin-record__actions .button {
+		width: auto;
+		flex: 1 1 auto;
+	}
+
+	.pca-admin-inline-form .fields:has(.third) {
+		grid-template-columns: 1fr;
+	}
+
+	.pca-admin-members-panel .pca-saved-member-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.pca-admin-roster__tools input[type="search"] {
+		min-width: 0;
+		width: 100%;
+	}
+
+	.pca-admin-email-health {
+		align-items: stretch;
+		flex-direction: column;
+	}
+}
