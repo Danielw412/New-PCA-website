@@ -141,6 +141,16 @@ test("registration view links are hashed, scoped, and carried into confirmation 
 	assert.match(migration, /grant execute on function public\.admin_email_queue_summary\(\) to authenticated/);
 	assert.match(migration, /if not private\.is_site_administrator\(\) then[\s\S]*?transactional_email_deliveries/);
 
+	// The exposed wrappers are SECURITY INVOKER; the definer bodies live in private.
+	const hardening = read("supabase/migrations/20260913055528_minimize_registration_link_definer_surface.sql");
+	for (const wrapper of ["get_registration_by_token(p_token text)", "issue_registration_view_token(p_registration_id uuid)", "get_my_event_registration(p_event_id uuid)", "admin_email_queue_summary()"]) {
+		const escaped = wrapper.replace(/[()]/g, "\\$&");
+		assert.match(hardening, new RegExp(`create or replace function public\\.${escaped}[\\s\\S]*?security invoker`), wrapper);
+	}
+	assert.match(hardening, /grant execute on function private\.get_registration_by_token\(text\) to anon, authenticated/);
+	assert.match(hardening, /grant execute on function private\.issue_own_registration_view_token\(uuid\) to authenticated/);
+	assert.doesNotMatch(hardening, /grant execute on function private\.issue_own_registration_view_token\(uuid\) to anon/);
+
 	const edgeSource = read("supabase/functions/pca-transactional-email/index.ts");
 	assert.match(edgeSource, /registration\.html\?token=\$\{token\}/);
 	assert.match(edgeSource, /\/\^\[0-9a-f\]\{64\}\$\/\.test\(token\)/);
