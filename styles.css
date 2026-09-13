@@ -4983,40 +4983,89 @@ header.major::after {
 	flex: 0 0 auto;
 }
 
-.pca-checkin-card,
-.pca-checkin-tool {
-	padding: 1rem;
-	margin: 1.25rem 0;
-	border: 1px solid #e3c5c7;
-	border-radius: var(--pca-radius-md);
+.pca-admin-registration-details-row > td {
 	background: #fff9f7;
 }
 
-.pca-checkin-card summary,
-.pca-checkin-tool summary {
-	color: var(--pca-ink);
-	font-weight: 800;
+.pca-admin-registration-details {
+	display: grid;
+	gap: 1.5rem;
+	padding: 0.5rem 0 0.75rem;
 }
 
-.pca-checkin-code {
-	display: block;
-	padding: 0.9rem;
-	margin: 1rem 0;
+.pca-admin-registration-details h3 {
+	margin: 0 0 0.75rem;
+	font-size: 1.05rem;
+}
+
+/* auto-fill collapses to one track while the table measures its columns, so
+   the detail grid never widens the registrations table. */
+.pca-admin-detail-list {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+	gap: 0.85rem 1.5rem;
+	margin: 0;
+}
+
+.pca-admin-detail-list dt {
+	margin: 0;
+	color: var(--pca-muted);
+	font-size: 0.78rem;
+	font-weight: 750;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+
+.pca-admin-detail-list dd {
+	margin: 0.15rem 0 0;
+	color: var(--pca-ink);
 	overflow-wrap: anywhere;
-	border: 1px dashed var(--pca-red-700);
-	border-radius: var(--pca-radius-sm);
-	background: #fff;
-	color: var(--pca-ink);
-	font-family: Consolas, "Courier New", monospace;
-	font-size: clamp(0.78rem, 1.5vw, 1rem);
-	font-weight: 700;
-	letter-spacing: 0.08em;
-	user-select: all;
 }
 
-.pca-checkin-tool > section {
-	padding-top: 1rem;
-	border-top: 1px solid var(--pca-line);
+.pca-admin-workspace-panel .pca-admin-attendee-table {
+	margin: 0;
+	background: #fff;
+}
+
+/* The registrations table scrolls sideways on narrow screens. Size the details
+   to the visible wrapper and pin them to its edge so staff never scroll the
+   whole table to read one registrant. */
+.pca-admin-workspace-panel .table-wrapper:has(.pca-admin-registration-details-row) {
+	container-type: inline-size;
+}
+
+.pca-admin-registration-details {
+	position: sticky;
+	left: 0.75rem;
+	max-width: calc(100cqi - 2.7rem);
+}
+
+.pca-admin-registration-details > section {
+	min-width: 0;
+	overflow-x: auto;
+}
+
+.pca-email-suggestion {
+	margin: 0.45rem 0 0;
+	color: var(--pca-ink);
+	font-size: 0.92rem;
+	line-height: 1.5;
+}
+
+.pca-email-suggestion button {
+	display: inline;
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--pca-red-700);
+	font-weight: 750;
+	overflow-wrap: anywhere;
+	text-decoration: underline;
+	text-underline-offset: 0.15em;
+}
+
+.pca-email-suggestion button:hover {
+	color: var(--pca-red-800);
 }
 
 /* Final production visual layer. Kept last so legacy template rules cannot win. */

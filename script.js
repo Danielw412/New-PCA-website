@@ -1,4 +1,4 @@
-const ASSET_VERSION = "20260911-ui-polish-v1";
+const ASSET_VERSION = "20260912-registrant-details-v1";
 const MOBILE_NAV_QUERY = window.matchMedia("(max-width: 980px)");
 const REDUCED_MOTION_QUERY = window.matchMedia("(prefers-reduced-motion: reduce)");
 
@@ -455,3 +455,12 @@ const loadPcaBackend = () => {
 };
 
 loadPcaBackend();
+
+const loadEmailTypoGuard = () => {
+	if (!document.querySelector('input[type="email"]')) return;
+	import(`./assets/js/modules/email-typo-guard.js?v=${ASSET_VERSION}`)
+		.then(({ installEmailTypoGuard }) => installEmailTypoGuard())
+		.catch((error) => console.debug("Email typo checks could not be loaded.", error));
+};
+
+loadEmailTypoGuard();

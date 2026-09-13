@@ -9,7 +9,7 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260911-ui-polish-v1";
+} from "./core-auth.js?v=20260912-registrant-details-v1";
 
 const referralLabels = {
 	friend_recommendation: "Friend recommendation",
@@ -624,49 +624,6 @@ const initializeRegistrationPage = async () => {
 			sessionStorage.setItem(claimKey, saved.guest_claim_token);
 			success.querySelector("[data-guest-account-offer]").hidden = false;
 			success.querySelector("[data-conversion-email]").value = contact.email;
-			if (resultStatus === "confirmed") {
-				const checkinPanel = createElement("section", "pca-checkin-card pca-registration-success-checkin");
-				checkinPanel.appendChild(createElement("h3", "", "Event check-in"));
-				checkinPanel.appendChild(createElement("p", "pca-form-help", "Create a private check-in code to show PCA staff when your group arrives. This code is displayed only on this page."));
-				const issueCode = createElement("button", "button small", "Create Check-in Code");
-				issueCode.type = "button";
-				const code = createElement("output", "pca-checkin-code");
-				code.hidden = true;
-				const copyCode = createElement("button", "button small", "Copy Code");
-				copyCode.type = "button";
-				copyCode.hidden = true;
-				const codeStatus = createElement("p", "pca-backend-status");
-				codeStatus.setAttribute("role", "status");
-				codeStatus.setAttribute("aria-live", "polite");
-				issueCode.addEventListener("click", async () => {
-					issueCode.disabled = true;
-					setStatus(codeStatus, "Creating your secure code...", "info");
-					const { data: token, error } = await supabase.rpc("issue_guest_registration_checkin_token", {
-						p_registration_id: saved.registration_id,
-						p_claim_token: saved.guest_claim_token,
-					});
-					issueCode.disabled = false;
-					if (error || !token) {
-						setStatus(codeStatus, friendlyError(error, "The check-in code could not be created."), "error");
-						return;
-					}
-					code.textContent = String(token).toUpperCase();
-					code.hidden = false;
-					copyCode.hidden = false;
-					issueCode.textContent = "Replace Check-in Code";
-					setStatus(codeStatus, "Show this code to PCA staff. It will disappear when you leave this page.", "success");
-				});
-				copyCode.addEventListener("click", async () => {
-					try {
-						await navigator.clipboard.writeText(code.textContent);
-						setStatus(codeStatus, "Check-in code copied.", "success");
-					} catch {
-						setStatus(codeStatus, "Copy was blocked by your browser. Select the code and copy it manually.", "info");
-					}
-				});
-				checkinPanel.append(issueCode, code, copyCode, codeStatus);
-				success.insertBefore(checkinPanel, success.querySelector("[data-guest-account-offer]"));
-			}
 		}
 		if (!registrationId) {
 			await requestTransactionalEmail(supabase, "event_registration_confirmation", saved?.registration_id);

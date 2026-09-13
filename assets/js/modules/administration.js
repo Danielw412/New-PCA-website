@@ -7,7 +7,8 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260911-ui-polish-v1";
+} from "./core-auth.js?v=20260912-registrant-details-v1";
+import { referralLabels } from "./events-registration.js?v=20260912-registrant-details-v1";
 
 const timeZonePartsFormatter = new Intl.DateTimeFormat("en-CA", {
 	timeZone: "America/New_York",
@@ -56,13 +57,46 @@ const eventDateTableValue = (event) => event.event_date
 		? formatShortDate(event.starts_at)
 		: "—";
 
-export const checkinEligibility = (registration) => {
-	if (!registration) return { allowed: false, reason: "missing" };
-	if (registration.checked_in_at) return { allowed: false, reason: "already_checked_in" };
-	if (registration.event_deleted_at) return { allowed: false, reason: "archived" };
-	if (registration.registration_status !== "confirmed") return { allowed: false, reason: "not_confirmed" };
-	return { allowed: true, reason: null };
+const registrationDateTimeFormatter = new Intl.DateTimeFormat("en-US", {
+	dateStyle: "medium",
+	timeStyle: "short",
+	timeZone: "America/New_York",
+});
+
+const registrationStatusLabels = { confirmed: "Confirmed", waitlisted: "On waitlist", cancelled: "Cancelled" };
+const attendeeTypeLabels = { child: "Child / Youth", adult: "Adult" };
+const formatRegistrationTime = (value) => value ? `${registrationDateTimeFormatter.format(new Date(value))} ET` : "";
+
+export const registrationDetailFields = (registration, profile = null) => {
+	const referral = registration.referral_source === "other"
+		? `Other: ${registration.referral_source_other || "not specified"}`
+		: referralLabels[registration.referral_source] || registration.referral_source;
+	const fields = [
+		["Primary contact", registration.contact_name],
+		["Contact email", registration.contact_email],
+		["Contact phone", registration.contact_phone],
+		["Signup type", registration.registration_source === "guest" ? "Guest signup" : "Household account"],
+		["PCA account", profile ? `${profile.full_name} · ${profile.email}` : "No permanent account"],
+		["Registration status", registrationStatusLabels[registration.status] || registration.status],
+		["Attendee count", registration.participant_count],
+		["Heard about PCA from", referral],
+		["Future event emails", registration.future_event_emails ? "Yes" : "No"],
+		["Registered", formatRegistrationTime(registration.created_at)],
+		["Last updated", formatRegistrationTime(registration.updated_at)],
+	];
+	if (registration.cancelled_at) fields.push(["Cancelled", formatRegistrationTime(registration.cancelled_at)]);
+	fields.push(["Registration ID", registration.id]);
+	return fields.map(([label, value]) => [label, value == null || value === "" ? "—" : String(value)]);
 };
+
+export const attendeeDetailValues = (attendee, includeGrade = false) => [
+	attendee.position,
+	attendee.full_name,
+	attendeeTypeLabels[attendee.attendee_type] || attendee.attendee_type,
+	attendee.age,
+	attendee.school_district,
+	...(includeGrade ? [attendee.grade] : []),
+];
 
 const requestTransactionalEmail = async (supabase, kind, resourceId) => {
 	if (!resourceId) return;
@@ -261,6 +295,57 @@ const initializeEventForm = (page, supabase) => {
 	page.querySelector("[data-admin-event-clear]").addEventListener("click", () => { form.reset(); form.elements.event_id.value = ""; });
 };
 
+// Attendees load per registration when opened, so the list never depends on
+// how many participant rows one API page can return.
+const renderRegistrationDetails = async (container, registration, profile, supabase) => {
+	container.replaceChildren(createElement("p", "pca-backend-status is-info", "Loading registrant details..."));
+	const { data: attendees, error } = await supabase
+		.from("event_registration_attendees")
+		.select("position,full_name,attendee_type,age,school_district,grade")
+		.eq("registration_id", registration.id)
+		.order("position");
+
+	const summary = createElement("section");
+	const list = createElement("dl", "pca-admin-detail-list");
+	registrationDetailFields(registration, profile).forEach(([label, value]) => {
+		const item = createElement("div");
+		item.append(createElement("dt", "", label), createElement("dd", "", value));
+		list.appendChild(item);
+	});
+	summary.append(createElement("h3", "", "Registrant"), list);
+
+	const people = createElement("section");
+	people.appendChild(createElement("h3", "", "Attendees"));
+	if (error) {
+		people.appendChild(createElement("p", "pca-backend-status is-error", friendlyError(error, "Attendee details could not be loaded.")));
+	} else if (!attendees?.length) {
+		people.appendChild(createElement("p", "pca-empty-state", "No attendees are recorded for this registration."));
+	} else {
+		const includeGrade = attendees.some((attendee) => attendee.grade);
+		const headRow = createElement("tr");
+		["#", "Name", "Attendee type", "Age", "School / District", ...(includeGrade ? ["Grade"] : [])].forEach((label) => {
+			const heading = createElement("th", "", label);
+			heading.scope = "col";
+			headRow.appendChild(heading);
+		});
+		const head = createElement("thead");
+		head.appendChild(headRow);
+		const rows = createElement("tbody");
+		attendees.forEach((attendee) => {
+			const row = createElement("tr");
+			attendeeDetailValues(attendee, includeGrade).forEach((value) => row.appendChild(tableCell(value)));
+			rows.appendChild(row);
+		});
+		const table = createElement("table", "pca-admin-attendee-table");
+		table.append(head, rows);
+		people.appendChild(table);
+	}
+
+	const details = createElement("div", "pca-admin-registration-details");
+	details.append(summary, people);
+	container.replaceChildren(details);
+};
+
 const loadRegistrations = async (page, supabase) => {
 	const [registrationResult, eventsResult, profilesResult] = await Promise.all([
 		supabase.from("event_registrations").select("*").order("created_at", { ascending: false }),
@@ -276,26 +361,27 @@ const loadRegistrations = async (page, supabase) => {
 		const event = events.get(registration.event_id);
 		const profile = profiles.get(registration.owner_user_id);
 		const row = createElement("tr");
+		const detailsRow = createElement("tr", "pca-admin-registration-details-row");
+		detailsRow.id = `admin-registration-details-${registration.id}`;
+		detailsRow.hidden = true;
+		const detailsCell = createElement("td");
+		detailsCell.colSpan = 7;
+		detailsRow.appendChild(detailsCell);
 		const actions = createElement("td");
+		const toggleDetails = createElement("button", "button small", "View Details");
+		toggleDetails.type = "button";
+		toggleDetails.setAttribute("aria-expanded", "false");
+		toggleDetails.setAttribute("aria-controls", detailsRow.id);
+		toggleDetails.addEventListener("click", () => {
+			const expanded = toggleDetails.getAttribute("aria-expanded") !== "true";
+			toggleDetails.setAttribute("aria-expanded", String(expanded));
+			toggleDetails.textContent = expanded ? "Hide Details" : "View Details";
+			detailsRow.hidden = !expanded;
+			if (expanded) void renderRegistrationDetails(detailsCell, registration, profile, supabase);
+		});
 		const edit = createElement("a", "button small", "Edit");
 		edit.href = `register.html?event=${encodeURIComponent(registration.event_id)}&registration=${encodeURIComponent(registration.id)}`;
-		actions.appendChild(edit);
-		if (registration.status === "confirmed" && !event?.deleted_at && new Date(event?.ends_at).getTime() + 7 * 24 * 60 * 60 * 1000 > Date.now()) {
-			const checkIn = createElement("button", "button small", "Check In");
-			checkIn.type = "button";
-			checkIn.addEventListener("click", async () => {
-				if (!window.confirm(`Record arrival for ${registration.contact_name || "this attendee group"}?`)) return;
-				checkIn.disabled = true;
-				const { data, error } = await supabase.rpc("check_in_registration_as_admin", { p_registration_id: registration.id });
-				checkIn.disabled = false;
-				if (error || !data) {
-					window.alert(friendlyError(error, "Check-in could not be recorded."));
-					return;
-				}
-				window.alert(data.already_checked_in ? "This group was already checked in." : "Attendance recorded.");
-			});
-			actions.appendChild(checkIn);
-		}
+		actions.append(toggleDetails, edit);
 		if (registration.status !== "cancelled") {
 			const cancel = createElement("button", "button small", "Cancel");
 			cancel.type = "button";
@@ -322,7 +408,7 @@ const loadRegistrations = async (page, supabase) => {
 			tableCell(registration.registration_source),
 			actions
 		);
-		body.appendChild(row);
+		body.append(row, detailsRow);
 	});
 };
 
@@ -336,87 +422,6 @@ const deleteManagedAccount = async (supabase, profile, reload) => {
 		return;
 	}
 	await reload();
-};
-
-const initializeCheckinTool = (page, supabase) => {
-	const form = page.querySelector("[data-admin-checkin-form]");
-	if (!form) return;
-	const status = page.querySelector("[data-admin-checkin-status]");
-	const result = page.querySelector("[data-admin-checkin-result]");
-	const tokenInput = form.elements.token;
-	let currentToken = "";
-
-	const clearResult = () => {
-		currentToken = "";
-		result.replaceChildren();
-		result.hidden = true;
-	};
-
-	const renderResult = (registration, checkedIn = false) => {
-		result.replaceChildren();
-		const title = createElement("h3", "", registration.event_title || "Event registration");
-		const meta = createElement("p", "", `${formatShortDate(registration.starts_at)} · ${registration.location || "Location not listed"}`);
-		const contact = createElement("p", "", `${registration.contact_name || "Primary contact"} · ${registration.participant_count || 0} attendee${Number(registration.participant_count) === 1 ? "" : "s"}`);
-		const attendees = createElement("ul", "pca-compact-list");
-		(registration.attendees || []).forEach((attendee) => attendees.appendChild(createElement("li", "", attendee.full_name)));
-		const state = createElement("p", "pca-backend-status", registration.checked_in_at
-			? `Checked in${checkedIn ? " now" : " previously"}.`
-			: "Registration found. Confirm the attendee names before checking in.");
-		const eligibility = checkinEligibility(registration);
-		const eligible = eligibility.allowed;
-		if (!eligible && !registration.checked_in_at) {
-			state.textContent = registration.event_deleted_at
-				? "This event is archived and cannot accept check-ins."
-				: "This registration is not confirmed and cannot be checked in.";
-		}
-		state.classList.add(registration.checked_in_at ? "is-success" : eligible ? "is-info" : "is-error");
-		result.append(title, meta, contact, attendees, state);
-		if (!registration.checked_in_at && eligible) {
-			const lookedUpToken = currentToken;
-			const confirm = createElement("button", "button primary", "Record Check-in");
-			confirm.type = "button";
-			confirm.addEventListener("click", async () => {
-				if (!window.confirm(`Record arrival for ${registration.contact_name || "this attendee group"}?`)) return;
-				confirm.disabled = true;
-				const { data, error } = await supabase.rpc("check_in_event_registration", { p_token: lookedUpToken });
-				if (error || !data) {
-					confirm.disabled = false;
-					setStatus(status, friendlyError(error, "Check-in could not be recorded."), "error");
-					return;
-				}
-				renderResult(data, true);
-				setStatus(status, "Attendance recorded.", "success");
-			});
-			result.appendChild(confirm);
-		}
-		result.hidden = false;
-	};
-
-	tokenInput.addEventListener("input", () => {
-		clearResult();
-		setStatus(status);
-	});
-
-	form.addEventListener("submit", async (event) => {
-		event.preventDefault();
-		const submittedToken = String(new FormData(form).get("token") || "").trim().toLowerCase();
-		if (!/^[0-9a-f]{64}$/.test(submittedToken)) {
-			setStatus(status, "Enter the complete 64-character check-in code.", "error");
-			return;
-		}
-		clearResult();
-		currentToken = submittedToken;
-		setFormBusy(form, true, "Finding...");
-		setStatus(status, "Finding the registration...", "info");
-		const { data, error } = await supabase.rpc("lookup_registration_checkin", { p_token: currentToken });
-		setFormBusy(form, false);
-		if (error || !data) {
-			setStatus(status, friendlyError(error, "No active registration matches that code."), "error");
-			return;
-		}
-		renderResult(data);
-		setStatus(status);
-	});
 };
 
 const loadHouseholds = async (page, supabase) => {
@@ -854,7 +859,6 @@ const initializeAdminWorkspace = async () => {
 	page.querySelector("[data-admin-level]").textContent = context.admin_level === "super_admin" ? "Super Administrator" : "Administrator";
 	initializeWorkspaceTabs(page);
 	initializeEventForm(page, supabase);
-	initializeCheckinTool(page, supabase);
 	await Promise.all([
 		loadOverview(page, supabase),
 		loadEvents(page, supabase),
