@@ -10,7 +10,7 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260913-admin-otp-v1";
+} from "./core-auth.js?v=20260914-guest-first-v1";
 
 const registrationStatusLabels = Object.freeze({
 	confirmed: "Confirmed",
@@ -524,9 +524,6 @@ const initializeRegistrationPage = async () => {
 
 	if (registrationId && context.admin_level) {
 		await showForm();
-	} else if (context.profile?.account_type === "teen_member") {
-		chooser.hidden = false;
-		chooser.querySelector("[data-registration-teen-warning]").hidden = false;
 	} else if (context.profile?.account_type === "household" || guestMode) {
 		await showForm();
 	} else {
@@ -561,6 +558,11 @@ const initializeRegistrationPage = async () => {
 				await showForm();
 				setStatus(status);
 				return;
+			}
+			if (session && !context.is_anonymous) {
+				await supabase.auth.signOut().catch(() => {});
+				session = null;
+				context = {};
 			}
 
 			const guestChallenge = await prepareGuestChallenge();

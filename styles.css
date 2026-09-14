@@ -2409,10 +2409,6 @@ body.pca-motion-ready [data-reveal].is-visible {
 	grid-row: 1 / span 2;
 }
 
-.pca-registration-path-card [data-registration-teen-warning] {
-	grid-column: 2 / -1;
-}
-
 .pca-registration-form {
 	gap: 1.25rem;
 }

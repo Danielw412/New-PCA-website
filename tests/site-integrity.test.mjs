@@ -5,7 +5,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const assetVersion = "20260913-admin-otp-v1";
+const assetVersion = "20260914-guest-first-v1";
 const redirectPages = new Set([
   "teen-member-apply.html",
   "teen-member-dashboard.html",
@@ -56,7 +56,7 @@ test("external new-tab links prevent opener access", () => {
 
 test("changed first-party assets share one cache version", () => {
   assert.match(read("script.js"), new RegExp(`ASSET_VERSION = "${assetVersion}"`));
-  assert.doesNotMatch(read("assets/js/pca-platform.js"), /\?v=(?!20260913-admin-otp-v1)/);
+  assert.doesNotMatch(read("assets/js/pca-platform.js"), /\?v=(?!20260914-guest-first-v1)/);
   assert.match(read("assets/js/modules/blog.js"), new RegExp(`blog-seed\\.js\\?v=${assetVersion}`));
 
   for (const file of ["login.html", "profile.html", "reset-password.html"]) {
@@ -85,4 +85,22 @@ test("obsolete template pages and time-sensitive calls to action stay removed", 
   assert.doesNotMatch(publicCopy, /Lorem Ipsum|Massively by HTML5 UP|2024-2025 Student Council Application/i);
   assert.doesNotMatch(publicCopy, /Application Deadline:\s*(?:July|August)\s+\d{1,2},\s*2024/i);
   assert.doesNotMatch(publicCopy, /Ongoing Book Drive/i);
+});
+
+test("registration path chooser puts Continue as Guest first without volunteer notice regression", () => {
+  const registerHtml = read("register.html");
+  assert.doesNotMatch(registerHtml, /Volunteer Accounts are separate from household registrations/i);
+  assert.doesNotMatch(registerHtml, /data-registration-teen-warning/);
+  assert.doesNotMatch(read("assets/js/modules/events-registration.js"), /data-registration-teen-warning/);
+  assert.doesNotMatch(read("styles.css"), /data-registration-teen-warning/);
+
+  const guestIndex = registerHtml.indexOf("Continue as Guest");
+  const signInIndex = registerHtml.indexOf("<h3>Sign In</h3>");
+  const createAccountIndex = registerHtml.indexOf("<h3>Create a Household Account</h3>");
+
+  assert.ok(guestIndex !== -1, "register.html: missing Continue as Guest path");
+  assert.ok(signInIndex !== -1, "register.html: missing Sign In path");
+  assert.ok(createAccountIndex !== -1, "register.html: missing Create a Household Account path");
+  assert.ok(guestIndex < signInIndex, "register.html: Continue as Guest must appear before Sign In");
+  assert.ok(signInIndex < createAccountIndex, "register.html: Sign In must appear before Create a Household Account");
 });

@@ -7,8 +7,8 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260913-admin-otp-v1";
-import { referralLabels } from "./events-registration.js?v=20260913-admin-otp-v1";
+} from "./core-auth.js?v=20260914-guest-first-v1";
+import { referralLabels } from "./events-registration.js?v=20260914-guest-first-v1";
 
 const timeZonePartsFormatter = new Intl.DateTimeFormat("en-CA", {
 	timeZone: "America/New_York",

@@ -1,4 +1,4 @@
-const ASSET_VERSION = "20260913-admin-otp-v1";
+const ASSET_VERSION = "20260914-guest-first-v1";
 const MOBILE_NAV_QUERY = window.matchMedia("(max-width: 980px)");
 const REDUCED_MOTION_QUERY = window.matchMedia("(prefers-reduced-motion: reduce)");
 
