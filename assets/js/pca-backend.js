@@ -912,7 +912,7 @@
 			const closedButton = createElement(
 				"span",
 				"button disabled",
-				canRegister ? "Household Account Required" : "Closed"
+				canRegister ? "Household Account Required" : "Registration Closed"
 			);
 			closedButton.setAttribute("aria-disabled", "true");
 			actionItem.appendChild(closedButton);

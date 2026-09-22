@@ -9,7 +9,7 @@ import {
 	requirePermanentAccount,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260922-volunteer-signups-v1";
+} from "./core-auth.js?v=20260922-separate-signups-v1";
 
 const roleLabels = {
 	student_council: "Student Council",

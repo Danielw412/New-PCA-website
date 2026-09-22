@@ -145,6 +145,30 @@ test("volunteer sign-up summaries count requests and only offer the switch befor
 	assert.equal(administration.summarizeVolunteerSignups({ id: "legacy", starts_at: event.starts_at }, [], now).open, true);
 	assert.equal(administration.summarizeVolunteerSignups({ ...event, starts_at: "2026-09-01T18:00:00Z" }, requests, now).adjustable, false);
 	assert.equal(administration.summarizeVolunteerSignups({ ...event, starts_at: null, event_date: "2026-10-01" }, requests, now).adjustable, false);
+	assert.equal(administration.eventSwitchAvailable({ ...event, deleted_at: "2026-09-20T00:00:00Z" }, now), false);
+});
+
+test("household registration and volunteer sign-ups end through separate switches", () => {
+	const migration = read("supabase/migrations/20260922185908_event_registration_toggle.sql");
+	assert.match(migration, /private\.set_event_registration_open[\s\S]*?if not private\.is_site_administrator\(\) then/);
+	assert.match(migration, /if p_open and event_starts_at is null then/);
+	assert.match(migration, /set registration_open = p_open\s+where id = p_event_id/);
+	assert.doesNotMatch(migration, /volunteer_signups_open/);
+	assert.match(migration, /create function public\.set_event_registration_open\([\s\S]*?security invoker/);
+	assert.match(migration, /grant execute on function public\.set_event_registration_open\(uuid, boolean\) to authenticated;/);
+	assert.doesNotMatch(migration, /grant execute on function (?:public|private)\.set_event_registration_open\(uuid, boolean\) to[^;]*anon/);
+	assert.doesNotMatch(read("supabase/migrations/20260922183548_event_volunteer_signup_toggle.sql"), /set registration_open/);
+
+	const adminSource = read("assets/js/modules/administration.js");
+	assert.match(adminSource, /registration: \{\s+field: "registration_open",\s+rpc: "set_event_registration_open"/);
+	assert.match(adminSource, /volunteers: \{\s+field: "volunteer_signups_open",\s+rpc: "set_event_volunteer_signups"/);
+	assert.match(adminSource, /supabase\.rpc\(config\.rpc, \{ p_event_id: event\.id, p_open: !open \}\)/);
+	assert.match(adminSource, /eventSwitchCell\(page, supabase, event, "registration"/);
+	assert.match(adminSource, /eventSwitchCell\(page, supabase, event, "volunteers"/);
+	assert.match(adminSource, /kind === "registration" && open === false\)[\s\S]*?retry_promotions/);
+	assert.match(read("admin-dashboard.html"), /data-admin-roster-switch/);
+	assert.match(adminSource, /\[data-admin-roster-switch\]/);
+	assert.match(read("assets/js/pca-backend.js"), /"Registration Closed"/);
 });
 
 test("ending volunteer sign-ups is enforced in the database and reflected in every surface", () => {
@@ -162,8 +186,8 @@ test("ending volunteer sign-ups is enforced in the database and reflected in eve
 	assert.match(adminHtml, /<th>Volunteers<\/th>/);
 	assert.match(adminHtml, /data-admin-volunteer-signups/);
 	assert.match(adminSource, /\[data-admin-volunteer-signups\]/);
-	assert.match(adminSource, /rpc\("set_event_volunteer_signups", \{ p_event_id: event\.id, p_open: !open \}\)/);
-	assert.match(adminSource, /confirmDialog\(\{\s+title: `End volunteer sign-ups/);
+	assert.match(adminSource, /confirm: \(event\) => \(\{\s+title: `End volunteer sign-ups/);
+	assert.match(adminSource, /if \(open && !\(await confirmDialog\(config\.confirm\(event\)\)\)\) return;/);
 
 	const backend = read("assets/js/pca-backend.js");
 	assert.match(backend, /event_catalog[\s\S]*?volunteer_signups_available/);

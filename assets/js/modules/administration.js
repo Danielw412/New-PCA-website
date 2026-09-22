@@ -7,8 +7,8 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260922-volunteer-signups-v1";
-import { referralLabels } from "./events-registration.js?v=20260922-volunteer-signups-v1";
+} from "./core-auth.js?v=20260922-separate-signups-v1";
+import { referralLabels } from "./events-registration.js?v=20260922-separate-signups-v1";
 
 const timeZonePartsFormatter = new Intl.DateTimeFormat("en-CA", {
 	timeZone: "America/New_York",
@@ -177,17 +177,19 @@ const eventStateLabel = (event) => {
 	if (event.ends_at && new Date(event.ends_at) < now) return "Past";
 	if (event.starts_at && new Date(event.starts_at) <= now) return "In progress";
 	if (!event.starts_at && event.event_date && event.event_date <= easternCalendarDateFormatter.format(now)) return "Past";
-	return event.registration_open ? "Upcoming" : "Upcoming, registration closed";
+	return "Upcoming";
 };
 
-// Volunteer sign-ups stay open until an administrator ends them. The request
-// RPC also turns requests away once an event starts, so the switch is only
-// offered while the start time is still ahead.
+// Household registration and volunteer sign-ups each stay open until an
+// administrator ends them. Both RPCs also turn people away once an event
+// starts, so the switches are only offered while the start time is ahead.
+export const eventSwitchAvailable = (event, now = new Date()) => Boolean(!event.deleted_at && event.starts_at && new Date(event.starts_at) > now);
+
 export const summarizeVolunteerSignups = (event, requests, now = new Date()) => {
 	const rows = requests.filter((request) => request.event_id === event.id);
 	return {
 		open: event.volunteer_signups_open !== false,
-		adjustable: Boolean(event.starts_at && new Date(event.starts_at) > now),
+		adjustable: eventSwitchAvailable(event, now),
 		pending: rows.filter((request) => request.status === "pending").length,
 		approved: rows.filter((request) => request.status === "approved").length,
 	};
@@ -301,6 +303,10 @@ const makeMailLink = (email) => {
 // can still call it.
 export const prepareAdministrationShell = () => {};
 
+// Set once the tabs exist, so controls rendered in any panel can refresh the
+// Events table, whose seat links switch tabs.
+const workspaceState = { showTab: () => {} };
+
 const initializeWorkspaceTabs = (page) => {
 	const tabs = [...page.querySelectorAll("[data-admin-tab]")];
 	const panels = [...page.querySelectorAll("[data-admin-panel]")];
@@ -334,6 +340,7 @@ const initializeWorkspaceTabs = (page) => {
 		link.addEventListener("click", () => show(link.dataset.adminTabLink, true));
 	});
 	show(window.location.hash.slice(1) || "overview");
+	workspaceState.showTab = show;
 	return show;
 };
 
@@ -403,44 +410,94 @@ const loadEmailHealth = async (page, supabase, { retry = false } = {}) => {
 
 // --- Events -----------------------------------------------------------------
 
-const volunteerSignupsBadge = (open, label = open ? "Sign-ups open" : "Sign-ups ended") =>
-	createElement("span", `pca-status-badge ${open ? "is-signups-open" : "is-signups-ended"}`, label);
+// Household registration and volunteer sign-ups are separate switches. They
+// share one control so they look and behave alike, but each one changes only
+// its own event column through its own admin RPC.
+const eventSwitches = {
+	registration: {
+		field: "registration_open",
+		rpc: "set_event_registration_open",
+		badges: ["Registration open", "Registration closed"],
+		buttons: ["End Registration", "Reopen Registration"],
+		audience: "households",
+		confirm: (event) => ({
+			title: `End household registration for "${event.title}"?`,
+			message: "The Register button comes off the event listing, so no new households or guests can sign up. Everyone already registered or on the waitlist keeps their place, and volunteer sign-ups stay as they are. You can reopen registration at any time.",
+			confirmLabel: "End registration",
+			cancelLabel: "Keep open",
+		}),
+		done: (event, open) => `Registration ${open ? "reopened" : "ended"} for ${event.title}.`,
+		failure: "Registration could not be updated.",
+	},
+	volunteers: {
+		field: "volunteer_signups_open",
+		rpc: "set_event_volunteer_signups",
+		badges: ["Sign-ups open", "Sign-ups closed"],
+		buttons: ["End Sign-ups", "Reopen Sign-ups"],
+		audience: "volunteers",
+		confirm: (event) => ({
+			title: `End volunteer sign-ups for "${event.title}"?`,
+			message: "The Volunteer button comes off the event listing and new requests are turned away. Requests you already have stay in Volunteer Requests, and household registration stays as it is. You can reopen sign-ups at any time.",
+			confirmLabel: "End sign-ups",
+			cancelLabel: "Keep open",
+		}),
+		done: (event, open) => `Volunteer sign-ups ${open ? "reopened" : "ended"} for ${event.title}.`,
+		failure: "Volunteer sign-ups could not be updated.",
+	},
+};
 
-// One switch serves the Events table and the Volunteer Requests panel. Ending
-// sign-ups asks first; reopening only restores the Volunteer button, so it
-// applies immediately.
-const volunteerSignupsButton = (page, supabase, event, showTab) => {
-	const open = event.volunteer_signups_open !== false;
-	const button = createElement("button", "button small");
+const eventSwitchOpen = (event, kind) => event[eventSwitches[kind].field] !== false;
+
+const eventSwitchBadge = (event, kind, short = false) => {
+	const open = eventSwitchOpen(event, kind);
+	const label = short ? (open ? "Open" : "Closed") : eventSwitches[kind].badges[open ? 0 : 1];
+	return createElement("span", `pca-status-badge ${open ? "is-accepting" : "is-closed"}`, label);
+};
+
+// Ending asks first. Reopening applies immediately; for registration the
+// database then moves waitlisted groups into any free seats.
+const eventSwitchButton = (page, supabase, event, kind) => {
+	const config = eventSwitches[kind];
+	const open = eventSwitchOpen(event, kind);
+	const button = createElement("button", "button small pca-admin-switch-button");
 	button.type = "button";
-	button.dataset.adminSignupsToggle = event.id;
-	const setLabel = (text) => button.replaceChildren(text, createElement("span", "pca-visually-hidden", ` for volunteers at ${event.title}`));
-	setLabel(open ? "End Sign-ups" : "Reopen Sign-ups");
+	button.dataset.adminSwitch = `${kind}:${event.id}`;
+	const setLabel = (text) => button.replaceChildren(text, createElement("span", "pca-visually-hidden", ` for ${config.audience} at ${event.title}`));
+	setLabel(config.buttons[open ? 0 : 1]);
 	button.addEventListener("click", async () => {
-		if (open) {
-			const confirmed = await confirmDialog({
-				title: `End volunteer sign-ups for "${event.title}"?`,
-				message: "The Volunteer button comes off the event listing and new requests are turned away. Requests you already have stay in Volunteer Requests, and you can reopen sign-ups at any time.",
-				confirmLabel: "End sign-ups",
-				cancelLabel: "Keep open",
-			});
-			if (!confirmed) return;
-		}
+		if (open && !(await confirmDialog(config.confirm(event)))) return;
 		const panel = button.closest("[data-admin-panel]")?.dataset.adminPanel;
 		button.disabled = true;
 		setLabel(open ? "Ending..." : "Reopening...");
-		const { error } = await supabase.rpc("set_event_volunteer_signups", { p_event_id: event.id, p_open: !open });
+		const { error } = await supabase.rpc(config.rpc, { p_event_id: event.id, p_open: !open });
 		if (error) {
 			button.disabled = false;
-			setLabel(open ? "End Sign-ups" : "Reopen Sign-ups");
-			toast(friendlyError(error, "Volunteer sign-ups could not be updated."), "error");
+			setLabel(config.buttons[open ? 0 : 1]);
+			toast(friendlyError(error, config.failure), "error");
 			return;
 		}
-		toast(open ? `Volunteer sign-ups ended for ${event.title}.` : `Volunteer sign-ups reopened for ${event.title}.`);
-		await Promise.all([loadEvents(page, supabase, showTab), loadVolunteerRequests(page, supabase, showTab)]);
-		page.querySelector(`[data-admin-panel="${panel}"] [data-admin-signups-toggle="${event.id}"]`)?.focus();
+		const editor = page.querySelector("[data-admin-event-form]");
+		if (kind === "registration" && editor?.elements.event_id.value === event.id) editor.elements.registration_open.checked = !open;
+		toast(config.done(event, !open));
+		await Promise.all([loadEvents(page, supabase, workspaceState.showTab), loadRegistrations(page, supabase), loadVolunteerRequests(page, supabase), loadOverview(page, supabase)]);
+		page.querySelector(`[data-admin-panel="${panel}"] [data-admin-switch="${kind}:${event.id}"]`)?.focus();
+		if (kind === "registration" && open === false) {
+			void supabase.functions.invoke("pca-transactional-email", { body: { retry_promotions: true } })
+				.then(({ error: promotionError }) => {
+					if (promotionError) console.debug("Waitlist promotion email remains queued.", promotionError);
+				});
+		}
 	});
 	return button;
+};
+
+// Badge, a short detail line, then the switch, stacked in one table cell.
+const eventSwitchCell = (page, supabase, event, kind, ...details) => {
+	const cell = createElement("td", "pca-admin-switch-cell");
+	const detail = createElement("div", "pca-admin-switch-cell__detail");
+	detail.append(...details);
+	cell.append(eventSwitchBadge(event, kind), detail, eventSwitchButton(page, supabase, event, kind));
+	return cell;
 };
 
 const loadEvents = async (page, supabase, showTab) => {
@@ -460,7 +517,8 @@ const loadEvents = async (page, supabase, showTab) => {
 		const titleCell = createElement("td");
 		titleCell.append(createElement("strong", "", event.title));
 		if (event.location) titleCell.append(createElement("span", "pca-table-subtext", event.location));
-		const registeredCell = createElement("td");
+		const switchable = eventSwitchAvailable(event);
+		const registeredDetails = [];
 		if (summary.totalGroups) {
 			const open = createElement("button", "pca-link-button", `${summary.confirmedSeats} of ${summary.capacity} seats`);
 			open.type = "button";
@@ -469,22 +527,23 @@ const loadEvents = async (page, supabase, showTab) => {
 				showTab("registrations", true);
 				void renderRoster(page, supabase);
 			});
-			registeredCell.appendChild(open);
-			if (summary.waitlistedGroups) registeredCell.appendChild(createElement("span", "pca-table-subtext", `${summary.waitlistedGroups} group${summary.waitlistedGroups === 1 ? "" : "s"} waiting`));
+			registeredDetails.push(open);
+			if (summary.waitlistedGroups) registeredDetails.push(createElement("span", "pca-table-subtext", `${summary.waitlistedGroups} group${summary.waitlistedGroups === 1 ? "" : "s"} waiting`));
+		} else if (switchable) {
+			registeredDetails.push(createElement("span", "pca-table-subtext", "No registrations yet"));
+		}
+		let registeredCell;
+		if (switchable) {
+			registeredCell = eventSwitchCell(page, supabase, event, "registration", ...registeredDetails);
 		} else {
-			registeredCell.textContent = event.published && event.registration_open ? "No registrations yet" : "—";
+			registeredCell = createElement("td");
+			if (registeredDetails.length) registeredCell.append(...registeredDetails);
+			else registeredCell.textContent = "—";
 		}
 		const signups = summarizeVolunteerSignups(event, volunteerRequests);
-		const volunteersCell = createElement("td", "pca-admin-signups-cell");
-		if (signups.adjustable) {
-			volunteersCell.append(
-				volunteerSignupsBadge(signups.open),
-				createElement("span", "pca-table-subtext", volunteerRequestCountLabel(signups)),
-				volunteerSignupsButton(page, supabase, event, showTab)
-			);
-		} else {
-			volunteersCell.textContent = signups.pending || signups.approved ? volunteerRequestCountLabel(signups) : "—";
-		}
+		const volunteersCell = signups.adjustable
+			? eventSwitchCell(page, supabase, event, "volunteers", createElement("span", "pca-table-subtext", volunteerRequestCountLabel(signups)))
+			: tableCell(signups.pending || signups.approved ? volunteerRequestCountLabel(signups) : "—");
 		const actions = createElement("td", "pca-admin-row-actions");
 		const edit = createElement("button", "button small", "Edit");
 		edit.type = "button";
@@ -508,7 +567,7 @@ const loadEvents = async (page, supabase, showTab) => {
 				return;
 			}
 			toast(`${event.title} was deleted.`);
-			await Promise.all([loadEvents(page, supabase, showTab), loadOverview(page, supabase), loadRegistrations(page, supabase), loadVolunteerRequests(page, supabase, showTab)]);
+			await Promise.all([loadEvents(page, supabase, showTab), loadOverview(page, supabase), loadRegistrations(page, supabase), loadVolunteerRequests(page, supabase)]);
 		});
 		actions.append(edit, remove);
 		row.append(titleCell, tableCell(eventDateTableValue(event)), registeredCell, volunteersCell, tableCell(eventStateLabel(event)), actions);
@@ -592,7 +651,7 @@ const initializeEventForm = (page, supabase, showTab) => {
 		form.elements.event_id.value = "";
 		editor.open = false;
 		toast(wasEdit ? "Event updated." : `${payload.title} was created${payload.published ? " and published" : " as a draft"}.`);
-		await Promise.all([loadEvents(page, supabase, showTab), loadOverview(page, supabase), loadRegistrations(page, supabase), loadVolunteerRequests(page, supabase, showTab)]);
+		await Promise.all([loadEvents(page, supabase, showTab), loadOverview(page, supabase), loadRegistrations(page, supabase), loadVolunteerRequests(page, supabase)]);
 		void supabase.functions.invoke("pca-transactional-email", { body: { retry_promotions: true } })
 			.then(({ error: promotionError }) => {
 				if (promotionError) console.debug("Waitlist promotion email remains queued.", promotionError);
@@ -710,24 +769,32 @@ const renderRoster = async (page, supabase) => {
 	const meta = page.querySelector("[data-admin-roster-meta]");
 	const status = page.querySelector("[data-admin-roster-status]");
 	const exportButton = page.querySelector("[data-admin-export]");
+	const registrationSwitch = page.querySelector("[data-admin-roster-switch]");
 	const summary = registrationsState.summaries.find((item) => item.eventId === registrationsState.selectedEventId);
 	page.querySelectorAll("[data-admin-event-rail] [data-event-id]").forEach((item) => item.setAttribute("aria-pressed", String(item.dataset.eventId === registrationsState.selectedEventId)));
 	if (!summary) {
 		title.textContent = "Choose an event";
 		meta.textContent = "";
+		registrationSwitch.hidden = true;
+		registrationSwitch.replaceChildren();
 		list.replaceChildren();
 		if (exportButton) exportButton.disabled = true;
 		return;
 	}
 	title.textContent = summary.title;
+	const switchable = eventSwitchAvailable(summary.event);
 	const metaParts = [
 		summary.event.starts_at ? eventTimeFormatter.format(new Date(summary.event.starts_at)) : eventDateTableValue(summary.event),
 		summary.event.location || "",
 		`${summary.confirmedSeats} of ${summary.capacity} seats confirmed`,
 		summary.waitlistedGroups ? `${summary.waitlistedGroups} group${summary.waitlistedGroups === 1 ? "" : "s"} on the waitlist` : "",
-		summary.event.deleted_at ? "Deleted event" : !summary.event.registration_open ? "Registration closed" : "",
+		summary.event.deleted_at ? "Deleted event" : !switchable && !summary.event.registration_open ? "Registration closed" : "",
 	].filter(Boolean);
 	meta.replaceChildren(...metaParts.map((part) => createElement("span", "", part)));
+	registrationSwitch.hidden = !switchable;
+	registrationSwitch.replaceChildren(...(switchable
+		? [eventSwitchBadge(summary.event, "registration"), eventSwitchButton(page, supabase, summary.event, "registration")]
+		: []));
 	if (exportButton) exportButton.disabled = false;
 
 	const registrations = registrationsState.registrations.filter((registration) => registration.event_id === summary.eventId);
@@ -1304,31 +1371,31 @@ const loadVolunteerAccounts = async (page, supabase) => {
 const requestsState = { showReviewed: false };
 
 // Upcoming published events, soonest first, each with its own sign-up switch.
-const renderVolunteerSignups = (page, supabase, events, requests, showTab) => {
+const renderVolunteerSignups = (page, supabase, events, requests) => {
 	const list = page.querySelector("[data-admin-volunteer-signups]");
 	if (!list) return;
 	const now = new Date();
 	const upcoming = events
-		.filter((event) => !event.deleted_at && event.published && event.starts_at && new Date(event.starts_at) > now)
+		.filter((event) => event.published && eventSwitchAvailable(event, now))
 		.sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
 	list.replaceChildren();
 	upcoming.forEach((event) => {
 		const signups = summarizeVolunteerSignups(event, requests, now);
-		const item = createElement("li", `pca-admin-signups__item${signups.open ? "" : " is-ended"}`);
+		const item = createElement("li", `pca-admin-signups__item${signups.open ? "" : " is-closed"}`);
 		const details = createElement("div", "pca-admin-signups__event");
 		details.append(
 			createElement("strong", "", event.title),
 			makeMetaLine([`${eventTimeFormatter.format(new Date(event.starts_at))} ET`, volunteerRequestCountLabel(signups)])
 		);
 		const controls = createElement("div", "pca-admin-signups__controls");
-		controls.append(volunteerSignupsBadge(signups.open, signups.open ? "Open" : "Ended"), volunteerSignupsButton(page, supabase, event, showTab));
+		controls.append(eventSwitchBadge(event, "volunteers", true), eventSwitchButton(page, supabase, event, "volunteers"));
 		item.append(details, controls);
 		list.appendChild(item);
 	});
 	if (!upcoming.length) list.appendChild(createElement("li", "pca-admin-signups__empty", "No upcoming events are published. Sign-ups appear here once one is."));
 };
 
-const loadVolunteerRequests = async (page, supabase, showTab) => {
+const loadVolunteerRequests = async (page, supabase) => {
 	const list = page.querySelector("[data-admin-volunteer-requests]");
 	if (!list) return;
 	const [requestsResult, eventsResult] = await Promise.all([
@@ -1338,13 +1405,13 @@ const loadVolunteerRequests = async (page, supabase, showTab) => {
 	if (requestsResult.error) throw requestsResult.error;
 	if (eventsResult.error) throw eventsResult.error;
 	const events = new Map((eventsResult.data || []).map((event) => [event.id, event]));
-	renderVolunteerSignups(page, supabase, eventsResult.data || [], requestsResult.data || [], showTab);
+	renderVolunteerSignups(page, supabase, eventsResult.data || [], requestsResult.data || []);
 	const toggle = page.querySelector("[data-admin-requests-reviewed]");
 	if (toggle && !toggle.dataset.bound) {
 		toggle.dataset.bound = "true";
 		toggle.addEventListener("change", () => {
 			requestsState.showReviewed = toggle.checked;
-			void loadVolunteerRequests(page, supabase, showTab);
+			void loadVolunteerRequests(page, supabase);
 		});
 	}
 	list.replaceChildren();
@@ -1365,7 +1432,7 @@ const loadVolunteerRequests = async (page, supabase, showTab) => {
 		main.appendChild(meta);
 		main.appendChild(makeMetaLine([
 			event ? `For ${event.title}${event.starts_at ? `, ${formatShortDate(event.starts_at)}` : ""}` : "For an archived event",
-			event?.volunteer_signups_open === false ? "Sign-ups ended" : "",
+			event?.volunteer_signups_open === false ? "Volunteer sign-ups closed" : "",
 		]));
 		if (request.interests) main.appendChild(createElement("p", "pca-admin-record__note", `Wants to help with: ${request.interests}`));
 		if (request.availability) main.appendChild(createElement("p", "pca-admin-record__note", `Availability: ${request.availability}`));
@@ -1388,7 +1455,7 @@ const loadVolunteerRequests = async (page, supabase, showTab) => {
 						if (error) throw error;
 						if (decision === "approved") await requestTransactionalEmail(supabase, "volunteer_request_approved", request.id);
 						toast(decision === "approved" ? `${request.full_name} was approved.` : `${request.full_name}'s request was declined.`);
-						await Promise.all([loadVolunteerRequests(page, supabase, showTab), loadOverview(page, supabase), loadEvents(page, supabase, showTab)]);
+						await Promise.all([loadVolunteerRequests(page, supabase), loadOverview(page, supabase), loadEvents(page, supabase, workspaceState.showTab)]);
 					},
 				}));
 				decisionHost.hidden = false;
@@ -1686,7 +1753,7 @@ const initializeAdminWorkspace = async () => {
 		["registrations", () => loadRegistrations(page, supabase)],
 		["households", () => loadHouseholds(page, supabase)],
 		["volunteer accounts", () => loadVolunteerAccounts(page, supabase)],
-		["volunteer requests", () => loadVolunteerRequests(page, supabase, showTab)],
+		["volunteer requests", () => loadVolunteerRequests(page, supabase)],
 		["assignments", () => loadVolunteerManagement(page, supabase)],
 		["access", () => loadAccess(page, supabase, context)],
 	];

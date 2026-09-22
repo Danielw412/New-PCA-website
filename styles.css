@@ -6787,8 +6787,10 @@ caption {
 }
 
 @media screen and (max-width: 980px) {
+	/* minmax(0, ...) lets the event rail scroll inside the column instead of
+	   widening the page. */
 	.pca-admin-registrations {
-		grid-template-columns: 1fr;
+		grid-template-columns: minmax(0, 1fr);
 	}
 
 	.pca-admin-event-rail {
@@ -6852,14 +6854,15 @@ caption {
 	}
 }
 
-/* Volunteer sign-up switch: Events table column and Volunteer Requests list */
+/* Separate registration and volunteer sign-up switches: Events table,
+   Registrations roster, and Volunteer Requests list */
 
-.pca-status-badge.is-signups-open {
+.pca-status-badge.is-accepting {
 	background: #e7f3ea;
 	color: var(--pca-success);
 }
 
-.pca-status-badge.is-signups-ended {
+.pca-status-badge.is-closed {
 	background: var(--pca-soft);
 	color: var(--pca-muted);
 }
@@ -6894,24 +6897,47 @@ td.pca-admin-row-actions .button + .button {
 	margin-top: 0.45rem;
 }
 
-.pca-admin-signups-cell {
+.pca-admin-switch-cell {
 	min-width: 10rem;
 }
 
-.pca-admin-signups-cell .pca-table-subtext {
+.pca-admin-switch-cell__detail {
 	margin: 0.4rem 0 0.65rem;
+}
+
+.pca-admin-switch-cell__detail .pca-table-subtext {
 	white-space: nowrap;
 }
 
-.pca-admin-signups-cell .button {
+.pca-admin-switch-cell__detail > .pca-table-subtext:first-child {
+	margin-top: 0;
+}
+
+.pca-admin-switch-cell .button {
 	width: 100%;
 }
 
 /* Contain the visually hidden event name so it cannot escape the scrolling
    table and widen the page. */
-.pca-admin-signups-cell .button,
-.pca-admin-signups__controls .button {
+.pca-admin-switch-button {
 	position: relative;
+	white-space: nowrap;
+}
+
+.pca-admin-roster__switch {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.75rem;
+	margin-top: 0.85rem;
+}
+
+.pca-admin-roster__switch[hidden] {
+	display: none;
+}
+
+.pca-admin-roster__switch .button {
+	min-width: 11rem;
 }
 
 .pca-admin-signups {
@@ -6962,7 +6988,7 @@ td.pca-admin-row-actions .button + .button {
 	border-top: 1px solid var(--pca-line);
 }
 
-.pca-admin-signups__item.is-ended {
+.pca-admin-signups__item.is-closed {
 	background: #fbfaf8;
 }
 

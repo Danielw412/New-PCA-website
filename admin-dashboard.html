@@ -7,7 +7,7 @@
 		<meta name="theme-color" content="#fffaf7" />
 		<meta name="description" content="PCA Youth Center administrator dashboard for registrations and volunteer management." />
 		<link rel="stylesheet" href="assets/css/fontawesome-all.min.css" />
-		<link rel="stylesheet" href="styles.css?v=20260922-volunteer-signups-v1" />
+		<link rel="stylesheet" href="styles.css?v=20260922-separate-signups-v1" />
 	</head>
 		<body>
 		<a class="skip-link" href="#main">Skip to content</a>
@@ -104,7 +104,7 @@
 					</section>
 
 					<section id="admin-panel-events" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-events" data-admin-panel="events" hidden>
-						<div class="pca-admin-panel-heading"><div><h2>Events</h2><p>Publish events, open or close registration, end volunteer sign-ups, and adjust capacity. Raising capacity or reopening registration moves waitlisted groups in automatically.</p></div><button type="button" class="button primary" data-admin-event-new>New Event</button></div>
+						<div class="pca-admin-panel-heading"><div><h2>Events</h2><p>Publish events and adjust capacity. Household registration and volunteer sign-ups end separately, each with its own button. Raising capacity or reopening registration moves waitlisted groups in automatically.</p></div><button type="button" class="button primary" data-admin-event-new>New Event</button></div>
 						<details class="pca-admin-create-panel" data-admin-event-editor><summary><span data-admin-event-editor-title>Create an event</span><small>Dates and times are Eastern Time</small></summary><form data-admin-event-form><input type="hidden" name="event_id" />
 							<div class="pca-admin-event-fields">
 								<div class="field pca-field-wide"><label for="admin-event-title">Event title</label><input type="text" id="admin-event-title" name="title" maxlength="160" required /></div>
@@ -117,7 +117,7 @@
 								<div class="field"><label for="admin-event-group-limit">Maximum attendees per registration</label><input type="number" id="admin-event-group-limit" name="max_participants_per_registration" min="1" step="1" value="6" required /></div>
 							</div>
 							<div class="pca-admin-event-options">
-								<div><input type="checkbox" id="admin-event-registration-open" name="registration_open" checked /><label for="admin-event-registration-open">Registration open</label></div>
+								<div><input type="checkbox" id="admin-event-registration-open" name="registration_open" checked /><label for="admin-event-registration-open">Household registration open</label></div>
 								<div><input type="checkbox" id="admin-event-published" name="published" /><label for="admin-event-published">Published on the website</label></div>
 							</div>
 							<p class="pca-form-help">Leave both times blank for a date-only listing, such as a past event. Registration needs a start time.</p>
@@ -134,7 +134,7 @@
 							<nav class="pca-admin-event-rail" aria-label="Events"><div class="pca-admin-event-rail__list" data-admin-event-rail></div></nav>
 							<div class="pca-admin-roster">
 								<header class="pca-admin-roster__header">
-									<div><h3 data-admin-roster-title>Choose an event</h3><p data-admin-roster-meta></p></div>
+									<div><h3 data-admin-roster-title>Choose an event</h3><p data-admin-roster-meta></p><div class="pca-admin-roster__switch" data-admin-roster-switch hidden></div></div>
 									<div class="pca-admin-roster__tools"><label class="pca-visually-hidden" for="admin-roster-search">Search registrations</label><input id="admin-roster-search" type="search" data-admin-roster-search placeholder="Search names, email, or school" /><label class="pca-inline-check"><input type="checkbox" data-admin-roster-cancelled /> Show cancelled</label></div>
 								</header>
 								<p class="pca-backend-status" data-admin-roster-status aria-live="polite"></p>
@@ -146,7 +146,7 @@
 					<section id="admin-panel-volunteer-requests" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-volunteer-requests" data-admin-panel="volunteer-requests" hidden>
 						<div class="pca-admin-panel-heading"><div><h2>Volunteer Requests</h2><p>Requests to help at an event. Approving one emails the volunteer. No account is needed unless they want tracked hours.</p></div><a class="button" href="upcoming-events.html">View Public Events</a></div>
 						<section class="pca-admin-signups" aria-labelledby="admin-volunteer-signups-title">
-							<div class="pca-admin-signups__heading"><h3 id="admin-volunteer-signups-title">Sign-ups by event</h3><p>End sign-ups once an event has enough volunteers. The Volunteer button comes off the public listing, and requests you already have stay below.</p></div>
+							<div class="pca-admin-signups__heading"><h3 id="admin-volunteer-signups-title">Sign-ups by event</h3><p>End sign-ups once an event has enough volunteers. The Volunteer button comes off the public listing, requests you already have stay below, and household registration is not affected.</p></div>
 							<ul class="pca-admin-signups__list" data-admin-volunteer-signups><li class="pca-admin-signups__empty">Loading upcoming events...</li></ul>
 						</section>
 						<h3>Requests</h3>
@@ -215,6 +215,6 @@
 				</div>
 				<div class="site-footer__bottom"><span>&copy; 2018-2026 PCA Youth Center</span></div>
 			</footer>
-		</div><script src="script.js?v=20260922-volunteer-signups-v1"></script>
+		</div><script src="script.js?v=20260922-separate-signups-v1"></script>
 	</body>
 </html>
