@@ -921,9 +921,18 @@
 		actions.appendChild(actionItem);
 		if (!eventStarted) {
 			const volunteerItem = createElement("li");
-			const volunteerLink = createElement("a", "button", "Volunteer");
-			volunteerLink.href = `volunteer-apply.html?event=${encodeURIComponent(event.id)}`;
-			volunteerItem.appendChild(volunteerLink);
+			const canVolunteer = typeof event.volunteer_signups_available === "boolean"
+				? event.volunteer_signups_available
+				: event.volunteer_signups_open !== false;
+			if (canVolunteer) {
+				const volunteerLink = createElement("a", "button", "Volunteer");
+				volunteerLink.href = `volunteer-apply.html?event=${encodeURIComponent(event.id)}`;
+				volunteerItem.appendChild(volunteerLink);
+			} else {
+				const volunteersClosed = createElement("span", "button disabled", "Volunteer Sign-ups Closed");
+				volunteersClosed.setAttribute("aria-disabled", "true");
+				volunteerItem.appendChild(volunteersClosed);
+			}
 			actions.appendChild(volunteerItem);
 		}
 		const actionPanel = createElement("div", "pca-event-agenda__actions");
@@ -935,7 +944,7 @@
 	const loadPublicEvents = async (lifecycle) => {
 		let query = state.client
 			.from("event_catalog")
-			.select("id,title,description,location,starts_at,ends_at,capacity,max_participants_per_registration,registration_open,published,lifecycle,registration_available,event_date");
+			.select("id,title,description,location,starts_at,ends_at,capacity,max_participants_per_registration,registration_open,published,lifecycle,registration_available,event_date,volunteer_signups_open,volunteer_signups_available");
 		query = lifecycle === "past"
 			? query.eq("lifecycle", "past").order("event_date", { ascending: false }).order("ends_at", { ascending: false, nullsFirst: false })
 			: query.in("lifecycle", ["upcoming", "in_progress"]).order("starts_at", { ascending: true });
@@ -945,7 +954,7 @@
 
 		let fallback = state.client
 			.from("events")
-			.select("id,title,description,location,starts_at,ends_at,capacity,max_participants_per_registration,registration_open,published,event_date");
+			.select("id,title,description,location,starts_at,ends_at,capacity,max_participants_per_registration,registration_open,published,event_date,volunteer_signups_open");
 		const now = new Date();
 		const easternToday = new Intl.DateTimeFormat("en-CA", {
 			timeZone: APP_TIME_ZONE,
@@ -965,6 +974,7 @@
 					? (new Date(event.ends_at) < now ? "past" : new Date(event.starts_at) <= now ? "in_progress" : "upcoming")
 					: event.event_date <= easternToday ? "past" : "upcoming",
 				registration_available: Boolean(event.registration_open && event.starts_at && new Date(event.starts_at) > now),
+				volunteer_signups_available: Boolean(event.volunteer_signups_open !== false && event.starts_at && new Date(event.starts_at) > now),
 			})),
 		};
 	};

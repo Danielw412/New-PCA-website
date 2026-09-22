@@ -10,7 +10,7 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260914-guest-first-v1";
+} from "./core-auth.js?v=20260922-volunteer-signups-v1";
 
 const registrationStatusLabels = Object.freeze({
 	confirmed: "Confirmed",
@@ -810,7 +810,7 @@ const initializeVolunteerRequestPage = async () => {
 
 	const { data: event, error: eventError } = await supabase
 		.from("events")
-		.select("id,title,starts_at,ends_at,event_date,location,published")
+		.select("id,title,starts_at,ends_at,event_date,location,published,volunteer_signups_open")
 		.eq("id", eventId)
 		.single();
 	if (eventError || !event || !event.published || new Date(event.starts_at) <= new Date()) {
@@ -822,6 +822,11 @@ const initializeVolunteerRequestPage = async () => {
 	page.querySelector("[data-volunteer-event-title]").textContent = event.title;
 	page.querySelector("[data-volunteer-event-date]").textContent = formatEventRange(event);
 	page.querySelector("[data-volunteer-event-location]").textContent = event.location;
+	if (event.volunteer_signups_open === false) {
+		setStatus(status, "Volunteer sign-ups for this event have ended. Thank you for offering to help. Choose a different upcoming event to volunteer.", "info");
+		form.hidden = true;
+		return;
+	}
 	setStatus(status);
 
 	let session = await getSession();

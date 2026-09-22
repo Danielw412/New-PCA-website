@@ -7,8 +7,8 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260914-guest-first-v1";
-import { referralLabels } from "./events-registration.js?v=20260914-guest-first-v1";
+} from "./core-auth.js?v=20260922-volunteer-signups-v1";
+import { referralLabels } from "./events-registration.js?v=20260922-volunteer-signups-v1";
 
 const timeZonePartsFormatter = new Intl.DateTimeFormat("en-CA", {
 	timeZone: "America/New_York",
@@ -178,6 +178,24 @@ const eventStateLabel = (event) => {
 	if (event.starts_at && new Date(event.starts_at) <= now) return "In progress";
 	if (!event.starts_at && event.event_date && event.event_date <= easternCalendarDateFormatter.format(now)) return "Past";
 	return event.registration_open ? "Upcoming" : "Upcoming, registration closed";
+};
+
+// Volunteer sign-ups stay open until an administrator ends them. The request
+// RPC also turns requests away once an event starts, so the switch is only
+// offered while the start time is still ahead.
+export const summarizeVolunteerSignups = (event, requests, now = new Date()) => {
+	const rows = requests.filter((request) => request.event_id === event.id);
+	return {
+		open: event.volunteer_signups_open !== false,
+		adjustable: Boolean(event.starts_at && new Date(event.starts_at) > now),
+		pending: rows.filter((request) => request.status === "pending").length,
+		approved: rows.filter((request) => request.status === "approved").length,
+	};
+};
+
+export const volunteerRequestCountLabel = ({ pending, approved }) => {
+	const parts = [approved ? `${approved} approved` : "", pending ? `${pending} to review` : ""].filter(Boolean);
+	return parts.length ? parts.join(", ") : "No requests yet";
 };
 
 // --- Shared feedback: a modal confirm and a toast region -------------------
@@ -385,14 +403,56 @@ const loadEmailHealth = async (page, supabase, { retry = false } = {}) => {
 
 // --- Events -----------------------------------------------------------------
 
+const volunteerSignupsBadge = (open, label = open ? "Sign-ups open" : "Sign-ups ended") =>
+	createElement("span", `pca-status-badge ${open ? "is-signups-open" : "is-signups-ended"}`, label);
+
+// One switch serves the Events table and the Volunteer Requests panel. Ending
+// sign-ups asks first; reopening only restores the Volunteer button, so it
+// applies immediately.
+const volunteerSignupsButton = (page, supabase, event, showTab) => {
+	const open = event.volunteer_signups_open !== false;
+	const button = createElement("button", "button small");
+	button.type = "button";
+	button.dataset.adminSignupsToggle = event.id;
+	const setLabel = (text) => button.replaceChildren(text, createElement("span", "pca-visually-hidden", ` for volunteers at ${event.title}`));
+	setLabel(open ? "End Sign-ups" : "Reopen Sign-ups");
+	button.addEventListener("click", async () => {
+		if (open) {
+			const confirmed = await confirmDialog({
+				title: `End volunteer sign-ups for "${event.title}"?`,
+				message: "The Volunteer button comes off the event listing and new requests are turned away. Requests you already have stay in Volunteer Requests, and you can reopen sign-ups at any time.",
+				confirmLabel: "End sign-ups",
+				cancelLabel: "Keep open",
+			});
+			if (!confirmed) return;
+		}
+		const panel = button.closest("[data-admin-panel]")?.dataset.adminPanel;
+		button.disabled = true;
+		setLabel(open ? "Ending..." : "Reopening...");
+		const { error } = await supabase.rpc("set_event_volunteer_signups", { p_event_id: event.id, p_open: !open });
+		if (error) {
+			button.disabled = false;
+			setLabel(open ? "End Sign-ups" : "Reopen Sign-ups");
+			toast(friendlyError(error, "Volunteer sign-ups could not be updated."), "error");
+			return;
+		}
+		toast(open ? `Volunteer sign-ups ended for ${event.title}.` : `Volunteer sign-ups reopened for ${event.title}.`);
+		await Promise.all([loadEvents(page, supabase, showTab), loadVolunteerRequests(page, supabase, showTab)]);
+		page.querySelector(`[data-admin-panel="${panel}"] [data-admin-signups-toggle="${event.id}"]`)?.focus();
+	});
+	return button;
+};
+
 const loadEvents = async (page, supabase, showTab) => {
 	const table = page.querySelector("[data-admin-events-body]");
-	const [eventsResult, registrationsResult] = await Promise.all([
+	const [eventsResult, registrationsResult, volunteerRequestsResult] = await Promise.all([
 		supabase.from("events").select("*").is("deleted_at", null).order("event_date", { ascending: false }).order("starts_at", { ascending: false, nullsFirst: false }),
 		supabase.from("event_registrations").select("event_id,status,participant_count"),
+		supabase.from("event_volunteer_requests").select("event_id,status"),
 	]);
 	if (eventsResult.error) throw eventsResult.error;
 	const registrations = registrationsResult.data || [];
+	const volunteerRequests = volunteerRequestsResult.data || [];
 	table.replaceChildren();
 	(eventsResult.data || []).forEach((event) => {
 		const summary = summarizeEventRegistrations(event, registrations);
@@ -413,6 +473,17 @@ const loadEvents = async (page, supabase, showTab) => {
 			if (summary.waitlistedGroups) registeredCell.appendChild(createElement("span", "pca-table-subtext", `${summary.waitlistedGroups} group${summary.waitlistedGroups === 1 ? "" : "s"} waiting`));
 		} else {
 			registeredCell.textContent = event.published && event.registration_open ? "No registrations yet" : "—";
+		}
+		const signups = summarizeVolunteerSignups(event, volunteerRequests);
+		const volunteersCell = createElement("td", "pca-admin-signups-cell");
+		if (signups.adjustable) {
+			volunteersCell.append(
+				volunteerSignupsBadge(signups.open),
+				createElement("span", "pca-table-subtext", volunteerRequestCountLabel(signups)),
+				volunteerSignupsButton(page, supabase, event, showTab)
+			);
+		} else {
+			volunteersCell.textContent = signups.pending || signups.approved ? volunteerRequestCountLabel(signups) : "—";
 		}
 		const actions = createElement("td", "pca-admin-row-actions");
 		const edit = createElement("button", "button small", "Edit");
@@ -437,16 +508,16 @@ const loadEvents = async (page, supabase, showTab) => {
 				return;
 			}
 			toast(`${event.title} was deleted.`);
-			await Promise.all([loadEvents(page, supabase, showTab), loadOverview(page, supabase), loadRegistrations(page, supabase)]);
+			await Promise.all([loadEvents(page, supabase, showTab), loadOverview(page, supabase), loadRegistrations(page, supabase), loadVolunteerRequests(page, supabase, showTab)]);
 		});
 		actions.append(edit, remove);
-		row.append(titleCell, tableCell(eventDateTableValue(event)), registeredCell, tableCell(eventStateLabel(event)), actions);
+		row.append(titleCell, tableCell(eventDateTableValue(event)), registeredCell, volunteersCell, tableCell(eventStateLabel(event)), actions);
 		table.appendChild(row);
 	});
 	if (!eventsResult.data?.length) {
 		const row = createElement("tr");
 		const empty = createElement("td", "pca-admin-empty", "No events yet. Create the first one above.");
-		empty.colSpan = 5;
+		empty.colSpan = 6;
 		row.appendChild(empty);
 		table.appendChild(row);
 	}
@@ -521,7 +592,7 @@ const initializeEventForm = (page, supabase, showTab) => {
 		form.elements.event_id.value = "";
 		editor.open = false;
 		toast(wasEdit ? "Event updated." : `${payload.title} was created${payload.published ? " and published" : " as a draft"}.`);
-		await Promise.all([loadEvents(page, supabase, showTab), loadOverview(page, supabase), loadRegistrations(page, supabase)]);
+		await Promise.all([loadEvents(page, supabase, showTab), loadOverview(page, supabase), loadRegistrations(page, supabase), loadVolunteerRequests(page, supabase, showTab)]);
 		void supabase.functions.invoke("pca-transactional-email", { body: { retry_promotions: true } })
 			.then(({ error: promotionError }) => {
 				if (promotionError) console.debug("Waitlist promotion email remains queued.", promotionError);
@@ -1232,22 +1303,48 @@ const loadVolunteerAccounts = async (page, supabase) => {
 
 const requestsState = { showReviewed: false };
 
-const loadVolunteerRequests = async (page, supabase) => {
+// Upcoming published events, soonest first, each with its own sign-up switch.
+const renderVolunteerSignups = (page, supabase, events, requests, showTab) => {
+	const list = page.querySelector("[data-admin-volunteer-signups]");
+	if (!list) return;
+	const now = new Date();
+	const upcoming = events
+		.filter((event) => !event.deleted_at && event.published && event.starts_at && new Date(event.starts_at) > now)
+		.sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
+	list.replaceChildren();
+	upcoming.forEach((event) => {
+		const signups = summarizeVolunteerSignups(event, requests, now);
+		const item = createElement("li", `pca-admin-signups__item${signups.open ? "" : " is-ended"}`);
+		const details = createElement("div", "pca-admin-signups__event");
+		details.append(
+			createElement("strong", "", event.title),
+			makeMetaLine([`${eventTimeFormatter.format(new Date(event.starts_at))} ET`, volunteerRequestCountLabel(signups)])
+		);
+		const controls = createElement("div", "pca-admin-signups__controls");
+		controls.append(volunteerSignupsBadge(signups.open, signups.open ? "Open" : "Ended"), volunteerSignupsButton(page, supabase, event, showTab));
+		item.append(details, controls);
+		list.appendChild(item);
+	});
+	if (!upcoming.length) list.appendChild(createElement("li", "pca-admin-signups__empty", "No upcoming events are published. Sign-ups appear here once one is."));
+};
+
+const loadVolunteerRequests = async (page, supabase, showTab) => {
 	const list = page.querySelector("[data-admin-volunteer-requests]");
 	if (!list) return;
 	const [requestsResult, eventsResult] = await Promise.all([
 		supabase.from("event_volunteer_requests").select("*").order("submitted_at", { ascending: false }),
-		supabase.from("events").select("id,title,starts_at,event_date"),
+		supabase.from("events").select("id,title,starts_at,event_date,published,deleted_at,volunteer_signups_open"),
 	]);
 	if (requestsResult.error) throw requestsResult.error;
 	if (eventsResult.error) throw eventsResult.error;
 	const events = new Map((eventsResult.data || []).map((event) => [event.id, event]));
+	renderVolunteerSignups(page, supabase, eventsResult.data || [], requestsResult.data || [], showTab);
 	const toggle = page.querySelector("[data-admin-requests-reviewed]");
 	if (toggle && !toggle.dataset.bound) {
 		toggle.dataset.bound = "true";
 		toggle.addEventListener("change", () => {
 			requestsState.showReviewed = toggle.checked;
-			void loadVolunteerRequests(page, supabase);
+			void loadVolunteerRequests(page, supabase, showTab);
 		});
 	}
 	list.replaceChildren();
@@ -1266,7 +1363,10 @@ const loadVolunteerRequests = async (page, supabase) => {
 		if (request.school_name) meta.appendChild(createElement("span", "", request.school_name));
 		meta.appendChild(createElement("span", "", `Sent ${formatShortDate(request.submitted_at)}`));
 		main.appendChild(meta);
-		main.appendChild(makeMetaLine([event ? `For ${event.title}${event.starts_at ? `, ${formatShortDate(event.starts_at)}` : ""}` : "For an archived event"]));
+		main.appendChild(makeMetaLine([
+			event ? `For ${event.title}${event.starts_at ? `, ${formatShortDate(event.starts_at)}` : ""}` : "For an archived event",
+			event?.volunteer_signups_open === false ? "Sign-ups ended" : "",
+		]));
 		if (request.interests) main.appendChild(createElement("p", "pca-admin-record__note", `Wants to help with: ${request.interests}`));
 		if (request.availability) main.appendChild(createElement("p", "pca-admin-record__note", `Availability: ${request.availability}`));
 		if (request.admin_notes) main.appendChild(createElement("p", "pca-admin-record__note", `Note: ${request.admin_notes}`));
@@ -1288,7 +1388,7 @@ const loadVolunteerRequests = async (page, supabase) => {
 						if (error) throw error;
 						if (decision === "approved") await requestTransactionalEmail(supabase, "volunteer_request_approved", request.id);
 						toast(decision === "approved" ? `${request.full_name} was approved.` : `${request.full_name}'s request was declined.`);
-						await Promise.all([loadVolunteerRequests(page, supabase), loadOverview(page, supabase)]);
+						await Promise.all([loadVolunteerRequests(page, supabase, showTab), loadOverview(page, supabase), loadEvents(page, supabase, showTab)]);
 					},
 				}));
 				decisionHost.hidden = false;
@@ -1586,7 +1686,7 @@ const initializeAdminWorkspace = async () => {
 		["registrations", () => loadRegistrations(page, supabase)],
 		["households", () => loadHouseholds(page, supabase)],
 		["volunteer accounts", () => loadVolunteerAccounts(page, supabase)],
-		["volunteer requests", () => loadVolunteerRequests(page, supabase)],
+		["volunteer requests", () => loadVolunteerRequests(page, supabase, showTab)],
 		["assignments", () => loadVolunteerManagement(page, supabase)],
 		["access", () => loadAccess(page, supabase, context)],
 	];

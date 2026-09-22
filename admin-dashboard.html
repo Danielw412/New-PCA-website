@@ -7,7 +7,7 @@
 		<meta name="theme-color" content="#fffaf7" />
 		<meta name="description" content="PCA Youth Center administrator dashboard for registrations and volunteer management." />
 		<link rel="stylesheet" href="assets/css/fontawesome-all.min.css" />
-		<link rel="stylesheet" href="styles.css?v=20260914-guest-first-v1" />
+		<link rel="stylesheet" href="styles.css?v=20260922-volunteer-signups-v1" />
 	</head>
 		<body>
 		<a class="skip-link" href="#main">Skip to content</a>
@@ -104,7 +104,7 @@
 					</section>
 
 					<section id="admin-panel-events" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-events" data-admin-panel="events" hidden>
-						<div class="pca-admin-panel-heading"><div><h2>Events</h2><p>Publish events, open or close registration, and adjust capacity. Raising capacity or reopening registration moves waitlisted groups in automatically.</p></div><button type="button" class="button primary" data-admin-event-new>New Event</button></div>
+						<div class="pca-admin-panel-heading"><div><h2>Events</h2><p>Publish events, open or close registration, end volunteer sign-ups, and adjust capacity. Raising capacity or reopening registration moves waitlisted groups in automatically.</p></div><button type="button" class="button primary" data-admin-event-new>New Event</button></div>
 						<details class="pca-admin-create-panel" data-admin-event-editor><summary><span data-admin-event-editor-title>Create an event</span><small>Dates and times are Eastern Time</small></summary><form data-admin-event-form><input type="hidden" name="event_id" />
 							<div class="pca-admin-event-fields">
 								<div class="field pca-field-wide"><label for="admin-event-title">Event title</label><input type="text" id="admin-event-title" name="title" maxlength="160" required /></div>
@@ -124,7 +124,7 @@
 							<p class="pca-backend-status pca-admin-create-status" data-admin-event-status aria-live="polite"></p>
 							<ul class="actions"><li><button type="submit" class="button primary">Save Event</button></li><li><button type="button" class="button" data-admin-event-clear>Cancel</button></li></ul>
 						</form></details>
-						<div class="table-wrapper"><table><thead><tr><th>Event</th><th>Date</th><th>Registered</th><th>State</th><th>Actions</th></tr></thead><tbody data-admin-events-body></tbody></table></div>
+						<div class="table-wrapper"><table class="pca-admin-events-table"><thead><tr><th>Event</th><th>Date</th><th>Registered</th><th>Volunteers</th><th>State</th><th>Actions</th></tr></thead><tbody data-admin-events-body></tbody></table></div>
 					</section>
 
 					<section id="admin-panel-registrations" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-registrations" data-admin-panel="registrations" hidden>
@@ -145,6 +145,11 @@
 
 					<section id="admin-panel-volunteer-requests" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-volunteer-requests" data-admin-panel="volunteer-requests" hidden>
 						<div class="pca-admin-panel-heading"><div><h2>Volunteer Requests</h2><p>Requests to help at an event. Approving one emails the volunteer. No account is needed unless they want tracked hours.</p></div><a class="button" href="upcoming-events.html">View Public Events</a></div>
+						<section class="pca-admin-signups" aria-labelledby="admin-volunteer-signups-title">
+							<div class="pca-admin-signups__heading"><h3 id="admin-volunteer-signups-title">Sign-ups by event</h3><p>End sign-ups once an event has enough volunteers. The Volunteer button comes off the public listing, and requests you already have stay below.</p></div>
+							<ul class="pca-admin-signups__list" data-admin-volunteer-signups><li class="pca-admin-signups__empty">Loading upcoming events...</li></ul>
+						</section>
+						<h3>Requests</h3>
 						<div class="pca-admin-roster__tools pca-admin-list-tools"><label class="pca-inline-check"><input type="checkbox" data-admin-requests-reviewed /> Show reviewed requests</label></div>
 						<div class="pca-admin-record-list" data-admin-volunteer-requests></div>
 					</section>
@@ -210,6 +215,6 @@
 				</div>
 				<div class="site-footer__bottom"><span>&copy; 2018-2026 PCA Youth Center</span></div>
 			</footer>
-		</div><script src="script.js?v=20260914-guest-first-v1"></script>
+		</div><script src="script.js?v=20260922-volunteer-signups-v1"></script>
 	</body>
 </html>

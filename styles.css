@@ -6851,3 +6851,150 @@ caption {
 		flex-direction: column;
 	}
 }
+
+/* Volunteer sign-up switch: Events table column and Volunteer Requests list */
+
+.pca-status-badge.is-signups-open {
+	background: #e7f3ea;
+	color: var(--pca-success);
+}
+
+.pca-status-badge.is-signups-ended {
+	background: var(--pca-soft);
+	color: var(--pca-muted);
+}
+
+/* Long event titles wrap so the Volunteers and Actions columns stay in view
+   instead of the table stretching to its max-content width. */
+.pca-admin-workspace-panel table.pca-admin-events-table {
+	min-width: 0;
+}
+
+.pca-admin-events-table td:first-child {
+	min-width: 14rem;
+}
+
+.pca-admin-events-table td:nth-child(2),
+.pca-admin-events-table .pca-link-button,
+.pca-admin-events-table .button,
+.pca-admin-events-table .pca-status-badge {
+	white-space: nowrap;
+}
+
+/* A flex <td> stops stretching to the row height, which detached its border. */
+td.pca-admin-row-actions {
+	display: table-cell;
+}
+
+td.pca-admin-row-actions .button {
+	display: flex;
+}
+
+td.pca-admin-row-actions .button + .button {
+	margin-top: 0.45rem;
+}
+
+.pca-admin-signups-cell {
+	min-width: 10rem;
+}
+
+.pca-admin-signups-cell .pca-table-subtext {
+	margin: 0.4rem 0 0.65rem;
+	white-space: nowrap;
+}
+
+.pca-admin-signups-cell .button {
+	width: 100%;
+}
+
+/* Contain the visually hidden event name so it cannot escape the scrolling
+   table and widen the page. */
+.pca-admin-signups-cell .button,
+.pca-admin-signups__controls .button {
+	position: relative;
+}
+
+.pca-admin-signups {
+	overflow: hidden;
+	border: 1px solid var(--pca-line);
+	border-radius: var(--pca-radius-md);
+	background: var(--pca-surface);
+}
+
+.pca-admin-signups__heading {
+	padding: 1.1rem 1.25rem;
+	border-bottom: 1px solid var(--pca-line);
+	background: var(--pca-paper);
+}
+
+.pca-admin-signups__heading h3 {
+	margin: 0 0 0.3rem;
+	font-size: 1.05rem;
+}
+
+.pca-admin-signups__heading p {
+	max-width: 64ch;
+	margin: 0;
+	font-size: 0.92rem;
+}
+
+.pca-admin-signups__list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.pca-admin-signups__item,
+.pca-admin-signups__empty {
+	margin: 0;
+	padding: 0.95rem 1.25rem;
+}
+
+.pca-admin-signups__item {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem 1.5rem;
+}
+
+.pca-admin-signups__item + .pca-admin-signups__item {
+	border-top: 1px solid var(--pca-line);
+}
+
+.pca-admin-signups__item.is-ended {
+	background: #fbfaf8;
+}
+
+.pca-admin-signups__event {
+	flex: 1 1 18rem;
+	min-width: 0;
+}
+
+.pca-admin-signups__event .pca-admin-record__meta {
+	margin: 0.2rem 0 0;
+}
+
+.pca-admin-signups__controls {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+}
+
+.pca-admin-signups__controls .pca-status-badge {
+	min-width: 4.75rem;
+}
+
+.pca-admin-signups__controls .button {
+	min-width: 9.5rem;
+}
+
+@media screen and (max-width: 736px) {
+	.pca-admin-signups__controls {
+		width: 100%;
+	}
+
+	.pca-admin-signups__controls .button {
+		flex: 1 1 auto;
+	}
+}

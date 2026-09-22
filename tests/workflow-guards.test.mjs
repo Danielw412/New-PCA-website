@@ -127,6 +127,50 @@ test("event rail summaries count seats, waiting groups, and upcoming state", () 
 	assert.equal(administration.summarizeEventRegistrations({ ...event, starts_at: "2026-01-01T18:00:00Z", ends_at: "2026-01-01T20:00:00Z" }, registrations, now).upcoming, false);
 });
 
+test("volunteer sign-up summaries count requests and only offer the switch before an event starts", () => {
+	const now = new Date("2026-09-22T12:00:00Z");
+	const event = { id: "event-a", starts_at: "2026-09-27T18:00:00Z", volunteer_signups_open: true };
+	const requests = [
+		{ event_id: "event-a", status: "approved" },
+		{ event_id: "event-a", status: "approved" },
+		{ event_id: "event-a", status: "pending" },
+		{ event_id: "event-a", status: "rejected" },
+		{ event_id: "event-b", status: "pending" },
+	];
+	const summary = administration.summarizeVolunteerSignups(event, requests, now);
+	assert.deepEqual(summary, { open: true, adjustable: true, pending: 1, approved: 2 });
+	assert.equal(administration.volunteerRequestCountLabel(summary), "2 approved, 1 to review");
+	assert.equal(administration.volunteerRequestCountLabel({ pending: 0, approved: 0 }), "No requests yet");
+	assert.equal(administration.summarizeVolunteerSignups({ ...event, volunteer_signups_open: false }, requests, now).open, false);
+	assert.equal(administration.summarizeVolunteerSignups({ id: "legacy", starts_at: event.starts_at }, [], now).open, true);
+	assert.equal(administration.summarizeVolunteerSignups({ ...event, starts_at: "2026-09-01T18:00:00Z" }, requests, now).adjustable, false);
+	assert.equal(administration.summarizeVolunteerSignups({ ...event, starts_at: null, event_date: "2026-10-01" }, requests, now).adjustable, false);
+});
+
+test("ending volunteer sign-ups is enforced in the database and reflected in every surface", () => {
+	const migration = read("supabase/migrations/20260922183548_event_volunteer_signup_toggle.sql");
+	assert.match(migration, /add column volunteer_signups_open boolean not null default true/);
+	assert.match(migration, /select events\.volunteer_signups_open\s+into signups_open[\s\S]*?for share;[\s\S]*?if not signups_open then\s+raise exception 'Volunteer sign-ups for this event have ended\.'/);
+	assert.match(migration, /private\.set_event_volunteer_signups[\s\S]*?if not private\.is_site_administrator\(\) then/);
+	assert.match(migration, /create function public\.set_event_volunteer_signups\([\s\S]*?security invoker/);
+	assert.match(migration, /grant execute on function public\.set_event_volunteer_signups\(uuid, boolean\) to authenticated;/);
+	assert.doesNotMatch(migration, /grant execute on function (?:public|private)\.set_event_volunteer_signups\(uuid, boolean\) to[^;]*anon/);
+	assert.match(migration, /events\.event_date,\s+events\.volunteer_signups_open,[\s\S]*?as volunteer_signups_available/);
+
+	const adminHtml = read("admin-dashboard.html");
+	const adminSource = read("assets/js/modules/administration.js");
+	assert.match(adminHtml, /<th>Volunteers<\/th>/);
+	assert.match(adminHtml, /data-admin-volunteer-signups/);
+	assert.match(adminSource, /\[data-admin-volunteer-signups\]/);
+	assert.match(adminSource, /rpc\("set_event_volunteer_signups", \{ p_event_id: event\.id, p_open: !open \}\)/);
+	assert.match(adminSource, /confirmDialog\(\{\s+title: `End volunteer sign-ups/);
+
+	const backend = read("assets/js/pca-backend.js");
+	assert.match(backend, /event_catalog[\s\S]*?volunteer_signups_available/);
+	assert.match(backend, /Volunteer Sign-ups Closed/);
+	assert.match(read("assets/js/modules/events-registration.js"), /event\.volunteer_signups_open === false/);
+});
+
 test("registration view links are hashed, scoped, and carried into confirmation emails", () => {
 	const migration = read("supabase/migrations/20260913023208_registration_view_links_and_admin_queue.sql");
 	assert.match(migration, /create table private\.registration_view_tokens/);
