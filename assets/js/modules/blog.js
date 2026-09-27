@@ -7,11 +7,11 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260922-separate-signups-v1";
+} from "./core-auth.js?v=20260926-trim-admin-copy-v1";
 let importedPostsPromise;
 
 const loadImportedPosts = async () => {
-	importedPostsPromise ||= import("./blog-seed.js?v=20260922-separate-signups-v1").then(({ importedPosts }) => importedPosts);
+	importedPostsPromise ||= import("./blog-seed.js?v=20260926-trim-admin-copy-v1").then(({ importedPosts }) => importedPosts);
 	return importedPostsPromise;
 };
 

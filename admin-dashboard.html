@@ -7,7 +7,7 @@
 		<meta name="theme-color" content="#fffaf7" />
 		<meta name="description" content="PCA Youth Center administrator dashboard for registrations and volunteer management." />
 		<link rel="stylesheet" href="assets/css/fontawesome-all.min.css" />
-		<link rel="stylesheet" href="styles.css?v=20260922-separate-signups-v1" />
+		<link rel="stylesheet" href="styles.css?v=20260926-trim-admin-copy-v1" />
 	</head>
 		<body>
 		<a class="skip-link" href="#main">Skip to content</a>
@@ -88,7 +88,7 @@
 						<div class="pca-admin-workspace-content">
 
 					<section id="admin-panel-overview" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-overview" data-admin-panel="overview">
-						<div class="pca-admin-panel-heading"><div><h2>Overview</h2><p>Where things stand right now. Choose a number to open that section.</p></div></div>
+						<div class="pca-admin-panel-heading"><div><h2>Overview</h2></div></div>
 						<div class="pca-admin-metric-grid">
 							<button type="button" class="pca-admin-metric" data-admin-tab-link="events"><strong data-admin-count="upcoming-events">…</strong><span>Upcoming events</span></button>
 							<button type="button" class="pca-admin-metric" data-admin-tab-link="registrations"><strong data-admin-count="upcoming-attendees">…</strong><span>Attendees coming to upcoming events</span></button>
@@ -104,7 +104,7 @@
 					</section>
 
 					<section id="admin-panel-events" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-events" data-admin-panel="events" hidden>
-						<div class="pca-admin-panel-heading"><div><h2>Events</h2><p>Publish events and adjust capacity. Household registration and volunteer sign-ups end separately, each with its own button. Raising capacity or reopening registration moves waitlisted groups in automatically.</p></div><button type="button" class="button primary" data-admin-event-new>New Event</button></div>
+						<div class="pca-admin-panel-heading"><div><h2>Events</h2></div><button type="button" class="button primary" data-admin-event-new>New Event</button></div>
 						<details class="pca-admin-create-panel" data-admin-event-editor><summary><span data-admin-event-editor-title>Create an event</span><small>Dates and times are Eastern Time</small></summary><form data-admin-event-form><input type="hidden" name="event_id" />
 							<div class="pca-admin-event-fields">
 								<div class="field pca-field-wide"><label for="admin-event-title">Event title</label><input type="text" id="admin-event-title" name="title" maxlength="160" required /></div>
@@ -128,7 +128,7 @@
 					</section>
 
 					<section id="admin-panel-registrations" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-registrations" data-admin-panel="registrations" hidden>
-						<div class="pca-admin-panel-heading"><div><h2>Registrations</h2><p>Pick an event to see everyone coming. Cancelling a confirmed group frees its seats for the next waitlisted group.</p></div><button type="button" class="button" data-admin-export>Download CSV</button></div>
+						<div class="pca-admin-panel-heading"><div><h2>Registrations</h2></div><button type="button" class="button" data-admin-export>Download CSV</button></div>
 						<p class="pca-backend-status" data-admin-export-status role="status" aria-live="polite"></p>
 						<div class="pca-admin-registrations">
 							<nav class="pca-admin-event-rail" aria-label="Events"><div class="pca-admin-event-rail__list" data-admin-event-rail></div></nav>
@@ -144,7 +144,7 @@
 					</section>
 
 					<section id="admin-panel-volunteer-requests" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-volunteer-requests" data-admin-panel="volunteer-requests" hidden>
-						<div class="pca-admin-panel-heading"><div><h2>Volunteer Requests</h2><p>Requests to help at an event. Approving one emails the volunteer. No account is needed unless they want tracked hours.</p></div><a class="button" href="upcoming-events.html">View Public Events</a></div>
+						<div class="pca-admin-panel-heading"><div><h2>Volunteer Requests</h2></div><a class="button" href="upcoming-events.html">View Public Events</a></div>
 						<section class="pca-admin-signups" aria-labelledby="admin-volunteer-signups-title">
 							<div class="pca-admin-signups__heading"><h3 id="admin-volunteer-signups-title">Sign-ups by event</h3><p>End sign-ups once an event has enough volunteers. The Volunteer button comes off the public listing, requests you already have stay below, and household registration is not affected.</p></div>
 							<ul class="pca-admin-signups__list" data-admin-volunteer-signups><li class="pca-admin-signups__empty">Loading upcoming events...</li></ul>
@@ -155,19 +155,19 @@
 					</section>
 
 					<section id="admin-panel-households" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-households" data-admin-panel="households" hidden>
-						<div class="pca-admin-panel-heading"><div><h2>Household Accounts</h2><p>Update contact details, manage saved attendees, or send a password reset.</p></div></div>
+						<div class="pca-admin-panel-heading"><div><h2>Household Accounts</h2></div></div>
 						<div class="field pca-admin-search-field"><label for="admin-household-search">Search households</label><input id="admin-household-search" type="search" data-admin-household-search placeholder="Name or email" /></div>
 						<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Contact email</th><th>Phone</th><th>Actions</th></tr></thead><tbody data-admin-households-body></tbody></table></div>
 						<div class="pca-paper-panel pca-admin-members-panel" data-admin-household-members hidden></div>
 					</section>
 
 					<section id="admin-panel-teen-members" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-teen-members" data-admin-panel="teen-members" hidden>
-						<div class="pca-admin-panel-heading"><div><h2>Volunteer Accounts</h2><p>Approving an account grants the Volunteer role. Student Council and Blog Editor roles are optional extras.</p></div></div>
+						<div class="pca-admin-panel-heading"><div><h2>Volunteer Accounts</h2></div></div>
 						<div class="pca-admin-record-list" data-admin-teens-list></div>
 					</section>
 
 					<section id="admin-panel-volunteers" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-volunteers" data-admin-panel="volunteers" hidden>
-						<div class="pca-admin-panel-heading"><div><h2>Assignments &amp; Hours</h2><p>Assign approved volunteers to events and review the hours they submit.</p></div></div>
+						<div class="pca-admin-panel-heading"><div><h2>Assignments &amp; Hours</h2></div></div>
 						<details class="pca-admin-create-panel"><summary><span>Create an assignment</span><small>Only approved Volunteer Accounts appear here</small></summary><form data-admin-volunteer-assignment-form><div class="fields"><div class="field half"><label for="admin-volunteer-user">Volunteer</label><select id="admin-volunteer-user" name="teen_member_user_id" required><option value="">Choose a volunteer</option></select></div><div class="field half"><label for="admin-volunteer-event">Event</label><select id="admin-volunteer-event" name="event_id" required><option value="">Choose an event</option></select></div><div class="field"><label for="admin-volunteer-role">Role</label><input id="admin-volunteer-role" name="role_title" type="text" maxlength="160" required /></div><div class="field"><label for="admin-volunteer-instructions">Instructions</label><textarea id="admin-volunteer-instructions" name="instructions" rows="3" maxlength="4000"></textarea></div></div><ul class="actions"><li><button type="submit" class="button primary">Create Assignment</button></li></ul><p class="pca-backend-status" data-admin-volunteer-assignment-status aria-live="polite"></p></form></details>
 						<h3>Assignments</h3>
 						<div class="table-wrapper"><table><thead><tr><th>Volunteer</th><th>Event</th><th>Role</th><th>Status</th></tr></thead><tbody data-admin-volunteer-assignments-body></tbody></table></div>
@@ -215,6 +215,6 @@
 				</div>
 				<div class="site-footer__bottom"><span>&copy; 2018-2026 PCA Youth Center</span></div>
 			</footer>
-		</div><script src="script.js?v=20260922-separate-signups-v1"></script>
+		</div><script src="script.js?v=20260926-trim-admin-copy-v1"></script>
 	</body>
 </html>

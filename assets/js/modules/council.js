@@ -6,7 +6,7 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260922-separate-signups-v1";
+} from "./core-auth.js?v=20260926-trim-admin-copy-v1";
 
 const bucketName = "council-headshots";
 
@@ -160,8 +160,7 @@ export const prepareCouncilAdminShell = () => {
 	panel.dataset.adminCouncil = "true";
 	panel.hidden = true;
 	panel.append(
-		createElement("h2", "", "Student Council"),
-		createElement("p", "", "Manage every council member, upload headshots, and edit the role and description shown beneath officers.")
+		createElement("h2", "", "Student Council")
 	);
 	const actions = createElement("ul", "actions");
 	const actionItem = createElement("li");
