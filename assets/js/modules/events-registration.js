@@ -10,7 +10,7 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260926-trim-admin-copy-v1";
+} from "./core-auth.js?v=20261016-volunteer-questions-v1";
 
 const registrationStatusLabels = Object.freeze({
 	confirmed: "Confirmed",
@@ -793,6 +793,87 @@ const initializeRegistrationPage = async () => {
 	});
 };
 
+// --- Event volunteer questions ------------------------------------------------
+// Administrators add these per event. Every question the page showed gets a
+// key in the answers, even when left blank, so the database can tell a skipped
+// question from one that was added after the page loaded.
+
+const volunteerQuestionFieldName = (question) => `volunteer_question_${question.id}`;
+
+export const volunteerQuestionAnswers = (questions, values) => Object.fromEntries(
+	(Array.isArray(questions) ? questions : []).map((question) => {
+		const name = volunteerQuestionFieldName(question);
+		return [
+			question.id,
+			question.type === "multiple_choice"
+				? values.getAll(name).map(String)
+				: String(values.get(name) || "").trim(),
+		];
+	})
+);
+
+const renderVolunteerQuestions = (container, questions) => {
+	container.replaceChildren();
+	questions.forEach((question, index) => {
+		const id = `volunteer-question-${index + 1}`;
+		const name = volunteerQuestionFieldName(question);
+		const optionalNote = () => [" ", createElement("span", "", "(optional)")];
+
+		if (question.type === "short_text" || question.type === "long_text") {
+			const field = createElement("div", "field");
+			const label = createElement("label", "", question.label);
+			label.htmlFor = id;
+			if (!question.required) label.append(...optionalNote());
+			const input = createElement(question.type === "long_text" ? "textarea" : "input");
+			if (question.type === "long_text") {
+				input.rows = 3;
+				input.maxLength = 2000;
+			} else {
+				input.type = "text";
+				input.maxLength = 300;
+			}
+			input.id = id;
+			input.name = name;
+			input.required = Boolean(question.required);
+			field.append(label, input);
+			container.appendChild(field);
+			return;
+		}
+
+		const multiple = question.type === "multiple_choice";
+		const choices = question.type === "yes_no" ? ["Yes", "No"] : (Array.isArray(question.options) ? question.options : []);
+		const fieldset = createElement("fieldset", "field pca-volunteer-question");
+		const legend = createElement("legend", "", question.label);
+		if (!question.required) legend.append(...optionalNote());
+		const list = createElement("div", `pca-volunteer-question__choices${question.type === "yes_no" ? " is-inline" : ""}`);
+		choices.forEach((choice, choiceIndex) => {
+			const option = createElement("div", "pca-volunteer-question__choice");
+			const input = createElement("input");
+			input.type = multiple ? "checkbox" : "radio";
+			input.id = `${id}-${choiceIndex + 1}`;
+			input.name = name;
+			input.value = choice;
+			if (!multiple && question.required) input.required = true;
+			const label = createElement("label", "", choice);
+			label.htmlFor = input.id;
+			option.append(input, label);
+			list.appendChild(option);
+		});
+		if (multiple && question.required) fieldset.dataset.volunteerRequiredChoice = "true";
+		fieldset.append(legend, list);
+		container.appendChild(fieldset);
+	});
+};
+
+// Checkbox groups have no native "pick at least one" rule, so the first box
+// carries the message until any box in a required group is checked.
+const syncRequiredChoiceValidity = (container) => {
+	container.querySelectorAll("[data-volunteer-required-choice]").forEach((fieldset) => {
+		const boxes = [...fieldset.querySelectorAll('input[type="checkbox"]')];
+		boxes[0]?.setCustomValidity(boxes.some((box) => box.checked) ? "" : "Choose at least one option.");
+	});
+};
+
 const initializeVolunteerRequestPage = async () => {
 	const page = document.querySelector("[data-volunteer-request-page]");
 	if (!page) return;
@@ -810,7 +891,7 @@ const initializeVolunteerRequestPage = async () => {
 
 	const { data: event, error: eventError } = await supabase
 		.from("events")
-		.select("id,title,starts_at,ends_at,event_date,location,published,volunteer_signups_open")
+		.select("id,title,starts_at,ends_at,event_date,location,published,volunteer_signups_open,volunteer_questions")
 		.eq("id", eventId)
 		.single();
 	if (eventError || !event || !event.published || new Date(event.starts_at) <= new Date()) {
@@ -828,6 +909,16 @@ const initializeVolunteerRequestPage = async () => {
 		return;
 	}
 	setStatus(status);
+
+	const questions = Array.isArray(event.volunteer_questions) ? event.volunteer_questions : [];
+	const questionsSection = page.querySelector("[data-volunteer-questions-section]");
+	const questionsContainer = page.querySelector("[data-volunteer-questions]");
+	if (questionsSection && questionsContainer) {
+		renderVolunteerQuestions(questionsContainer, questions);
+		syncRequiredChoiceValidity(questionsContainer);
+		questionsContainer.addEventListener("change", () => syncRequiredChoiceValidity(questionsContainer));
+		questionsSection.hidden = !questions.length;
+	}
 
 	let session = await getSession();
 	let context = session ? await getAccountContext() : {};
@@ -878,6 +969,7 @@ const initializeVolunteerRequestPage = async () => {
 					interests: String(values.get("interests") || "").trim(),
 					availability: String(values.get("availability") || "").trim(),
 					future_event_emails: values.has("future_event_emails"),
+					answers: volunteerQuestionAnswers(questions, values),
 				},
 			});
 			if (error) throw error;

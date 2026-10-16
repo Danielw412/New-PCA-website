@@ -6,7 +6,7 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260926-trim-admin-copy-v1";
+} from "./core-auth.js?v=20261016-volunteer-questions-v1";
 
 const bucketName = "council-headshots";
 

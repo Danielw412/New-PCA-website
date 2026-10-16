@@ -7,8 +7,8 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20260926-trim-admin-copy-v1";
-import { referralLabels } from "./events-registration.js?v=20260926-trim-admin-copy-v1";
+} from "./core-auth.js?v=20261016-volunteer-questions-v1";
+import { referralLabels } from "./events-registration.js?v=20261016-volunteer-questions-v1";
 
 const timeZonePartsFormatter = new Intl.DateTimeFormat("en-CA", {
 	timeZone: "America/New_York",
@@ -582,12 +582,222 @@ const loadEvents = async (page, supabase, showTab) => {
 	}
 };
 
-const openEventEditor = (page, event = null) => {
+// --- Volunteer sign-up questions --------------------------------------------
+// Built in the event editor and saved with the event through save_event, which
+// validates them again. Question ids stay the same across edits; each request
+// keeps a copy of the questions it answered, so edits never change old answers.
+
+export const volunteerQuestionTypeLabels = Object.freeze({
+	short_text: "Short answer",
+	long_text: "Paragraph",
+	yes_no: "Yes or no",
+	single_choice: "Choose one",
+	multiple_choice: "Choose any",
+});
+
+const maxVolunteerQuestions = 10;
+
+const isChoiceQuestion = (type) => type === "single_choice" || type === "multiple_choice";
+
+export const parseQuestionChoices = (text) => String(text || "")
+	.split(/\r?\n/)
+	.map((line) => line.trim())
+	.filter(Boolean);
+
+export const questionChoicesProblem = (choices) => {
+	if (choices.length < 2) return "Add at least two choices, one per line.";
+	if (choices.length > 20) return "Use 20 choices or fewer.";
+	if (choices.some((choice) => choice.length > 120)) return "Keep each choice to 120 characters or fewer.";
+	if (new Set(choices).size !== choices.length) return "Each choice must be different.";
+	return "";
+};
+
+export const volunteerAnswerText = (answer) => {
+	const value = Array.isArray(answer?.answer)
+		? answer.answer.join(", ")
+		: String(answer?.answer ?? "").trim();
+	return value || "No answer";
+};
+
+const volunteerAnswerList = (answers) => {
+	const list = createElement("dl", "pca-admin-answers");
+	answers.forEach((answer) => {
+		const row = createElement("div");
+		const text = volunteerAnswerText(answer);
+		const value = createElement("dd", "", text);
+		if (text === "No answer") value.classList.add("is-empty");
+		row.append(createElement("dt", "", answer?.question || "Question"), value);
+		list.appendChild(row);
+	});
+	return list;
+};
+
+const questionBuilder = (page) => {
+	const root = page.querySelector("[data-admin-volunteer-questions]");
+	return {
+		root,
+		list: root?.querySelector("[data-admin-volunteer-question-list]"),
+		empty: root?.querySelector("[data-admin-volunteer-question-empty]"),
+		add: root?.querySelector("[data-admin-volunteer-question-add]"),
+	};
+};
+
+const syncQuestionBuilder = (page) => {
+	const { list, empty, add } = questionBuilder(page);
+	if (!list) return;
+	const items = [...list.children];
+	items.forEach((item, index) => {
+		const number = index + 1;
+		item.querySelector("[data-question-number]").textContent = `Question ${number}`;
+		const up = item.querySelector('[data-question-move="up"]');
+		const down = item.querySelector('[data-question-move="down"]');
+		up.disabled = index === 0;
+		down.disabled = index === items.length - 1;
+		up.setAttribute("aria-label", `Move question ${number} up`);
+		down.setAttribute("aria-label", `Move question ${number} down`);
+		item.querySelector("[data-question-remove]").setAttribute("aria-label", `Remove question ${number}`);
+	});
+	empty.hidden = items.length > 0;
+	add.disabled = items.length >= maxVolunteerQuestions;
+};
+
+// Choices only apply to the two choice types. The field is disabled while
+// hidden so the browser does not validate a box the administrator cannot see.
+const syncQuestionType = (item) => {
+	const type = item.querySelector("[data-question-type]").value;
+	const choicesField = item.querySelector("[data-question-choices-field]");
+	const choices = item.querySelector("[data-question-choices]");
+	const usesChoices = isChoiceQuestion(type);
+	choicesField.hidden = !usesChoices;
+	choices.disabled = !usesChoices;
+	choices.setCustomValidity(usesChoices ? questionChoicesProblem(parseQuestionChoices(choices.value)) : "");
+};
+
+let questionEditorCount = 0;
+
+const createQuestionEditor = (page, question = {}) => {
+	questionEditorCount += 1;
+	const key = `admin-question-${questionEditorCount}`;
+	const item = createElement("li", "pca-admin-question");
+	item.dataset.questionId = question.id || crypto.randomUUID();
+
+	const header = createElement("div", "pca-admin-question__header");
+	const number = createElement("span", "pca-admin-question__number");
+	number.dataset.questionNumber = "";
+	const tools = createElement("div", "pca-admin-question__tools");
+	const moveButton = (direction, label) => {
+		const button = createElement("button", "button small", label);
+		button.type = "button";
+		button.dataset.questionMove = direction;
+		button.addEventListener("click", () => {
+			const sibling = direction === "up" ? item.previousElementSibling : item.nextElementSibling;
+			if (!sibling) return;
+			if (direction === "up") sibling.before(item);
+			else sibling.after(item);
+			syncQuestionBuilder(page);
+			// Moving the item drops focus; keep it on a usable move button.
+			const target = button.disabled ? item.querySelector(`[data-question-move="${direction === "up" ? "down" : "up"}"]`) : button;
+			target.focus();
+		});
+		return button;
+	};
+	const remove = createElement("button", "button small pca-button-danger", "Remove");
+	remove.type = "button";
+	remove.dataset.questionRemove = "";
+	remove.addEventListener("click", () => {
+		const next = item.nextElementSibling || item.previousElementSibling;
+		item.remove();
+		syncQuestionBuilder(page);
+		(next?.querySelector("[data-question-label]") || questionBuilder(page).add)?.focus();
+	});
+	tools.append(moveButton("up", "Up"), moveButton("down", "Down"), remove);
+	header.append(number, tools);
+
+	const fields = createElement("div", "pca-admin-question__fields");
+
+	const textField = createElement("div", "field");
+	const textLabel = createElement("label", "", "Question");
+	textLabel.htmlFor = `${key}-label`;
+	const text = createElement("input");
+	text.type = "text";
+	text.id = `${key}-label`;
+	text.maxLength = 300;
+	text.required = true;
+	text.value = question.label || "";
+	text.dataset.questionLabel = "";
+	textField.append(textLabel, text);
+
+	const typeField = createElement("div", "field");
+	const typeLabel = createElement("label", "", "Answer type");
+	typeLabel.htmlFor = `${key}-type`;
+	const type = createElement("select");
+	type.id = `${key}-type`;
+	type.dataset.questionType = "";
+	Object.entries(volunteerQuestionTypeLabels).forEach(([value, label]) => {
+		const option = createElement("option", "", label);
+		option.value = value;
+		type.appendChild(option);
+	});
+	type.value = volunteerQuestionTypeLabels[question.type] ? question.type : "short_text";
+	typeField.append(typeLabel, type);
+
+	const choicesField = createElement("div", "field pca-admin-question__choices");
+	choicesField.dataset.questionChoicesField = "";
+	const choicesLabel = createElement("label", "", "Choices, one per line");
+	choicesLabel.htmlFor = `${key}-choices`;
+	const choices = createElement("textarea");
+	choices.id = `${key}-choices`;
+	choices.rows = 4;
+	choices.value = Array.isArray(question.options) ? question.options.join("\n") : "";
+	choices.dataset.questionChoices = "";
+	choicesField.append(choicesLabel, choices);
+
+	const requiredField = createElement("div", "pca-admin-question__required");
+	const required = createElement("input");
+	required.type = "checkbox";
+	required.id = `${key}-required`;
+	required.checked = Boolean(question.required);
+	required.dataset.questionRequired = "";
+	const requiredLabel = createElement("label", "", "Required");
+	requiredLabel.htmlFor = required.id;
+	requiredField.append(required, requiredLabel);
+
+	fields.append(textField, typeField, choicesField, requiredField);
+	item.append(header, fields);
+	type.addEventListener("change", () => syncQuestionType(item));
+	choices.addEventListener("input", () => syncQuestionType(item));
+	syncQuestionType(item);
+	return item;
+};
+
+const setVolunteerQuestions = (page, questions = []) => {
+	const { list } = questionBuilder(page);
+	if (!list) return;
+	list.replaceChildren(...(Array.isArray(questions) ? questions : []).map((question) => createQuestionEditor(page, question)));
+	syncQuestionBuilder(page);
+};
+
+const readVolunteerQuestions = (page) => {
+	const { list } = questionBuilder(page);
+	return [...(list?.children || [])].map((item) => {
+		const type = item.querySelector("[data-question-type]").value;
+		return {
+			id: item.dataset.questionId,
+			label: item.querySelector("[data-question-label]").value.trim(),
+			type,
+			required: item.querySelector("[data-question-required]").checked,
+			options: isChoiceQuestion(type) ? parseQuestionChoices(item.querySelector("[data-question-choices]").value) : [],
+		};
+	});
+};
+
+const openEventEditor = (page, event = null, { focusQuestions = false } = {}) => {
 	const editor = page.querySelector("[data-admin-event-editor]");
 	const form = page.querySelector("[data-admin-event-form]");
 	const title = page.querySelector("[data-admin-event-editor-title]");
 	form.reset();
 	form.elements.event_id.value = event?.id || "";
+	setVolunteerQuestions(page, event?.volunteer_questions);
 	if (title) title.textContent = event ? `Edit ${event.title}` : "Create an event";
 	if (event) {
 		form.elements.title.value = event.title;
@@ -604,6 +814,12 @@ const openEventEditor = (page, event = null) => {
 	}
 	setStatus(page.querySelector("[data-admin-event-status]"));
 	editor.open = true;
+	if (focusQuestions) {
+		const builder = questionBuilder(page);
+		builder.root.scrollIntoView({ behavior: "smooth", block: "start" });
+		(builder.list.querySelector("[data-question-label]") || builder.add).focus({ preventScroll: true });
+		return;
+	}
 	editor.scrollIntoView({ behavior: "smooth", block: "start" });
 	form.elements.title.focus();
 };
@@ -613,6 +829,15 @@ const initializeEventForm = (page, supabase, showTab) => {
 	const editor = page.querySelector("[data-admin-event-editor]");
 	const status = page.querySelector("[data-admin-event-status]");
 	page.querySelector("[data-admin-event-new]")?.addEventListener("click", () => openEventEditor(page));
+	const questions = questionBuilder(page);
+	questions.add?.addEventListener("click", () => {
+		if (questions.list.children.length >= maxVolunteerQuestions) return;
+		const item = createQuestionEditor(page);
+		questions.list.appendChild(item);
+		syncQuestionBuilder(page);
+		item.querySelector("[data-question-label]").focus();
+	});
+	syncQuestionBuilder(page);
 	form.addEventListener("submit", async (event) => {
 		event.preventDefault();
 		const values = new FormData(form);
@@ -633,8 +858,10 @@ const initializeEventForm = (page, supabase, showTab) => {
 				max_participants_per_registration: Number(values.get("max_participants_per_registration")),
 				registration_open: values.has("registration_open"),
 				published: values.has("published"),
+				volunteer_questions: readVolunteerQuestions(page),
 			};
 			if (payload.max_participants_per_registration > payload.capacity) throw new Error("The maximum per registration cannot exceed the event capacity.");
+			if (payload.volunteer_questions.some((question) => !question.label)) throw new Error("Write each volunteer question, or remove the empty one.");
 		} catch (error) {
 			setStatus(status, error.message, "error");
 			return;
@@ -649,6 +876,7 @@ const initializeEventForm = (page, supabase, showTab) => {
 		const wasEdit = Boolean(values.get("event_id"));
 		form.reset();
 		form.elements.event_id.value = "";
+		setVolunteerQuestions(page, []);
 		editor.open = false;
 		toast(wasEdit ? "Event updated." : `${payload.title} was created${payload.published ? " and published" : " as a draft"}.`);
 		await Promise.all([loadEvents(page, supabase, showTab), loadOverview(page, supabase), loadRegistrations(page, supabase), loadVolunteerRequests(page, supabase)]);
@@ -660,6 +888,7 @@ const initializeEventForm = (page, supabase, showTab) => {
 	page.querySelector("[data-admin-event-clear]").addEventListener("click", () => {
 		form.reset();
 		form.elements.event_id.value = "";
+		setVolunteerQuestions(page, []);
 		editor.open = false;
 		setStatus(status);
 	});
@@ -1383,12 +1612,23 @@ const renderVolunteerSignups = (page, supabase, events, requests) => {
 		const signups = summarizeVolunteerSignups(event, requests, now);
 		const item = createElement("li", `pca-admin-signups__item${signups.open ? "" : " is-closed"}`);
 		const details = createElement("div", "pca-admin-signups__event");
+		const questionCount = Array.isArray(event.volunteer_questions) ? event.volunteer_questions.length : 0;
 		details.append(
 			createElement("strong", "", event.title),
-			makeMetaLine([`${eventTimeFormatter.format(new Date(event.starts_at))} ET`, volunteerRequestCountLabel(signups)])
+			makeMetaLine([
+				`${eventTimeFormatter.format(new Date(event.starts_at))} ET`,
+				volunteerRequestCountLabel(signups),
+				questionCount ? `${questionCount} question${questionCount === 1 ? "" : "s"}` : "",
+			])
 		);
+		const editQuestions = createElement("button", "button small", questionCount ? "Edit Questions" : "Add Questions");
+		editQuestions.type = "button";
+		editQuestions.addEventListener("click", () => {
+			workspaceState.showTab("events");
+			openEventEditor(page, event, { focusQuestions: true });
+		});
 		const controls = createElement("div", "pca-admin-signups__controls");
-		controls.append(eventSwitchBadge(event, "volunteers", true), eventSwitchButton(page, supabase, event, "volunteers"));
+		controls.append(eventSwitchBadge(event, "volunteers", true), eventSwitchButton(page, supabase, event, "volunteers"), editQuestions);
 		item.append(details, controls);
 		list.appendChild(item);
 	});
@@ -1400,7 +1640,8 @@ const loadVolunteerRequests = async (page, supabase) => {
 	if (!list) return;
 	const [requestsResult, eventsResult] = await Promise.all([
 		supabase.from("event_volunteer_requests").select("*").order("submitted_at", { ascending: false }),
-		supabase.from("events").select("id,title,starts_at,event_date,published,deleted_at,volunteer_signups_open"),
+		// Full rows, so Edit Questions can open the event editor directly.
+		supabase.from("events").select("*"),
 	]);
 	if (requestsResult.error) throw requestsResult.error;
 	if (eventsResult.error) throw eventsResult.error;
@@ -1436,6 +1677,8 @@ const loadVolunteerRequests = async (page, supabase) => {
 		]));
 		if (request.interests) main.appendChild(createElement("p", "pca-admin-record__note", `Wants to help with: ${request.interests}`));
 		if (request.availability) main.appendChild(createElement("p", "pca-admin-record__note", `Availability: ${request.availability}`));
+		const answers = Array.isArray(request.question_answers) ? request.question_answers : [];
+		if (answers.length) main.appendChild(volunteerAnswerList(answers));
 		if (request.admin_notes) main.appendChild(createElement("p", "pca-admin-record__note", `Note: ${request.admin_notes}`));
 		main.appendChild(makeMetaLine([request.future_event_emails ? "Wants future event emails" : "No future event emails"]));
 
