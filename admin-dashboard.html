@@ -11,7 +11,7 @@
 		<link rel="icon" href="images/icons/pca-icon-192.png" type="image/png" sizes="192x192" />
 		<link rel="apple-touch-icon" href="apple-touch-icon.png" />
 		<link rel="stylesheet" href="assets/css/fontawesome-all.min.css" />
-		<link rel="stylesheet" href="styles.css?v=20260926-trim-admin-copy-v1" />
+		<link rel="stylesheet" href="styles.css?v=20261016-volunteer-questions-v1" />
 	</head>
 		<body>
 		<a class="skip-link" href="#main">Skip to content</a>
@@ -125,6 +125,12 @@
 								<div><input type="checkbox" id="admin-event-published" name="published" /><label for="admin-event-published">Published on the website</label></div>
 							</div>
 							<p class="pca-form-help">Leave both times blank for a date-only listing, such as a past event. Registration needs a start time.</p>
+							<fieldset class="pca-admin-question-builder" data-admin-volunteer-questions>
+								<legend>Volunteer sign-up questions</legend>
+								<ol class="pca-admin-question-list" data-admin-volunteer-question-list></ol>
+								<p class="pca-form-help" data-admin-volunteer-question-empty>No questions. Volunteers see the standard sign-up form.</p>
+								<button type="button" class="button small" data-admin-volunteer-question-add>Add Question</button>
+							</fieldset>
 							<p class="pca-backend-status pca-admin-create-status" data-admin-event-status aria-live="polite"></p>
 							<ul class="actions"><li><button type="submit" class="button primary">Save Event</button></li><li><button type="button" class="button" data-admin-event-clear>Cancel</button></li></ul>
 						</form></details>
@@ -219,6 +225,6 @@
 				</div>
 				<div class="site-footer__bottom"><span>&copy; 2018-2026 PCA Youth Center</span></div>
 			</footer>
-		</div><script src="script.js?v=20260926-trim-admin-copy-v1"></script>
+		</div><script src="script.js?v=20261016-volunteer-questions-v1"></script>
 	</body>
 </html>

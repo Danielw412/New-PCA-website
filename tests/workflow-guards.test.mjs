@@ -195,6 +195,77 @@ test("ending volunteer sign-ups is enforced in the database and reflected in eve
 	assert.match(read("assets/js/modules/events-registration.js"), /event\.volunteer_signups_open === false/);
 });
 
+test("volunteer question answers include every shown question, even blank ones", () => {
+	const questions = [
+		{ id: "badge", type: "short_text" },
+		{ id: "notes", type: "long_text" },
+		{ id: "lift", type: "yes_no" },
+		{ id: "size", type: "single_choice" },
+		{ id: "shifts", type: "multiple_choice" },
+	];
+	const values = new FormData();
+	values.append("volunteer_question_badge", "  Ada  ");
+	values.append("volunteer_question_lift", "Yes");
+	values.append("volunteer_question_shifts", "Setup");
+	values.append("volunteer_question_shifts", "Cleanup");
+	assert.deepEqual(registration.volunteerQuestionAnswers(questions, values), {
+		badge: "Ada",
+		notes: "",
+		lift: "Yes",
+		size: "",
+		shifts: ["Setup", "Cleanup"],
+	});
+	assert.deepEqual(registration.volunteerQuestionAnswers(null, values), {});
+});
+
+test("administrators get plain checks for question choices and readable answers", () => {
+	assert.deepEqual(administration.parseQuestionChoices(" Small \n\nMedium\r\nLarge  \n"), ["Small", "Medium", "Large"]);
+	assert.equal(administration.questionChoicesProblem(["Only"]), "Add at least two choices, one per line.");
+	assert.equal(administration.questionChoicesProblem(["A", "A"]), "Each choice must be different.");
+	assert.equal(administration.questionChoicesProblem(["A", "x".repeat(121)]), "Keep each choice to 120 characters or fewer.");
+	assert.equal(administration.questionChoicesProblem(Array.from({ length: 21 }, (_, index) => `Choice ${index}`)), "Use 20 choices or fewer.");
+	assert.equal(administration.questionChoicesProblem(["Yes", "No"]), "");
+	assert.deepEqual(Object.keys(administration.volunteerQuestionTypeLabels), ["short_text", "long_text", "yes_no", "single_choice", "multiple_choice"]);
+	assert.equal(administration.volunteerAnswerText({ answer: ["Setup", "Cleanup"] }), "Setup, Cleanup");
+	assert.equal(administration.volunteerAnswerText({ answer: "  M " }), "M");
+	assert.equal(administration.volunteerAnswerText({ answer: "" }), "No answer");
+	assert.equal(administration.volunteerAnswerText({ answer: [] }), "No answer");
+});
+
+test("volunteer questions are validated in the database and wired through every surface", () => {
+	const migration = read("supabase/migrations/20261016215757_event_volunteer_questions.sql");
+	assert.match(migration, /create function private\.normalize_event_volunteer_questions\(p_questions jsonb\)[\s\S]*?immutable/);
+	assert.match(migration, /question_type not in \('short_text', 'long_text', 'yes_no', 'single_choice', 'multiple_choice'\)/);
+	assert.match(migration, /add constraint events_volunteer_questions_valid check \(\s+private\.normalize_event_volunteer_questions\(volunteer_questions\) = volunteer_questions/);
+	assert.match(migration, /revoke all on function private\.normalize_event_volunteer_questions\(jsonb\) from public, anon;/);
+	assert.doesNotMatch(migration, /grant [^;]*to[^;]*\banon\b/);
+	// Saving without the key keeps the stored questions, so cached admin pages cannot erase them.
+	assert.match(migration, /if p_event \? 'volunteer_questions' then[\s\S]*?volunteer_questions = coalesce\(event_volunteer_questions, events\.volunteer_questions\)/);
+	assert.match(migration, /private\.save_event[\s\S]*?if not private\.is_site_administrator\(\) then/);
+	assert.match(migration, /select events\.volunteer_signups_open, events\.volunteer_questions\s+into signups_open, event_questions[\s\S]*?for share;/);
+	assert.match(migration, /if not submitted_answers \? \(question ->> 'id'\) then\s+raise exception 'The questions for this event changed\./);
+	assert.match(migration, /question_answers\s+\)\s+values \([\s\S]*?saved_answers\s+\)/);
+
+	const adminHtml = read("admin-dashboard.html");
+	const adminSource = read("assets/js/modules/administration.js");
+	for (const hook of ["data-admin-volunteer-questions", "data-admin-volunteer-question-list", "data-admin-volunteer-question-empty", "data-admin-volunteer-question-add"]) {
+		assert.match(adminHtml, new RegExp(hook));
+		assert.match(adminSource, new RegExp(`\\[${hook}\\]`));
+	}
+	assert.match(adminSource, /volunteer_questions: readVolunteerQuestions\(page\)/);
+	assert.match(adminSource, /request\.question_answers/);
+
+	const volunteerHtml = read("volunteer-apply.html");
+	const volunteerSource = read("assets/js/modules/events-registration.js");
+	assert.match(volunteerHtml, /data-volunteer-questions-section hidden/);
+	assert.match(volunteerHtml, /data-volunteer-questions>/);
+	assert.match(volunteerSource, /\[data-volunteer-questions-section\]/);
+	assert.match(volunteerSource, /\[data-volunteer-questions\]/);
+	assert.match(volunteerSource, /select\("[^"]*volunteer_questions"\)/);
+	assert.match(volunteerSource, /answers: volunteerQuestionAnswers\(questions, values\)/);
+	assert.doesNotMatch(volunteerSource, /\.innerHTML\s*=/);
+});
+
 test("registration view links are hashed, scoped, and carried into confirmation emails", () => {
 	const migration = read("supabase/migrations/20260913023208_registration_view_links_and_admin_queue.sql");
 	assert.match(migration, /create table private\.registration_view_tokens/);
