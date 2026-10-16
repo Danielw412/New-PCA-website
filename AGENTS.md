@@ -12,7 +12,7 @@
 ## Architecture
 
 - Production static HTML/CSS/vanilla JavaScript site hosted by GitHub Pages.
-- Production URL: `https://danielw412.github.io/New-PCA-website/`.
+- Production URL: `https://pcayouthcenter.org/` (custom domain in `CNAME`; `https://danielw412.github.io/New-PCA-website/` redirects there).
 - Supabase project: `PCA-Backend` (`ridpqdrikxpwddczdoks`).
 - Display timezone: `America/New_York`.
 - Main frontend files: `styles.css`, `script.js`, `assets/js/pca-backend.js`, `assets/js/pca-platform.js`, and `assets/js/modules/**`.
@@ -24,7 +24,8 @@
 - Preserve semantic controls, labels, focus behavior, `aria-live`, `hidden`, and responsive behavior at `980px` and `736px`.
 - Render database content with `textContent`/`createElement`, never unsanitized `innerHTML`.
 - Treat HTML `data-*` hooks and their JavaScript consumers as one contract.
-- Use relative links and asset paths because production is hosted under `/New-PCA-website/`.
+- Use relative links and asset paths. Canonical, Open Graph, structured-data, and `sitemap.xml` URLs are absolute `https://pcayouthcenter.org/` URLs.
+- When adding a public page, add it to `sitemap.xml` with matching canonical and social metadata; mark account, admin, and transactional pages `noindex`.
 - When CSS or JavaScript changes, bump its cache version everywhere it is consumed and keep module/backend versions synchronized.
 
 ## Supabase and security rules

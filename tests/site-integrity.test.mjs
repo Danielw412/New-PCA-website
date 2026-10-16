@@ -54,6 +54,29 @@ test("external new-tab links prevent opener access", () => {
   }
 });
 
+test("search metadata keeps the sitemap, canonical URLs, tab icons, and private pages aligned", () => {
+  const siteUrl = "https://pcayouthcenter.org/";
+  const sitemapPages = [...read("sitemap.xml").matchAll(/<loc>https:\/\/pcayouthcenter\.org\/([^<]*)<\/loc>/g)]
+    .map((match) => match[1] || "index.html");
+  assert.ok(sitemapPages.includes("index.html"), "sitemap.xml: missing home page");
+  assert.match(read("robots.txt"), /^Sitemap: https:\/\/pcayouthcenter\.org\/sitemap\.xml$/m);
+
+  for (const file of primaryHtmlFiles) {
+    const html = read(file);
+    assert.match(html, /<link rel="icon" href="favicon\.ico"/, `${file}: missing tab icon`);
+    const noindex = html.includes('<meta name="robots" content="noindex" />');
+    if (sitemapPages.includes(file)) {
+      const url = siteUrl + (file === "index.html" ? "" : file);
+      assert.ok(!noindex, `${file}: listed in sitemap.xml but marked noindex`);
+      assert.ok(html.includes(`<link rel="canonical" href="${url}" />`), `${file}: canonical URL must be ${url}`);
+      assert.ok(html.includes(`<meta property="og:url" content="${url}" />`), `${file}: og:url must be ${url}`);
+    } else if (file !== "post.html") {
+      // post.html sets its canonical URL per article in assets/js/modules/blog.js.
+      assert.ok(noindex, `${file}: add it to sitemap.xml or mark it noindex`);
+    }
+  }
+});
+
 test("changed first-party assets share one cache version", () => {
   assert.match(read("script.js"), new RegExp(`ASSET_VERSION = "${assetVersion}"`));
   assert.doesNotMatch(read("assets/js/pca-platform.js"), /\?v=(?!20260926-trim-admin-copy-v1)/);
