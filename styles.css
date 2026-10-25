@@ -7216,3 +7216,20 @@ td.pca-admin-row-actions .button + .button {
 		flex: 1 1 auto;
 	}
 }
+
+/* Volunteer-only events: admin badge, its switch under the registration
+   switch, and the registration checkbox it turns off */
+
+.pca-status-badge.is-volunteer-only {
+	background: var(--pca-red-soft);
+	color: var(--pca-red-800);
+}
+
+.pca-admin-switch-cell .button + .button {
+	margin-top: 0.45rem;
+}
+
+.pca-admin-event-options input[type="checkbox"]:disabled + label {
+	cursor: not-allowed;
+	opacity: 0.55;
+}

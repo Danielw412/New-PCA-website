@@ -11,7 +11,7 @@
 		<link rel="icon" href="images/icons/pca-icon-192.png" type="image/png" sizes="192x192" />
 		<link rel="apple-touch-icon" href="apple-touch-icon.png" />
 		<link rel="stylesheet" href="assets/css/fontawesome-all.min.css" />
-		<link rel="stylesheet" href="styles.css?v=20261016-volunteer-questions-v1" />
+		<link rel="stylesheet" href="styles.css?v=20261024-volunteer-only-events-v1" />
 	</head>
 		<body>
 		<a class="skip-link" href="#main">Skip to content</a>
@@ -117,10 +117,11 @@
 								<div class="field pca-field-wide"><label for="admin-event-location">Location</label><input type="text" id="admin-event-location" name="location" maxlength="240" /></div>
 								<div class="field"><label for="admin-event-start">Starts</label><input type="datetime-local" id="admin-event-start" name="starts_at" /></div>
 								<div class="field"><label for="admin-event-end">Ends</label><input type="datetime-local" id="admin-event-end" name="ends_at" /></div>
-								<div class="field"><label for="admin-event-capacity">Attendee capacity</label><input type="number" id="admin-event-capacity" name="capacity" min="1" step="1" value="50" required /></div>
-								<div class="field"><label for="admin-event-group-limit">Maximum attendees per registration</label><input type="number" id="admin-event-group-limit" name="max_participants_per_registration" min="1" step="1" value="6" required /></div>
+								<div class="field" data-admin-event-attendee-field><label for="admin-event-capacity">Attendee capacity</label><input type="number" id="admin-event-capacity" name="capacity" min="1" step="1" value="50" required /></div>
+								<div class="field" data-admin-event-attendee-field><label for="admin-event-group-limit">Maximum attendees per registration</label><input type="number" id="admin-event-group-limit" name="max_participants_per_registration" min="1" step="1" value="6" required /></div>
 							</div>
 							<div class="pca-admin-event-options">
+								<div><input type="checkbox" id="admin-event-volunteer-only" name="volunteer_only" /><label for="admin-event-volunteer-only">Volunteer-only event (no household registration)</label></div>
 								<div><input type="checkbox" id="admin-event-registration-open" name="registration_open" checked /><label for="admin-event-registration-open">Household registration open</label></div>
 								<div><input type="checkbox" id="admin-event-published" name="published" /><label for="admin-event-published">Published on the website</label></div>
 							</div>
@@ -225,6 +226,6 @@
 				</div>
 				<div class="site-footer__bottom"><span>&copy; 2018-2026 PCA Youth Center</span></div>
 			</footer>
-		</div><script src="script.js?v=20261016-volunteer-questions-v1"></script>
+		</div><script src="script.js?v=20261024-volunteer-only-events-v1"></script>
 	</body>
 </html>
