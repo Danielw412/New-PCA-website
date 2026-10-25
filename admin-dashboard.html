@@ -11,7 +11,7 @@
 		<link rel="icon" href="images/icons/pca-icon-192.png" type="image/png" sizes="192x192" />
 		<link rel="apple-touch-icon" href="apple-touch-icon.png" />
 		<link rel="stylesheet" href="assets/css/fontawesome-all.min.css" />
-		<link rel="stylesheet" href="styles.css?v=20261024-volunteer-only-events-v1" />
+		<link rel="stylesheet" href="styles.css?v=20261024-rich-text-formatting-v1" />
 	</head>
 		<body>
 		<a class="skip-link" href="#main">Skip to content</a>
@@ -112,7 +112,7 @@
 						<details class="pca-admin-create-panel" data-admin-event-editor><summary><span data-admin-event-editor-title>Create an event</span><small>Dates and times are Eastern Time</small></summary><form data-admin-event-form><input type="hidden" name="event_id" />
 							<div class="pca-admin-event-fields">
 								<div class="field pca-field-wide"><label for="admin-event-title">Event title</label><input type="text" id="admin-event-title" name="title" maxlength="160" required /></div>
-								<div class="field pca-field-wide"><label for="admin-event-description">Description</label><textarea id="admin-event-description" name="description" rows="3" maxlength="5000"></textarea></div>
+								<div class="field pca-field-wide"><label for="admin-event-description">Description</label><textarea id="admin-event-description" name="description" rows="8" maxlength="5000"></textarea></div>
 								<div class="field"><label for="admin-event-date">Event date</label><input type="date" id="admin-event-date" name="event_date" required /></div>
 								<div class="field pca-field-wide"><label for="admin-event-location">Location</label><input type="text" id="admin-event-location" name="location" maxlength="240" /></div>
 								<div class="field"><label for="admin-event-start">Starts</label><input type="datetime-local" id="admin-event-start" name="starts_at" /></div>
@@ -179,7 +179,7 @@
 
 					<section id="admin-panel-volunteers" class="pca-admin-workspace-panel" role="tabpanel" aria-labelledby="admin-tab-volunteers" data-admin-panel="volunteers" hidden>
 						<div class="pca-admin-panel-heading"><div><h2>Assignments &amp; Hours</h2></div></div>
-						<details class="pca-admin-create-panel"><summary><span>Create an assignment</span><small>Only approved Volunteer Accounts appear here</small></summary><form data-admin-volunteer-assignment-form><div class="fields"><div class="field half"><label for="admin-volunteer-user">Volunteer</label><select id="admin-volunteer-user" name="teen_member_user_id" required><option value="">Choose a volunteer</option></select></div><div class="field half"><label for="admin-volunteer-event">Event</label><select id="admin-volunteer-event" name="event_id" required><option value="">Choose an event</option></select></div><div class="field"><label for="admin-volunteer-role">Role</label><input id="admin-volunteer-role" name="role_title" type="text" maxlength="160" required /></div><div class="field"><label for="admin-volunteer-instructions">Instructions</label><textarea id="admin-volunteer-instructions" name="instructions" rows="3" maxlength="4000"></textarea></div></div><ul class="actions"><li><button type="submit" class="button primary">Create Assignment</button></li></ul><p class="pca-backend-status" data-admin-volunteer-assignment-status aria-live="polite"></p></form></details>
+						<details class="pca-admin-create-panel"><summary><span>Create an assignment</span><small>Only approved Volunteer Accounts appear here</small></summary><form data-admin-volunteer-assignment-form><div class="fields"><div class="field half"><label for="admin-volunteer-user">Volunteer</label><select id="admin-volunteer-user" name="teen_member_user_id" required><option value="">Choose a volunteer</option></select></div><div class="field half"><label for="admin-volunteer-event">Event</label><select id="admin-volunteer-event" name="event_id" required><option value="">Choose an event</option></select></div><div class="field"><label for="admin-volunteer-role">Role</label><input id="admin-volunteer-role" name="role_title" type="text" maxlength="160" required /></div><div class="field"><label for="admin-volunteer-instructions">Instructions</label><textarea id="admin-volunteer-instructions" name="instructions" rows="5" maxlength="4000"></textarea></div></div><ul class="actions"><li><button type="submit" class="button primary">Create Assignment</button></li></ul><p class="pca-backend-status" data-admin-volunteer-assignment-status aria-live="polite"></p></form></details>
 						<h3>Assignments</h3>
 						<div class="table-wrapper"><table><thead><tr><th>Volunteer</th><th>Event</th><th>Role</th><th>Status</th></tr></thead><tbody data-admin-volunteer-assignments-body></tbody></table></div>
 						<h3>Submitted hours</h3>
@@ -226,6 +226,6 @@
 				</div>
 				<div class="site-footer__bottom"><span>&copy; 2018-2026 PCA Youth Center</span></div>
 			</footer>
-		</div><script src="script.js?v=20261024-volunteer-only-events-v1"></script>
+		</div><script src="script.js?v=20261024-rich-text-formatting-v1"></script>
 	</body>
 </html>

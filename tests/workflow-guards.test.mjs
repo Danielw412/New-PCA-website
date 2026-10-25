@@ -11,6 +11,7 @@ const registration = await import("../assets/js/modules/events-registration.js")
 const administration = await import("../assets/js/modules/administration.js");
 const accounts = await import("../assets/js/modules/accounts.js");
 const emailTypoGuard = await import("../assets/js/modules/email-typo-guard.js");
+const richText = await import("../assets/js/modules/rich-text.js");
 
 test("registration referral details never leak a stale Other value", () => {
 	assert.equal(registration.registrationReferralDetails("other", "  Community fair  "), "Community fair");
@@ -334,6 +335,120 @@ test("volunteer-only events are enforced in the database and wired through every
 	const backend = read("assets/js/pca-backend.js");
 	assert.match(backend, /event_catalog[\s\S]*?volunteer_signups_available,volunteer_only"/);
 	assert.match(backend, /if \(volunteerOnly\) \{\s+actions\.appendChild\(volunteerAction\(true\)\);/);
+});
+
+// Reduces parsed blocks to readable strings: "p:" lines joined by " / ",
+// "ul:"/"ol:" items joined by " | ", with **, *, and [text](href) marks.
+const describeRichText = (text) => richText.parseRichText(text).map((block) => {
+	const inline = (nodes) => nodes.map((node) => {
+		if (node.type === "text") return node.text;
+		if (node.type === "link") return `[${node.text}](${node.href})`;
+		const mark = node.type === "strong" ? "**" : "*";
+		return `${mark}${inline(node.children)}${mark}`;
+	}).join("");
+	const lines = (blockLines) => blockLines.map(inline).join(" / ");
+	if (block.type === "paragraph") return `p: ${lines(block.lines)}`;
+	return `${block.ordered ? `ol(${block.start})` : "ul"}: ${block.items.map(lines).join(" | ")}`;
+});
+
+test("event descriptions keep their paragraphs, line breaks, lists, and links", () => {
+	// The current Ronald McDonald House description, shortened.
+	assert.deepEqual(describeRichText([
+		"PCA Youth Center will help Ronald McDonald House Pittsburgh. Only ONE person from each group needs to sign up.",
+		"",
+		"See this document for decoration requirements: https://ronaldmcdonaldhousepghmgtn.org/wp-content/uploads/Pittsburgh-Door-Decor.pdf",
+		"See this link for decoration examples: https://drive.google.com/file/d/1WnNxLRkNUaFovlh6-tzOvrnZyjZk_fCC/view?usp=drivesdk",
+		"",
+		"Each group will prepare the decorations on their own.",
+	].join("\n")), [
+		"p: PCA Youth Center will help Ronald McDonald House Pittsburgh. Only ONE person from each group needs to sign up.",
+		"p: See this document for decoration requirements: [https://ronaldmcdonaldhousepghmgtn.org/wp-content/uploads/Pittsburgh-Door-Decor.pdf](https://ronaldmcdonaldhousepghmgtn.org/wp-content/uploads/Pittsburgh-Door-Decor.pdf) / See this link for decoration examples: [https://drive.google.com/file/d/1WnNxLRkNUaFovlh6-tzOvrnZyjZk_fCC/view?usp=drivesdk](https://drive.google.com/file/d/1WnNxLRkNUaFovlh6-tzOvrnZyjZk_fCC/view?usp=drivesdk)",
+		"p: Each group will prepare the decorations on their own.",
+	]);
+	assert.deepEqual(describeRichText("age: at least 16\r\ndetails TBC"), ["p: age: at least 16 / details TBC"]);
+
+	// The archived career talk writes list items with blank lines between them.
+	assert.deepEqual(describeRichText([
+		"Speaker Lineup:",
+		"- Lead Policy Officer at World Bank:",
+		"Yuan Tao - Saturday, January 13th, 2024",
+		"",
+		"- Clinical Pharmacist:",
+		"Helen Feinstein - Saturday, January 20th",
+		"",
+		"Time: 5:00 PM - 7:00 PM",
+		"Location: Zoom meeting",
+	].join("\n")), [
+		"p: Speaker Lineup:",
+		"ul: Lead Policy Officer at World Bank: / Yuan Tao - Saturday, January 13th, 2024 | Clinical Pharmacist: / Helen Feinstein - Saturday, January 20th",
+		"p: Time: 5:00 PM - 7:00 PM / Location: Zoom meeting",
+	]);
+	assert.deepEqual(describeRichText("3. Arrive\n4) Check in\n\nDates: 10/21/23, 5/18/24"), ["ol(3): Arrive | Check in", "p: Dates: 10/21/23, 5/18/24"]);
+	// A lone dash line is a blog sign-off, not a one-item list.
+	assert.deepEqual(describeRichText("- PCA Student Council"), ["p: - PCA Student Council"]);
+	assert.deepEqual(describeRichText("* Bring water"), ["ul: Bring water"]);
+});
+
+test("rich text emphasis and links stay literal unless they are complete and safe", () => {
+	assert.deepEqual(describeRichText("**Bring** *gloves* and ***water***, not 5 * 3 or **unclosed"), ["p: **Bring** *gloves* and ***water***, not 5 * 3 or **unclosed"]);
+	const [paragraph] = richText.parseRichText("**Bring** ***water***");
+	assert.deepEqual(paragraph.lines[0][2], { type: "strong", children: [{ type: "em", children: [{ type: "text", text: "water" }] }] });
+	assert.deepEqual(describeRichText("Read [the guide](https://example.org/a_b_c). Email pcayouthcenter@gmail.com."), [
+		"p: Read [the guide](https://example.org/a_b_c). Email [pcayouthcenter@gmail.com](mailto:pcayouthcenter@gmail.com).",
+	]);
+	assert.deepEqual(describeRichText("(See https://en.wikipedia.org/wiki/Lantern_(festival)), then https://example.org."), [
+		"p: (See [https://en.wikipedia.org/wiki/Lantern_(festival)](https://en.wikipedia.org/wiki/Lantern_(festival))), then [https://example.org](https://example.org/).",
+	]);
+	assert.deepEqual(describeRichText("[click](javascript:alert(1)) <img src=x onerror=alert(1)>"), ["p: [click](javascript:alert(1)) <img src=x onerror=alert(1)>"]);
+
+	const source = read("assets/js/modules/rich-text.js");
+	assert.doesNotMatch(source, /innerHTML|insertAdjacentHTML|outerHTML/);
+	// Safari before 16.4 cannot parse lookbehind, which would break every importing page.
+	assert.doesNotMatch(source, /\(\?<[=!]/);
+	assert.match(source, /link\.rel = "noopener noreferrer";/);
+});
+
+test("the formatting toolbar wraps, unwraps, and lists the selected text", () => {
+	const run = (command, value, start, end = start) => richText.applyRichTextCommand(command, value, start, end);
+	assert.deepEqual(run("bold", "Bring water", 6, 11), { value: "Bring **water**", selectionStart: 8, selectionEnd: 13 });
+	assert.deepEqual(run("bold", "Bring **water**", 8, 13), { value: "Bring water", selectionStart: 6, selectionEnd: 11 });
+	assert.deepEqual(run("bold", "Bring **water**", 6, 15), { value: "Bring water", selectionStart: 6, selectionEnd: 11 });
+	assert.deepEqual(run("italic", "Bring **water**", 8, 13), { value: "Bring ***water***", selectionStart: 9, selectionEnd: 14 });
+	assert.deepEqual(run("italic", "Bring ***water***", 9, 14), { value: "Bring **water**", selectionStart: 8, selectionEnd: 13 });
+	assert.deepEqual(run("bold", "", 0), { value: "**bold text**", selectionStart: 2, selectionEnd: 11 });
+	assert.deepEqual(run("bullets", "Gloves\nWater\n\nSnacks", 0, 20), { value: "- Gloves\n- Water\n\n- Snacks", selectionStart: 0, selectionEnd: 26 });
+	assert.deepEqual(run("bullets", "- Gloves\n- Water", 0, 16), { value: "Gloves\nWater", selectionStart: 0, selectionEnd: 12 });
+	assert.deepEqual(run("numbers", "- Gloves\n- Water", 0, 16), { value: "1. Gloves\n2. Water", selectionStart: 0, selectionEnd: 18 });
+	assert.deepEqual(run("bullets", "Bring:\n", 7), { value: "Bring:\n- ", selectionStart: 9, selectionEnd: 9 });
+	assert.deepEqual(run("link", "Read the guide", 9, 14), { value: "Read the [guide](https://)", selectionStart: 17, selectionEnd: 25 });
+	assert.deepEqual(run("link", "Go https://example.org", 3, 22), { value: "Go [link text](https://example.org)", selectionStart: 4, selectionEnd: 13 });
+});
+
+test("long-text editors and every description surface share the formatter", () => {
+	const version = read("script.js").match(/ASSET_VERSION = "([^"]+)"/)[1];
+	const backend = read("assets/js/pca-backend.js");
+	assert.match(backend, new RegExp(`import\\("\\./modules/rich-text\\.js\\?v=${version}"\\)`));
+	assert.doesNotMatch(backend, /createElement\("p", "", event\.description\)/);
+	assert.equal(backend.match(/createEventDescription\(event\.description\)/g)?.length, 2);
+	assert.match(backend, /Promise\.all\(\[loadPublicEvents\("upcoming"\), loadRichText\(\)\]\)/);
+	assert.match(backend, /Promise\.all\(\[loadPublicEvents\("past"\), loadRichText\(\)\]\)/);
+
+	const adminSource = read("assets/js/modules/administration.js");
+	assert.match(adminSource, /installRichTextEditor\(form\.elements\.description\)/);
+	assert.match(adminSource, /installRichTextEditor\(form\.elements\.instructions\)/);
+	assert.match(adminSource, /createRichText\(assignment\.instructions, "div", "pca-table-subtext"\)/);
+	assert.match(read("assets/js/modules/accounts.js"), /createRichText\(assignment\.instructions\)/);
+
+	const blogSource = read("assets/js/modules/blog.js");
+	assert.match(blogSource, /block\.type === "paragraph"\) \{\s+renderRichText\(container, block\.text\);/);
+	assert.match(blogSource, /createRichText\(block\.text, "blockquote"\)/);
+	assert.match(blogSource, /installRichTextEditor\(content\);/);
+	assert.match(blogSource, /richTextEditor\.setEnabled\(type\.value !== "heading"\)/);
+
+	for (const file of ["assets/js/modules/accounts.js", "assets/js/modules/administration.js", "assets/js/modules/blog.js"]) {
+		assert.match(read(file), new RegExp(`from "\\./rich-text\\.js\\?v=${version}"`), `${file}: stale rich-text version`);
+	}
+	assert.match(read("package.json"), /node --check assets\/js\/modules\/rich-text\.js/);
 });
 
 test("registration view links are hashed, scoped, and carried into confirmation emails", () => {

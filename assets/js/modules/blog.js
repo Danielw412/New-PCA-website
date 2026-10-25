@@ -7,11 +7,12 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20261024-volunteer-only-events-v1";
+} from "./core-auth.js?v=20261024-rich-text-formatting-v1";
+import { createRichText, installRichTextEditor, renderRichText } from "./rich-text.js?v=20261024-rich-text-formatting-v1";
 let importedPostsPromise;
 
 const loadImportedPosts = async () => {
-	importedPostsPromise ||= import("./blog-seed.js?v=20261024-volunteer-only-events-v1").then(({ importedPosts }) => importedPosts);
+	importedPostsPromise ||= import("./blog-seed.js?v=20261024-rich-text-formatting-v1").then(({ importedPosts }) => importedPosts);
 	return importedPostsPromise;
 };
 
@@ -68,9 +69,9 @@ const renderStructuredContent = (container, blocks, supabase) => {
 		if (block.type === "heading") {
 			container.appendChild(createElement(block.level === 3 ? "h3" : "h2", "", block.text));
 		} else if (block.type === "paragraph") {
-			container.appendChild(createElement("p", "", block.text));
+			renderRichText(container, block.text);
 		} else if (block.type === "quote") {
-			container.appendChild(createElement("blockquote", "", block.text));
+			container.appendChild(createRichText(block.text, "blockquote"));
 		} else if (block.type === "image") {
 			const figure = createElement("figure", "pca-blog-inline-image");
 			const image = createElement("img");
@@ -275,6 +276,7 @@ const createEditorBlock = (block = { type: "paragraph", text: "" }, supabase) =>
 		contentField.append(content, preview, createElement("p", "pca-form-help", "This image is managed by the uploader. Add a useful description below."));
 	} else {
 		contentField.append(contentLabel, content);
+		installRichTextEditor(content);
 	}
 	const altField = createElement("div", "field");
 	const altLabel = createElement("label", "", "Image description");
@@ -318,7 +320,10 @@ const createEditorBlock = (block = { type: "paragraph", text: "" }, supabase) =>
 	const sync = () => {
 		altField.hidden = type.value !== "image";
 		contentLabel.textContent = type.value === "heading" ? "Heading text" : type.value === "quote" ? "Quote text" : "Paragraph text";
-		if (!isImage) content.maxLength = type.value === "heading" ? 180 : 5000;
+		if (!isImage) {
+			content.maxLength = type.value === "heading" ? 180 : 5000;
+			content.richTextEditor.setEnabled(type.value !== "heading");
+		}
 	};
 	type.addEventListener("change", sync);
 	sync();

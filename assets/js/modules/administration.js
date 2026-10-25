@@ -7,8 +7,9 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20261024-volunteer-only-events-v1";
-import { referralLabels } from "./events-registration.js?v=20261024-volunteer-only-events-v1";
+} from "./core-auth.js?v=20261024-rich-text-formatting-v1";
+import { referralLabels } from "./events-registration.js?v=20261024-rich-text-formatting-v1";
+import { createRichText, installRichTextEditor } from "./rich-text.js?v=20261024-rich-text-formatting-v1";
 
 const timeZonePartsFormatter = new Intl.DateTimeFormat("en-CA", {
 	timeZone: "America/New_York",
@@ -900,6 +901,7 @@ const openEventEditor = (page, event = null, { focusQuestions = false } = {}) =>
 		form.elements.published.checked = event.published;
 		form.elements.volunteer_only.checked = event.volunteer_only === true;
 	}
+	form.elements.description.richTextEditor?.refresh();
 	syncVolunteerOnlyFields(form);
 	setStatus(page.querySelector("[data-admin-event-status]"));
 	editor.open = true;
@@ -918,6 +920,7 @@ const initializeEventForm = (page, supabase, showTab) => {
 	const editor = page.querySelector("[data-admin-event-editor]");
 	const status = page.querySelector("[data-admin-event-status]");
 	page.querySelector("[data-admin-event-new]")?.addEventListener("click", () => openEventEditor(page));
+	installRichTextEditor(form.elements.description);
 	const questions = questionBuilder(page);
 	questions.add?.addEventListener("click", () => {
 		if (questions.list.children.length >= maxVolunteerQuestions) return;
@@ -1850,6 +1853,7 @@ const loadVolunteerManagement = async (page, supabase) => {
 	});
 	if (!form.dataset.bound) {
 		form.dataset.bound = "true";
+		installRichTextEditor(form.elements.instructions);
 		form.addEventListener("submit", async (event) => {
 			event.preventDefault();
 			const values = new FormData(form);
@@ -1886,7 +1890,7 @@ const loadVolunteerManagement = async (page, supabase) => {
 		});
 		statusCell.appendChild(statusSelect);
 		const roleCell = tableCell(assignment.role_title);
-		if (assignment.instructions) roleCell.appendChild(createElement("span", "pca-table-subtext", assignment.instructions));
+		if (assignment.instructions) roleCell.appendChild(createRichText(assignment.instructions, "div", "pca-table-subtext"));
 		row.append(tableCell(profiles.get(assignment.teen_member_user_id)?.full_name), tableCell(events.get(assignment.event_id)?.title), roleCell, statusCell);
 		assignmentBody.appendChild(row);
 	});

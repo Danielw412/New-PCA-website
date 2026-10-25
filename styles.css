@@ -7233,3 +7233,127 @@ td.pca-admin-row-actions .button + .button {
 	cursor: not-allowed;
 	opacity: 0.55;
 }
+
+/* Formatted long text: event descriptions, volunteer instructions, blog
+   sections, and the editor toolbar and preview that produce them */
+
+.pca-rich-text > p,
+.pca-rich-text > ul,
+.pca-rich-text > ol {
+	margin: 0 0 0.85em;
+}
+
+.pca-rich-text > :last-child {
+	margin-bottom: 0;
+}
+
+.pca-rich-text ul,
+.pca-rich-text ol,
+.pca-blog-content ul,
+.pca-blog-content ol {
+	padding-left: 1.4em;
+}
+
+.pca-rich-text li + li,
+.pca-blog-content li + li {
+	margin-top: 0.3em;
+}
+
+.pca-rich-text li::marker,
+.pca-blog-content li::marker {
+	color: var(--pca-red-700);
+}
+
+/* Shared links such as Google Drive files are long single words. */
+.pca-rich-text a,
+.pca-blog-content a {
+	overflow-wrap: anywhere;
+}
+
+.pca-event-description {
+	margin-bottom: 1rem;
+}
+
+.pca-event-description.is-plain {
+	white-space: pre-line;
+}
+
+.pca-rich-editor__toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.25rem;
+	padding: 0.3rem;
+	border: 1px solid #d8ccc7;
+	border-bottom: 0;
+	border-radius: var(--pca-radius-sm) var(--pca-radius-sm) 0 0;
+	background: var(--pca-soft);
+}
+
+.pca-rich-editor__toolbar:not([hidden]) + textarea {
+	border-top-left-radius: 0;
+	border-top-right-radius: 0;
+}
+
+.pca-rich-editor__button {
+	min-width: 2.25rem;
+	min-height: 2.25rem;
+	padding: 0.3rem 0.65rem;
+	border: 1px solid transparent;
+	border-radius: 4px;
+	background: transparent;
+	color: var(--pca-ink);
+	font-size: 0.85rem;
+	font-weight: 700;
+	line-height: 1;
+}
+
+.pca-rich-editor__button:hover {
+	border-color: var(--pca-line);
+	background: var(--pca-surface);
+	color: var(--pca-red-800);
+}
+
+.pca-rich-editor__button.is-bold,
+.pca-rich-editor__button.is-italic {
+	font-family: var(--pca-font-serif);
+	font-size: 1rem;
+}
+
+.pca-rich-editor__button.is-bold {
+	font-weight: 900;
+}
+
+.pca-rich-editor__button.is-italic {
+	font-style: italic;
+}
+
+.pca-rich-editor__preview-toggle {
+	margin-left: auto;
+}
+
+.pca-rich-editor__preview-toggle[aria-pressed="true"] {
+	border-color: var(--pca-red-700);
+	background: var(--pca-red-700);
+	color: #fff;
+}
+
+.pca-rich-editor__preview {
+	max-height: 26rem;
+	margin-top: 0.6rem;
+	padding: 0.9rem 1rem;
+	overflow-y: auto;
+	border: 1px dashed #d8ccc7;
+	border-radius: var(--pca-radius-sm);
+	background: var(--pca-surface);
+}
+
+.pca-rich-editor__empty {
+	font-style: italic;
+}
+
+@media screen and (max-width: 736px) {
+	.pca-rich-editor__button {
+		min-height: 2.75rem;
+	}
+}
