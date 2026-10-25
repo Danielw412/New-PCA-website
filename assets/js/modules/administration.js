@@ -7,8 +7,8 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20261016-volunteer-questions-v1";
-import { referralLabels } from "./events-registration.js?v=20261016-volunteer-questions-v1";
+} from "./core-auth.js?v=20261024-volunteer-only-events-v1";
+import { referralLabels } from "./events-registration.js?v=20261024-volunteer-only-events-v1";
 
 const timeZonePartsFormatter = new Intl.DateTimeFormat("en-CA", {
 	timeZone: "America/New_York",
@@ -198,6 +198,21 @@ export const summarizeVolunteerSignups = (event, requests, now = new Date()) => 
 export const volunteerRequestCountLabel = ({ pending, approved }) => {
 	const parts = [approved ? `${approved} approved` : "", pending ? `${pending} to review` : ""].filter(Boolean);
 	return parts.length ? parts.join(", ") : "No requests yet";
+};
+
+// Volunteer-only can be switched on or off until the event is over, matching
+// when event_catalog stops calling it upcoming or in progress.
+export const volunteerOnlySwitchAvailable = (event, now = new Date()) => !event.deleted_at && (event.ends_at
+	? new Date(event.ends_at) >= now
+	: Boolean(event.event_date) && event.event_date > easternCalendarDateFormatter.format(now));
+
+export const volunteerOnlyConfirmMessage = (summary) => {
+	const kept = Number(summary?.confirmedGroups || 0) + Number(summary?.waitlistedGroups || 0);
+	return [
+		"Household registration closes and the Register button comes off the event listing, so only volunteers can sign up.",
+		kept === 1 ? "The 1 household already registered keeps its place." : kept ? `The ${kept} households already registered keep their place.` : "",
+		"Volunteer sign-ups and questions stay as they are. You can undo this at any time.",
+	].filter(Boolean).join(" ");
 };
 
 // --- Shared feedback: a modal confirm and a toast region -------------------
@@ -491,13 +506,75 @@ const eventSwitchButton = (page, supabase, event, kind) => {
 	return button;
 };
 
-// Badge, a short detail line, then the switch, stacked in one table cell.
-const eventSwitchCell = (page, supabase, event, kind, ...details) => {
+// Badge, a short detail line, then any switches, stacked in one table cell.
+const stackedSwitchCell = (badge, details, ...buttons) => {
 	const cell = createElement("td", "pca-admin-switch-cell");
 	const detail = createElement("div", "pca-admin-switch-cell__detail");
 	detail.append(...details);
-	cell.append(eventSwitchBadge(event, kind), detail, eventSwitchButton(page, supabase, event, kind));
+	cell.append(...[badge, detail, ...buttons].filter(Boolean));
 	return cell;
+};
+
+const eventSwitchCell = (page, supabase, event, kind, ...details) => (
+	stackedSwitchCell(eventSwitchBadge(event, kind), details, eventSwitchButton(page, supabase, event, kind))
+);
+
+const volunteerOnlyBadge = () => createElement("span", "pca-status-badge is-volunteer-only", "Volunteer-only");
+
+// Volunteer-only events have no household registration, so the registration
+// checkbox and attendee limits step aside while the box is checked. The
+// limits are still saved, so a hidden one that is invalid gets its default
+// back instead of blocking the form with an error nobody can see.
+const syncVolunteerOnlyFields = (form) => {
+	const volunteerOnly = form.elements.volunteer_only.checked;
+	const registration = form.elements.registration_open;
+	if (volunteerOnly) registration.checked = false;
+	registration.disabled = volunteerOnly;
+	form.querySelectorAll("[data-admin-event-attendee-field]").forEach((field) => {
+		field.hidden = volunteerOnly;
+		const input = field.querySelector("input");
+		if (volunteerOnly && input && !input.checkValidity()) input.value = input.defaultValue;
+	});
+};
+
+// Making an event volunteer-only asks first, because it closes registration.
+// Undoing it applies immediately and leaves registration closed until an
+// administrator reopens it.
+const volunteerOnlyButton = (page, supabase, event, summary) => {
+	const on = event.volunteer_only === true;
+	const button = createElement("button", "button small pca-admin-switch-button");
+	button.type = "button";
+	button.dataset.adminVolunteerOnly = event.id;
+	const setLabel = (text) => button.replaceChildren(text, createElement("span", "pca-visually-hidden", ` for ${event.title}`));
+	setLabel(on ? "Remove Volunteer-Only" : "Make Volunteer-Only");
+	button.addEventListener("click", async () => {
+		if (!on && !(await confirmDialog({
+			title: `Make "${event.title}" volunteer-only?`,
+			message: volunteerOnlyConfirmMessage(summary),
+			confirmLabel: "Make volunteer-only",
+			cancelLabel: "Keep as is",
+		}))) return;
+		button.disabled = true;
+		setLabel("Saving...");
+		const { error } = await supabase.rpc("set_event_volunteer_only", { p_event_id: event.id, p_volunteer_only: !on });
+		if (error) {
+			button.disabled = false;
+			setLabel(on ? "Remove Volunteer-Only" : "Make Volunteer-Only");
+			toast(friendlyError(error, "The event could not be updated."), "error");
+			return;
+		}
+		const editor = page.querySelector("[data-admin-event-form]");
+		if (editor?.elements.event_id.value === event.id) {
+			editor.elements.volunteer_only.checked = !on;
+			syncVolunteerOnlyFields(editor);
+		}
+		toast(on
+			? `${event.title} is no longer volunteer-only. Household registration stays closed until you reopen it.`
+			: `${event.title} is now volunteer-only.`);
+		await Promise.all([loadEvents(page, supabase, workspaceState.showTab), loadRegistrations(page, supabase), loadVolunteerRequests(page, supabase), loadOverview(page, supabase)]);
+		page.querySelector(`[data-admin-volunteer-only="${event.id}"]`)?.focus();
+	});
+	return button;
 };
 
 const loadEvents = async (page, supabase, showTab) => {
@@ -529,12 +606,22 @@ const loadEvents = async (page, supabase, showTab) => {
 			});
 			registeredDetails.push(open);
 			if (summary.waitlistedGroups) registeredDetails.push(createElement("span", "pca-table-subtext", `${summary.waitlistedGroups} group${summary.waitlistedGroups === 1 ? "" : "s"} waiting`));
+		} else if (event.volunteer_only) {
+			registeredDetails.push(createElement("span", "pca-table-subtext", "No household registration"));
 		} else if (switchable) {
 			registeredDetails.push(createElement("span", "pca-table-subtext", "No registrations yet"));
 		}
+		// The volunteer-only switch sits under the registration switch it overrides.
+		const volunteerOnlySwitch = volunteerOnlySwitchAvailable(event) ? volunteerOnlyButton(page, supabase, event, summary) : null;
 		let registeredCell;
-		if (switchable) {
+		if (event.volunteer_only) {
+			// Groups that registered before the switch still show, and link to the roster.
+			registeredCell = stackedSwitchCell(volunteerOnlyBadge(), registeredDetails, volunteerOnlySwitch);
+		} else if (switchable) {
 			registeredCell = eventSwitchCell(page, supabase, event, "registration", ...registeredDetails);
+			if (volunteerOnlySwitch) registeredCell.append(volunteerOnlySwitch);
+		} else if (volunteerOnlySwitch) {
+			registeredCell = stackedSwitchCell(null, registeredDetails, volunteerOnlySwitch);
 		} else {
 			registeredCell = createElement("td");
 			if (registeredDetails.length) registeredCell.append(...registeredDetails);
@@ -811,7 +898,9 @@ const openEventEditor = (page, event = null, { focusQuestions = false } = {}) =>
 		form.elements.max_participants_per_registration.value = event.max_participants_per_registration;
 		form.elements.registration_open.checked = event.registration_open;
 		form.elements.published.checked = event.published;
+		form.elements.volunteer_only.checked = event.volunteer_only === true;
 	}
+	syncVolunteerOnlyFields(form);
 	setStatus(page.querySelector("[data-admin-event-status]"));
 	editor.open = true;
 	if (focusQuestions) {
@@ -838,6 +927,7 @@ const initializeEventForm = (page, supabase, showTab) => {
 		item.querySelector("[data-question-label]").focus();
 	});
 	syncQuestionBuilder(page);
+	form.elements.volunteer_only.addEventListener("change", () => syncVolunteerOnlyFields(form));
 	form.addEventListener("submit", async (event) => {
 		event.preventDefault();
 		const values = new FormData(form);
@@ -858,6 +948,7 @@ const initializeEventForm = (page, supabase, showTab) => {
 				max_participants_per_registration: Number(values.get("max_participants_per_registration")),
 				registration_open: values.has("registration_open"),
 				published: values.has("published"),
+				volunteer_only: values.has("volunteer_only"),
 				volunteer_questions: readVolunteerQuestions(page),
 			};
 			if (payload.max_participants_per_registration > payload.capacity) throw new Error("The maximum per registration cannot exceed the event capacity.");
@@ -877,6 +968,7 @@ const initializeEventForm = (page, supabase, showTab) => {
 		form.reset();
 		form.elements.event_id.value = "";
 		setVolunteerQuestions(page, []);
+		syncVolunteerOnlyFields(form);
 		editor.open = false;
 		toast(wasEdit ? "Event updated." : `${payload.title} was created${payload.published ? " and published" : " as a draft"}.`);
 		await Promise.all([loadEvents(page, supabase, showTab), loadOverview(page, supabase), loadRegistrations(page, supabase), loadVolunteerRequests(page, supabase)]);
@@ -889,6 +981,7 @@ const initializeEventForm = (page, supabase, showTab) => {
 		form.reset();
 		form.elements.event_id.value = "";
 		setVolunteerQuestions(page, []);
+		syncVolunteerOnlyFields(form);
 		editor.open = false;
 		setStatus(status);
 	});
@@ -916,7 +1009,7 @@ const rosterSelectionKey = "pcaAdminRosterEvent";
 const loadRegistrations = async (page, supabase) => {
 	const [registrationResult, eventsResult, profilesResult] = await Promise.all([
 		supabase.from("event_registrations").select("*").order("created_at", { ascending: false }),
-		supabase.from("events").select("id,title,location,starts_at,ends_at,event_date,capacity,max_participants_per_registration,registration_open,published,deleted_at"),
+		supabase.from("events").select("id,title,location,starts_at,ends_at,event_date,capacity,max_participants_per_registration,registration_open,published,deleted_at,volunteer_only"),
 		supabase.from("account_profiles").select("id,full_name,email"),
 	]);
 	for (const result of [registrationResult, eventsResult, profilesResult]) if (result.error) throw result.error;
@@ -928,7 +1021,7 @@ const loadRegistrations = async (page, supabase) => {
 	const now = new Date();
 	const withRegistrations = new Set(registrationsState.registrations.map((registration) => registration.event_id));
 	registrationsState.summaries = registrationsState.events
-		.filter((event) => withRegistrations.has(event.id) || (!event.deleted_at && event.published && event.starts_at && new Date(event.starts_at) > now))
+		.filter((event) => withRegistrations.has(event.id) || (!event.deleted_at && event.published && !event.volunteer_only && event.starts_at && new Date(event.starts_at) > now))
 		.map((event) => ({ ...summarizeEventRegistrations(event, registrationsState.registrations, now), event }))
 		.sort((a, b) => {
 			if (a.upcoming !== b.upcoming) return a.upcoming ? -1 : 1;
@@ -1011,13 +1104,13 @@ const renderRoster = async (page, supabase) => {
 		return;
 	}
 	title.textContent = summary.title;
-	const switchable = eventSwitchAvailable(summary.event);
+	const switchable = eventSwitchAvailable(summary.event) && !summary.event.volunteer_only;
 	const metaParts = [
 		summary.event.starts_at ? eventTimeFormatter.format(new Date(summary.event.starts_at)) : eventDateTableValue(summary.event),
 		summary.event.location || "",
 		`${summary.confirmedSeats} of ${summary.capacity} seats confirmed`,
 		summary.waitlistedGroups ? `${summary.waitlistedGroups} group${summary.waitlistedGroups === 1 ? "" : "s"} on the waitlist` : "",
-		summary.event.deleted_at ? "Deleted event" : !switchable && !summary.event.registration_open ? "Registration closed" : "",
+		summary.event.deleted_at ? "Deleted event" : summary.event.volunteer_only ? "Volunteer-only event" : !switchable && !summary.event.registration_open ? "Registration closed" : "",
 	].filter(Boolean);
 	meta.replaceChildren(...metaParts.map((part) => createElement("span", "", part)));
 	registrationSwitch.hidden = !switchable;
@@ -1619,6 +1712,7 @@ const renderVolunteerSignups = (page, supabase, events, requests) => {
 				`${eventTimeFormatter.format(new Date(event.starts_at))} ET`,
 				volunteerRequestCountLabel(signups),
 				questionCount ? `${questionCount} question${questionCount === 1 ? "" : "s"}` : "",
+				event.volunteer_only ? "Volunteer-only" : "",
 			])
 		);
 		const editQuestions = createElement("button", "button small", questionCount ? "Edit Questions" : "Add Questions");

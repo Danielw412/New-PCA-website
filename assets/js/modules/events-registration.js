@@ -10,7 +10,7 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20261016-volunteer-questions-v1";
+} from "./core-auth.js?v=20261024-volunteer-only-events-v1";
 
 const registrationStatusLabels = Object.freeze({
 	confirmed: "Confirmed",
@@ -86,6 +86,15 @@ export const registrationEditAvailability = ({
 	if (registration.status === "cancelled") return "cancelled";
 	if (!isAdmin && new Date(eventStartsAt) <= new Date()) return "started";
 	return "editable";
+};
+
+// Why register.html turns a new registration away, if it does. Volunteer-only
+// events get their own answer so the page can point people to volunteering.
+export const newRegistrationBlocker = (event, now = new Date()) => {
+	if (!event?.published || event.deleted_at) return "unavailable";
+	if (event.volunteer_only) return "volunteer_only";
+	if (!event.registration_open || !event.starts_at || new Date(event.starts_at) <= now) return "unavailable";
+	return null;
 };
 
 export const canAddRegistrationAttendee = ({ count, maximum, existingMemberIds = [], householdMemberId = null }) => {
@@ -329,13 +338,20 @@ const initializeRegistrationPage = async () => {
 	}
 
 	const { data: event, error: eventError } = await supabase.from("events").select("*").eq("id", eventId).single();
-	const unavailableForNewRegistration = !registrationId && (
-		!event?.published
-		|| event?.deleted_at
-		|| !event?.registration_open
-		|| new Date(event?.starts_at) <= new Date()
-	);
-	if (eventError || !event || unavailableForNewRegistration) {
+	const blocker = eventError || !event ? "unavailable" : registrationId ? null : newRegistrationBlocker(event);
+	if (blocker === "volunteer_only") {
+		const canVolunteer = event.volunteer_signups_open !== false && new Date(event.starts_at) > new Date();
+		setStatus(status, `${event.title} is a volunteer-only event, so there is no household registration. ${canVolunteer ? "You can still sign up to volunteer." : "Volunteer sign-ups for it have ended."}`, "info");
+		const volunteerOption = page.querySelector("[data-registration-volunteer-option]");
+		if (volunteerOption && canVolunteer) {
+			volunteerOption.querySelector("a").href = `volunteer-apply.html?event=${encodeURIComponent(event.id)}`;
+			volunteerOption.hidden = false;
+			page.querySelector("[data-registration-browse-link]")?.classList.remove("primary");
+		}
+		if (recovery) recovery.hidden = false;
+		return;
+	}
+	if (blocker) {
 		setStatus(status, "This event is not available.", "error");
 		if (recovery) recovery.hidden = false;
 		return;

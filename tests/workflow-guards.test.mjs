@@ -266,6 +266,76 @@ test("volunteer questions are validated in the database and wired through every 
 	assert.doesNotMatch(volunteerSource, /\.innerHTML\s*=/);
 });
 
+test("volunteer-only events turn household registration away with their own reason", () => {
+	const now = new Date("2026-10-24T12:00:00Z");
+	const event = { published: true, deleted_at: null, registration_open: true, starts_at: "2026-11-01T18:00:00Z", volunteer_only: false };
+	assert.equal(registration.newRegistrationBlocker(event, now), null);
+	assert.equal(registration.newRegistrationBlocker({ ...event, volunteer_only: true, registration_open: false }, now), "volunteer_only");
+	assert.equal(registration.newRegistrationBlocker({ ...event, volunteer_only: true, published: false }, now), "unavailable");
+	assert.equal(registration.newRegistrationBlocker({ ...event, registration_open: false }, now), "unavailable");
+	assert.equal(registration.newRegistrationBlocker({ ...event, starts_at: "2026-10-01T18:00:00Z" }, now), "unavailable");
+	assert.equal(registration.newRegistrationBlocker({ ...event, starts_at: null }, now), "unavailable");
+	assert.equal(registration.newRegistrationBlocker({ ...event, deleted_at: "2026-10-20T00:00:00Z" }, now), "unavailable");
+	assert.equal(registration.newRegistrationBlocker(null, now), "unavailable");
+});
+
+test("administrators can switch volunteer-only until an event is over and are told who keeps a place", () => {
+	const now = new Date("2026-10-24T12:00:00Z");
+	const event = { starts_at: "2026-11-01T18:00:00Z", ends_at: "2026-11-01T20:00:00Z", event_date: "2026-11-01" };
+	assert.equal(administration.volunteerOnlySwitchAvailable(event, now), true);
+	assert.equal(administration.volunteerOnlySwitchAvailable({ ...event, starts_at: "2026-10-24T11:00:00Z", ends_at: "2026-10-24T13:00:00Z" }, now), true);
+	assert.equal(administration.volunteerOnlySwitchAvailable({ ...event, starts_at: "2026-10-01T18:00:00Z", ends_at: "2026-10-01T20:00:00Z" }, now), false);
+	assert.equal(administration.volunteerOnlySwitchAvailable({ ...event, deleted_at: "2026-10-20T00:00:00Z" }, now), false);
+	assert.equal(administration.volunteerOnlySwitchAvailable({ starts_at: null, ends_at: null, event_date: "2026-11-05" }, now), true);
+	assert.equal(administration.volunteerOnlySwitchAvailable({ starts_at: null, ends_at: null, event_date: "2026-10-24" }, now), false);
+
+	assert.doesNotMatch(administration.volunteerOnlyConfirmMessage({ confirmedGroups: 0, waitlistedGroups: 0 }), /already registered/);
+	assert.match(administration.volunteerOnlyConfirmMessage({ confirmedGroups: 1, waitlistedGroups: 0 }), /The 1 household already registered keeps its place\./);
+	assert.match(administration.volunteerOnlyConfirmMessage({ confirmedGroups: 2, waitlistedGroups: 1 }), /The 3 households already registered keep their place\./);
+});
+
+test("volunteer-only events are enforced in the database and wired through every surface", () => {
+	const migration = read("supabase/migrations/20261025014940_volunteer_only_events.sql");
+	assert.match(migration, /add column volunteer_only boolean not null default false/);
+	// The constraint keeps registration closed, so every registration RPC refuses new households unchanged.
+	assert.match(migration, /add constraint events_volunteer_only_closes_registration\s+check \(not \(volunteer_only and registration_open\)\)/);
+	assert.doesNotMatch(migration, /function private\.register_for_event/);
+	assert.match(migration, /as volunteer_signups_available,\s+events\.volunteer_only\s+from public\.events/);
+	// Saving without the key keeps the stored flag, so cached admin pages cannot clear it.
+	assert.match(migration, /if event_volunteer_only is null then[\s\S]*?select events\.volunteer_only\s+into event_volunteer_only/);
+	assert.match(migration, /if event_volunteer_only and event_registration_open then\s+raise exception/);
+	assert.match(migration, /private\.set_event_registration_open[\s\S]*?if p_open and event_volunteer_only then\s+raise exception/);
+	assert.match(migration, /private\.set_event_volunteer_only[\s\S]*?if not private\.is_site_administrator\(\) then/);
+	assert.match(migration, /registration_open = case when p_volunteer_only then false else events\.registration_open end/);
+	assert.match(migration, /create function public\.set_event_volunteer_only\([\s\S]*?security invoker/);
+	assert.match(migration, /grant execute on function public\.set_event_volunteer_only\(uuid, boolean\) to authenticated;/);
+	// The only grant to anon is reading the public catalog.
+	assert.deepEqual(migration.match(/grant [^;]*\banon\b[^;]*;/g), ["grant select on public.event_catalog to anon, authenticated;"]);
+
+	const adminHtml = read("admin-dashboard.html");
+	const adminSource = read("assets/js/modules/administration.js");
+	assert.match(adminHtml, /name="volunteer_only"/);
+	assert.equal(adminHtml.match(/data-admin-event-attendee-field/g)?.length, 2);
+	assert.match(adminSource, /\[data-admin-event-attendee-field\]/);
+	assert.match(adminSource, /volunteer_only: values\.has\("volunteer_only"\)/);
+	assert.match(adminSource, /supabase\.rpc\("set_event_volunteer_only", \{ p_event_id: event\.id, p_volunteer_only: !on \}\)/);
+	assert.match(adminSource, /if \(!on && !\(await confirmDialog\(/);
+	// The switch sits in the Registered column, under the registration switch it overrides.
+	assert.match(adminSource, /stackedSwitchCell\(volunteerOnlyBadge\(\), registeredDetails, volunteerOnlySwitch\)/);
+	assert.doesNotMatch(adminSource, /actions\.append\([^)]*volunteerOnlyButton/);
+	assert.match(adminSource, /const switchable = eventSwitchAvailable\(summary\.event\) && !summary\.event\.volunteer_only;/);
+
+	const registerHtml = read("register.html");
+	const registrationSource = read("assets/js/modules/events-registration.js");
+	assert.match(registerHtml, /data-registration-volunteer-option hidden/);
+	assert.match(registrationSource, /\[data-registration-volunteer-option\]/);
+	assert.match(registrationSource, /newRegistrationBlocker\(event\)/);
+
+	const backend = read("assets/js/pca-backend.js");
+	assert.match(backend, /event_catalog[\s\S]*?volunteer_signups_available,volunteer_only"/);
+	assert.match(backend, /if \(volunteerOnly\) \{\s+actions\.appendChild\(volunteerAction\(true\)\);/);
+});
+
 test("registration view links are hashed, scoped, and carried into confirmation emails", () => {
 	const migration = read("supabase/migrations/20260913023208_registration_view_links_and_admin_queue.sql");
 	assert.match(migration, /create table private\.registration_view_tokens/);

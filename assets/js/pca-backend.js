@@ -881,7 +881,12 @@
 			);
 		}
 		const body = createElement("div", "pca-event-agenda__body");
-		body.appendChild(createElement("p", "pca-event-agenda__kicker", event.lifecycle === "in_progress" ? "Happening now" : "Next PCA event"));
+		const volunteerOnly = event.volunteer_only === true;
+		body.appendChild(createElement(
+			"p",
+			"pca-event-agenda__kicker",
+			event.lifecycle === "in_progress" ? "Happening now" : volunteerOnly ? "Volunteer-only event" : "Next PCA event"
+		));
 		body.appendChild(createElement("h2", "", event.title));
 		const meta = formatEventMeta(event);
 		if (meta) body.appendChild(createElement("p", "pca-event-agenda__meta", meta));
@@ -892,48 +897,56 @@
 
 		const registrationMeta = createElement("p", "pca-event-registration-meta");
 		const eventStarted = !event.starts_at || new Date(event.starts_at) <= new Date();
-		const canRegister = typeof event.registration_available === "boolean"
+		const canRegister = !volunteerOnly && (typeof event.registration_available === "boolean"
 			? event.registration_available
-			: event.registration_open && !eventStarted;
-		registrationMeta.textContent = canRegister
-			? `Registration open · Up to ${event.max_participants_per_registration} attendee${event.max_participants_per_registration === 1 ? "" : "s"} per household`
-			: "Registration closed";
+			: event.registration_open && !eventStarted);
+		const canVolunteer = typeof event.volunteer_signups_available === "boolean"
+			? event.volunteer_signups_available
+			: event.volunteer_signups_open !== false && !eventStarted;
+		registrationMeta.textContent = volunteerOnly
+			? `Volunteers only · ${canVolunteer ? "No attendee registration" : "Volunteer sign-ups closed"}`
+			: canRegister
+				? `Registration open · Up to ${event.max_participants_per_registration} attendee${event.max_participants_per_registration === 1 ? "" : "s"} per household`
+				: "Registration closed";
 		body.appendChild(registrationMeta);
 
-		const actions = createElement("ul", "actions");
-		const actionItem = createElement("li");
-
-		if (canRegister && canRegisterForHouseholdEvent(session)) {
-			const destination = `register.html?event=${encodeURIComponent(event.id)}`;
-			const registerLink = createElement("a", "button primary", "Register");
-			registerLink.href = destination;
-			actionItem.appendChild(registerLink);
-		} else {
-			const closedButton = createElement(
-				"span",
-				"button disabled",
-				canRegister ? "Household Account Required" : "Registration Closed"
-			);
-			closedButton.setAttribute("aria-disabled", "true");
-			actionItem.appendChild(closedButton);
-		}
-
-		actions.appendChild(actionItem);
-		if (!eventStarted) {
-			const volunteerItem = createElement("li");
-			const canVolunteer = typeof event.volunteer_signups_available === "boolean"
-				? event.volunteer_signups_available
-				: event.volunteer_signups_open !== false;
+		const volunteerAction = (primary) => {
+			const item = createElement("li");
 			if (canVolunteer) {
-				const volunteerLink = createElement("a", "button", "Volunteer");
+				const volunteerLink = createElement("a", primary ? "button primary" : "button", "Volunteer");
 				volunteerLink.href = `volunteer-apply.html?event=${encodeURIComponent(event.id)}`;
-				volunteerItem.appendChild(volunteerLink);
+				item.appendChild(volunteerLink);
 			} else {
 				const volunteersClosed = createElement("span", "button disabled", "Volunteer Sign-ups Closed");
 				volunteersClosed.setAttribute("aria-disabled", "true");
-				volunteerItem.appendChild(volunteersClosed);
+				item.appendChild(volunteersClosed);
 			}
-			actions.appendChild(volunteerItem);
+			return item;
+		};
+
+		const actions = createElement("ul", "actions");
+		// Volunteer-only events have no Register button. Volunteer becomes the
+		// main action and stays visible, disabled, once sign-ups end.
+		if (volunteerOnly) {
+			actions.appendChild(volunteerAction(true));
+		} else {
+			const actionItem = createElement("li");
+			if (canRegister && canRegisterForHouseholdEvent(session)) {
+				const destination = `register.html?event=${encodeURIComponent(event.id)}`;
+				const registerLink = createElement("a", "button primary", "Register");
+				registerLink.href = destination;
+				actionItem.appendChild(registerLink);
+			} else {
+				const closedButton = createElement(
+					"span",
+					"button disabled",
+					canRegister ? "Household Account Required" : "Registration Closed"
+				);
+				closedButton.setAttribute("aria-disabled", "true");
+				actionItem.appendChild(closedButton);
+			}
+			actions.appendChild(actionItem);
+			if (!eventStarted) actions.appendChild(volunteerAction(false));
 		}
 		const actionPanel = createElement("div", "pca-event-agenda__actions");
 		actionPanel.appendChild(actions);
@@ -944,7 +957,7 @@
 	const loadPublicEvents = async (lifecycle) => {
 		let query = state.client
 			.from("event_catalog")
-			.select("id,title,description,location,starts_at,ends_at,capacity,max_participants_per_registration,registration_open,published,lifecycle,registration_available,event_date,volunteer_signups_open,volunteer_signups_available");
+			.select("id,title,description,location,starts_at,ends_at,capacity,max_participants_per_registration,registration_open,published,lifecycle,registration_available,event_date,volunteer_signups_open,volunteer_signups_available,volunteer_only");
 		query = lifecycle === "past"
 			? query.eq("lifecycle", "past").order("event_date", { ascending: false }).order("ends_at", { ascending: false, nullsFirst: false })
 			: query.in("lifecycle", ["upcoming", "in_progress"]).order("starts_at", { ascending: true });
@@ -954,7 +967,7 @@
 
 		let fallback = state.client
 			.from("events")
-			.select("id,title,description,location,starts_at,ends_at,capacity,max_participants_per_registration,registration_open,published,event_date,volunteer_signups_open");
+			.select("id,title,description,location,starts_at,ends_at,capacity,max_participants_per_registration,registration_open,published,event_date,volunteer_signups_open,volunteer_only");
 		const now = new Date();
 		const easternToday = new Intl.DateTimeFormat("en-CA", {
 			timeZone: APP_TIME_ZONE,
