@@ -867,6 +867,22 @@
 		});
 	};
 
+	// Descriptions keep their paragraphs, lists, and links through the shared
+	// formatter. If it cannot load, the text still shows with its line breaks.
+	let richText = null;
+	const loadRichText = async () => {
+		try {
+			richText ||= await import("./modules/rich-text.js?v=20261024-rich-text-formatting-v1");
+		} catch (error) {
+			console.warn("Event description formatting could not be loaded.", error);
+		}
+		return richText;
+	};
+
+	const createEventDescription = (text) => richText
+		? richText.createRichText(text, "div", "pca-event-description")
+		: createElement("p", "pca-event-description is-plain", text);
+
 	const createEventCard = (event, session) => {
 		const card = createElement("article", "pca-card pca-event-card pca-event-agenda");
 		const start = event.starts_at ? new Date(event.starts_at) : parseDateOnly(event.event_date);
@@ -892,7 +908,7 @@
 		if (meta) body.appendChild(createElement("p", "pca-event-agenda__meta", meta));
 
 		if (event.description) {
-			body.appendChild(createElement("p", "", event.description));
+			body.appendChild(createEventDescription(event.description));
 		}
 
 		const registrationMeta = createElement("p", "pca-event-registration-meta");
@@ -1002,7 +1018,7 @@
 		const status = document.querySelector("[data-events-status]");
 		setStatus(status, "Loading upcoming events...", "info");
 
-		const { data: events, error } = await loadPublicEvents("upcoming");
+		const [{ data: events, error }] = await Promise.all([loadPublicEvents("upcoming"), loadRichText()]);
 
 		if (error) {
 			setStatus(status, "Upcoming events could not be loaded. Please try again later.", "error");
@@ -1055,7 +1071,7 @@
 		}
 		const meta = [event.starts_at && event.ends_at ? formatEventRange(event) : "", event.location || ""].filter(Boolean).join(" · ");
 		if (meta) body.appendChild(createElement("p", "pca-event-agenda__meta", meta));
-		if (event.description) body.appendChild(createElement("p", "", event.description));
+		if (event.description) body.appendChild(createEventDescription(event.description));
 		card.append(toggle, body);
 		toggle.addEventListener("click", () => {
 			const open = toggle.getAttribute("aria-expanded") !== "true";
@@ -1070,7 +1086,7 @@
 		if (!eventList) return;
 		const status = document.querySelector("[data-past-events-status]");
 		setStatus(status, "Loading completed events...", "info");
-		const { data: events, error } = await loadPublicEvents("past");
+		const [{ data: events, error }] = await Promise.all([loadPublicEvents("past"), loadRichText()]);
 		if (error) {
 			setStatus(status, "Completed events could not be loaded. The historical archive is still available below.", "error");
 			return;

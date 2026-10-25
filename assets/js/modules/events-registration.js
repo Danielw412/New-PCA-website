@@ -10,7 +10,7 @@ import {
 	platformReady,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20261024-volunteer-only-events-v1";
+} from "./core-auth.js?v=20261024-rich-text-formatting-v1";
 
 const registrationStatusLabels = Object.freeze({
 	confirmed: "Confirmed",

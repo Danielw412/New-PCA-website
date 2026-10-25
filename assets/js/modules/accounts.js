@@ -9,7 +9,8 @@ import {
 	requirePermanentAccount,
 	setFormBusy,
 	setStatus,
-} from "./core-auth.js?v=20261024-volunteer-only-events-v1";
+} from "./core-auth.js?v=20261024-rich-text-formatting-v1";
+import { createRichText } from "./rich-text.js?v=20261024-rich-text-formatting-v1";
 
 const roleLabels = {
 	student_council: "Student Council",
@@ -98,7 +99,7 @@ const renderTeenAssignments = async (supabase, assignments, container) => {
 		card.append(createElement("span", "pca-status-badge", assignment.status), createElement("h3", "", event.title));
 		card.appendChild(createElement("p", "", assignment.role_title));
 		card.appendChild(createElement("p", "", `${formatEventRange(event)} · ${event.location}`));
-		if (assignment.instructions) card.appendChild(createElement("p", "", assignment.instructions));
+		if (assignment.instructions) card.appendChild(createRichText(assignment.instructions));
 		container.appendChild(card);
 	});
 	return activeAssignments;
